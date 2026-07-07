@@ -91,9 +91,10 @@ export default function GroupDetailPage() {
           <button 
             onClick={shareOnWhatsapp} 
             disabled={sharing}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-ink/5 rounded-md transition-colors text-xs font-mono font-bold uppercase tracking-wider text-teal hidden sm:flex border border-teal/20 disabled:opacity-60"
+            className="flex items-center gap-2 p-2 sm:px-3 sm:py-1.5 hover:bg-ink/5 rounded-md sm:rounded-md transition-colors text-xs font-mono font-bold uppercase tracking-wider text-teal border border-teal/20 sm:border-teal/20 border-transparent bg-teal/5 sm:bg-transparent disabled:opacity-60"
           >
-            <Share2 size={14} /> {sharing ? 'Preparing...' : 'Share to WhatsApp'}
+            <Share2 size={16} className="sm:w-[14px] sm:h-[14px]" /> 
+            <span className="hidden sm:inline">{sharing ? 'Preparing...' : 'Share to WhatsApp'}</span>
           </button>
           <Link href="/profile" className="p-1 hover:bg-ink/5 rounded-full transition-colors border border-ink/10 overflow-hidden bg-ink/5 flex items-center justify-center">
             <User size={24} strokeWidth={1.5} className="text-ink/60" />
