@@ -6,7 +6,6 @@ import Chit from './Chit';
 
 export default function BalanceBoard({ groupId, balances, moves, currentUserId, onSettled }) {
   const [settling, setSettling] = useState(null); // move index currently being settled
-  const [sharing, setSharing] = useState(false);
 
   async function markSettled(move, idx) {
     setSettling(idx);
@@ -23,28 +22,11 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
     }
   }
 
-  async function shareOnWhatsapp() {
-    setSharing(true);
-    try {
-      const { text } = await api.getWhatsappText(groupId);
-      const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-      window.open(url, '_blank');
-    } finally {
-      setSharing(false);
-    }
-  }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-display text-lg text-ink">Who owes whom</h3>
-        <button
-          onClick={shareOnWhatsapp}
-          disabled={sharing}
-          className="text-sm font-medium text-teal border border-teal/40 rounded-full px-3 py-1.5 hover:bg-teal/5 disabled:opacity-60"
-        >
-          {sharing ? 'Preparing…' : '📲 Share on WhatsApp'}
-        </button>
       </div>
 
       {moves.length === 0 ? (

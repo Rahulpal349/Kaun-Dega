@@ -20,6 +20,20 @@ export default function GroupDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [group, setGroup] = useState(null);
+  const [sharing, setSharing] = useState(false);
+
+  async function shareOnWhatsapp() {
+    setSharing(true);
+    try {
+      const { text } = await api.getWhatsappText(id);
+      const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSharing(false);
+    }
+  }
 
   const loadAll = useCallback(async () => {
     try {
@@ -74,12 +88,16 @@ export default function GroupDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 text-ink">
-          <button className="flex items-center gap-2 px-3 py-1.5 hover:bg-ink/5 rounded-md transition-colors text-xs font-mono font-bold uppercase tracking-wider text-teal hidden sm:flex border border-teal/20">
-            <Share2 size={14} /> Share to WhatsApp
+          <button 
+            onClick={shareOnWhatsapp} 
+            disabled={sharing}
+            className="flex items-center gap-2 px-3 py-1.5 hover:bg-ink/5 rounded-md transition-colors text-xs font-mono font-bold uppercase tracking-wider text-teal hidden sm:flex border border-teal/20 disabled:opacity-60"
+          >
+            <Share2 size={14} /> {sharing ? 'Preparing...' : 'Share to WhatsApp'}
           </button>
-          <button className="p-1 hover:bg-ink/5 rounded-full transition-colors border border-ink/10 overflow-hidden bg-ink/5">
+          <Link href="/profile" className="p-1 hover:bg-ink/5 rounded-full transition-colors border border-ink/10 overflow-hidden bg-ink/5 flex items-center justify-center">
             <User size={24} strokeWidth={1.5} className="text-ink/60" />
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -87,7 +105,7 @@ export default function GroupDetailPage() {
         {error && <p className="text-chili text-sm mb-4">{error}</p>}
 
         <h3 className="font-mono text-xs uppercase tracking-widest font-semibold text-ink/50 mb-4 ml-2">Group Balances</h3>
-        <div className="mb-10 shadow-[0_4px_20px_rgba(11,43,38,0.08)]">
+        <div id="balance-board" className="mb-10 shadow-[0_4px_20px_rgba(11,43,38,0.08)] scroll-mt-24">
           <BalanceBoard
             groupId={id}
             balances={balanceData.balances}
@@ -132,7 +150,10 @@ export default function GroupDetailPage() {
             <p className="font-mono text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">Your Net Balance</p>
             <p className="font-mono font-bold text-2xl">₹0.00</p>
           </div>
-          <button className="bg-ink text-paper font-mono text-xs sm:text-sm font-bold uppercase tracking-widest px-4 sm:px-6 py-3 rounded-lg hover:bg-ink/90 transition-colors shadow-[2px_2px_0px_rgba(11,43,38,0.2)] active:translate-y-[1px] active:translate-x-[1px] active:shadow-none">
+          <button 
+            onClick={() => document.getElementById('balance-board')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-ink text-paper font-mono text-xs sm:text-sm font-bold uppercase tracking-widest px-4 sm:px-6 py-3 rounded-lg hover:bg-ink/90 transition-colors shadow-[2px_2px_0px_rgba(11,43,38,0.2)] active:translate-y-[1px] active:translate-x-[1px] active:shadow-none"
+          >
             Settle Up
           </button>
         </div>
