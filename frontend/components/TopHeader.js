@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { History, Bell, User } from 'lucide-react';
+import { History, User } from 'lucide-react';
 
 export default function TopHeader({ title = 'Kaun Dega?', showNav = false }) {
   return (
@@ -20,15 +20,12 @@ export default function TopHeader({ title = 'Kaun Dega?', showNav = false }) {
       </div>
 
       <div className="flex items-center gap-4 text-ink">
-        <button className="p-2 hover:bg-ink/5 rounded-full transition-colors hidden sm:block">
+        <Link href="/history" className="p-2 hover:bg-ink/5 rounded-full transition-colors hidden sm:block">
           <History size={20} strokeWidth={2} />
-        </button>
-        <button className="p-2 hover:bg-ink/5 rounded-full transition-colors hidden sm:block">
-          <Bell size={20} strokeWidth={2} />
-        </button>
-        <button className="p-1 hover:bg-ink/5 rounded-full transition-colors border border-ink/10 overflow-hidden bg-ink/5">
+        </Link>
+        <Link href="/profile" className="p-1 hover:bg-ink/5 rounded-full transition-colors border border-ink/10 overflow-hidden bg-ink/5">
           <User size={24} strokeWidth={1.5} className="text-ink/60" />
-        </button>
+        </Link>
       </div>
     </header>
   );
