@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #FBF4E7;
+  color: #0B2B26;
+}
+
+/* Background utilities */
+.bg-dotted {
+  background-image: radial-gradient(#0B2B26 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-color: #FBF4E7;
+  opacity: 0.9;
+}
+
+.bg-ruled {
+  background-color: #FBF4E7;
+  background-image: repeating-linear-gradient(transparent, transparent 39px, rgba(11, 43, 38, 0.1) 40px);
+  background-position: 0 40px;
+}
+
+/* Signature element: the torn-edge paper "chit" used for every expense/balance line */
+.chit {
+  position: relative;
+  background: #FDF9F1;
+  border: 1px solid rgba(11, 43, 38, 0.08);
+  box-shadow: 0 2px 8px -2px rgba(11, 43, 38, 0.05), 0 12px 24px -12px rgba(11, 43, 38, 0.1);
+}
+
+.chit::before,
+.chit::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background-image: radial-gradient(circle at 6px 4px, #FBF4E7 4px, transparent 4.5px);
+  background-size: 12px 8px;
+  background-repeat: repeat-x;
+}
+
+.chit::before {
+  top: -1px;
+}
+
+.chit::after {
+  bottom: -1px;
+  transform: rotate(180deg);
+}
+
+.ledger-line {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 43px,
+    rgba(11, 43, 38, 0.08) 44px
+  );
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
