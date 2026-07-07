@@ -22,7 +22,6 @@ All data access goes straight from the browser to Supabase, secured by Row Level
 ## 2. Run the frontend
 
 ```bash
-cd frontend
 cp .env.local.example .env.local
 # fill in NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
 npm install
@@ -61,13 +60,12 @@ The app runs on `http://localhost:3000`. That's it — there's no backend to sta
 kaun-dega/
 ├── database/
 │   └── schema.sql          # Run this in Supabase's SQL editor — tables + RLS policies
-└── frontend/                # Next.js app (this is now the whole app)
-    ├── app/                  pages (landing, login, signup, dashboard, groups)
-    ├── components/           Chit, ExpenseForm, BalanceBoard
-    └── lib/
-        ├── supabaseClient.js   browser Supabase client (anon key only)
-        ├── api.js              all reads/writes to Supabase tables
-        └── balances.js         pure JS: balance calc, debt simplification, WhatsApp text
+├── app/                    # pages (landing, login, signup, dashboard, groups)
+├── components/             # Chit, ExpenseForm, BalanceBoard
+└── lib/
+    ├── supabaseClient.js   # browser Supabase client (anon key only)
+    ├── api.js              # all reads/writes to Supabase tables
+    └── balances.js         # pure JS: balance calc, debt simplification, WhatsApp text
 ```
 
 ## Notes & next steps
