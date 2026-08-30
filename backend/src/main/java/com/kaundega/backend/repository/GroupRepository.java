@@ -12,7 +12,10 @@ import java.util.UUID;
 
 @Repository
 public interface GroupRepository extends JpaRepository<Group, UUID> {
+    @EntityGraph(attributePaths = {"members"})
     List<Group> findByCreatedById(UUID userId);
+    
+    @EntityGraph(attributePaths = {"members"})
     List<Group> findByMembersContains(User user);
     
     @EntityGraph(attributePaths = {"members"})

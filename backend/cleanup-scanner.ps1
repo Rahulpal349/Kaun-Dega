@@ -17,7 +17,7 @@ Write-Host "=============================================" -ForegroundColor Cyan
 Write-Host "  Spring Boot Production Code Scanner" -ForegroundColor Cyan
 Write-Host "=============================================" -ForegroundColor Cyan
 
-function Scan-Pattern {
+function Find-Pattern {
     param(
         [string]$Pattern,
         [string]$Description
@@ -35,10 +35,10 @@ function Scan-Pattern {
     }
 }
 
-Scan-Pattern -Pattern "System\.out\.print" -Description "Console Prints"
-Scan-Pattern -Pattern "\.printStackTrace\(\)" -Description "Stack Traces"
-Scan-Pattern -Pattern "TODO|FIXME" -Description "TODOs and FIXMEs"
-Scan-Pattern -Pattern "import.*mock" -Description "Mock Data Imports"
-Scan-Pattern -Pattern "org\.h2" -Description "H2 Database References"
+Find-Pattern -Pattern "System\.out\.print" -Description "Console Prints"
+Find-Pattern -Pattern "\.printStackTrace\(\)" -Description "Stack Traces"
+Find-Pattern -Pattern "TODO|FIXME" -Description "TODOs and FIXMEs"
+Find-Pattern -Pattern "import.*mock" -Description "Mock Data Imports"
+Find-Pattern -Pattern "org\.h2" -Description "H2 Database References"
 
 Write-Host "`nScan Complete!" -ForegroundColor Cyan

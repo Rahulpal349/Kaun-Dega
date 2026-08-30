@@ -1,6 +1,7 @@
 package com.kaundega.backend.repository;
 
 import com.kaundega.backend.entity.Expense;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,9 @@ import java.util.UUID;
 
 @Repository
 public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
+    @EntityGraph(attributePaths = {"splits", "paidBy"})
+    List<Expense> findByGroupId(UUID groupId, Pageable pageable);
+    
     @EntityGraph(attributePaths = {"splits", "paidBy"})
     List<Expense> findByGroupId(UUID groupId);
     List<Expense> findByPaidByIdAndGroupId(UUID userId, UUID groupId);

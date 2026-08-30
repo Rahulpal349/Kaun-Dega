@@ -6,6 +6,7 @@ import com.kaundega.backend.exception.BusinessValidationException;
 import com.kaundega.backend.repository.*;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -151,10 +152,9 @@ public class ExpenseService {
 
     @Transactional(readOnly = true)
     public List<ExpenseDto> getExpenses(UUID groupId, int limit, int offset) {
-        List<Expense> allExpenses = expenseRepository.findByGroupId(groupId);
-        return allExpenses.stream()
-                .skip(offset)
-                .limit(limit)
+        int page = offset / limit;
+        List<Expense> pagedExpenses = expenseRepository.findByGroupId(groupId, PageRequest.of(page, limit));
+        return pagedExpenses.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
