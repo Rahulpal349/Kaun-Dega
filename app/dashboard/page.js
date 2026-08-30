@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '../../lib/supabaseClient';
-import { api } from '../../lib/api';
+import { supabase } from '../../archive/deprecated-utils/supabaseClient';
+import { api } from '../../archive/deprecated-utils/api';
 import TopHeader from '../../components/TopHeader';
 import { Plus, PenLine, Trash2 } from 'lucide-react';
 

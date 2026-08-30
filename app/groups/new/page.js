@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '../../../lib/api';
+import { api } from '../../../archive/deprecated-utils/api';
 import { X, Check } from 'lucide-react';
 
 const THEMES = [

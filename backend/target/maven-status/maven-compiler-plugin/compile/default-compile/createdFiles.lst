@@ -13,6 +13,7 @@ com\kaundega\backend\dto\AuthResponse$AuthResponseBuilder.class
 com\kaundega\backend\config\SecurityConfig.class
 com\kaundega\backend\entity\Transaction$TransactionBuilder.class
 com\kaundega\backend\dto\package-info.class
+com\kaundega\backend\security\RateLimitingFilter.class
 com\kaundega\backend\repository\GroupRepository.class
 com\kaundega\backend\service\SettlementService$UserBalance.class
 com\kaundega\backend\dto\GroupDto$GroupDtoBuilder.class

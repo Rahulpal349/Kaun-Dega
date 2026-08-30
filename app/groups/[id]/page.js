@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '../../../lib/supabaseClient';
-import { api } from '../../../lib/api';
+import { supabase } from '../../../archive/deprecated-utils/supabaseClient';
+import { api } from '../../../archive/deprecated-utils/api';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
 import { ArrowLeft, User, Share2 } from 'lucide-react';

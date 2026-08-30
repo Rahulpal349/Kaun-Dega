@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabaseClient';
-import { api } from '../../lib/api';
+import { supabase } from '../../archive/deprecated-utils/supabaseClient';
+import { api } from '../../archive/deprecated-utils/api';
 import TopHeader from '../../components/TopHeader';
 
 export default function HistoryPage() {
