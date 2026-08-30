@@ -1,0 +1,18 @@
+# Ignore build directories
+target/
+.mvn/
+
+# Ignore IDE files
+.idea/
+*.iml
+.vscode/
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore logs
+*.log
+
+# Ensure we don't accidentally pull in node_modules if placed wrongly
+node_modules/

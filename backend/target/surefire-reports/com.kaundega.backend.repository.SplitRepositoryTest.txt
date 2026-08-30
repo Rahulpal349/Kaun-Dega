@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.kaundega.backend.repository.SplitRepositoryTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.311 s -- in com.kaundega.backend.repository.SplitRepositoryTest
