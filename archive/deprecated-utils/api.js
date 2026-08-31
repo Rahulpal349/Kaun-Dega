@@ -252,10 +252,10 @@ export const api = {
       .from('expenses')
       .update({ paid_by: newPayerId })
       .eq('id', expenseId)
-      .select()
-      .single();
+      .select();
     if (error) throw error;
-    return data;
+    if (!data || data.length === 0) throw new Error('Update failed — you may not have permission.');
+    return data[0];
   },
 
   async deleteExpense(expenseId) {
