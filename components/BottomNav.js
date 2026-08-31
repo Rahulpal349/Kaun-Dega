@@ -7,7 +7,10 @@ import { Home, Users, History, User } from 'lucide-react';
 export default function BottomNav() {
   const pathname = usePathname();
 
-  if (['/', '/login', '/signup'].includes(pathname)) {
+  if (
+    ['/', '/login', '/signup'].includes(pathname) || 
+    (pathname?.startsWith('/groups/') && pathname !== '/groups')
+  ) {
     return null;
   }
 
