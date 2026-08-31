@@ -26,6 +26,7 @@ export default function GroupDetailPage() {
   // Modals state
   const [showHistory, setShowHistory] = useState(false);
   const [showBalances, setShowBalances] = useState(false);
+  const [expandedExpenseId, setExpandedExpenseId] = useState(null);
 
   async function shareOnWhatsapp() {
     setSharing(true);
@@ -164,27 +165,56 @@ export default function GroupDetailPage() {
                 {expenses.map((e) => {
                   const date = new Date(e.created_at || new Date());
                   const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  const isExpanded = expandedExpenseId === e.id;
                   
                   return (
-                    <div key={e.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-soft-green text-primary flex items-center justify-center flex-shrink-0">
-                          <Coffee size={20} />
+                    <div key={e.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                      <div 
+                        onClick={() => setExpandedExpenseId(isExpanded ? null : e.id)}
+                        className="p-4 flex items-center justify-between cursor-pointer"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-soft-green text-primary flex items-center justify-center flex-shrink-0">
+                            <Coffee size={20} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-900 mb-0.5">{dateStr}</p>
+                            <p className="text-sm font-medium text-gray-700 leading-tight mb-1">{e.description}</p>
+                            <p className="text-[11px] text-gray-400">
+                              Paid by {e.payer?.name || 'someone'} · {e.split_type === 'equal' ? 'Split equally' : 'Custom split'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-gray-900 mb-0.5">{dateStr}</p>
-                          <p className="text-sm font-medium text-gray-700 leading-tight mb-1">{e.description}</p>
-                          <p className="text-[11px] text-gray-400">
-                            Paid by {e.payer?.name || 'someone'} · {e.split_type === 'equal' ? 'Split equally' : 'Custom split'}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-base text-gray-900">₹{Number(e.amount).toFixed(2)}</span>
+                          <button className={`text-gray-400 hover:text-gray-600 p-1 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-base text-gray-900">₹{Number(e.amount).toFixed(2)}</span>
-                        <button className="text-gray-400 hover:text-gray-600 p-1">
-                          <MoreVertical size={16} />
-                        </button>
-                      </div>
+                      
+                      {/* Expanded Breakdown */}
+                      {isExpanded && (
+                        <div className="px-4 pb-4 pt-3 border-t border-gray-50 bg-gray-50/50">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Split Breakdown</p>
+                          <div className="space-y-2">
+                            {e.expense_shares?.map(share => {
+                              const member = members.find(m => m.id === share.user_id);
+                              return (
+                                <div key={share.user_id} className="flex justify-between items-center text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 text-[10px] font-bold flex items-center justify-center">
+                                      {(member?.name || 'S').charAt(0).toUpperCase()}
+                                    </div>
+                                    <span className="text-gray-700 font-medium">{member?.name || 'Someone'}</span>
+                                  </div>
+                                  <span className="text-gray-900 font-bold">₹{Number(share.share_amount).toFixed(2)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

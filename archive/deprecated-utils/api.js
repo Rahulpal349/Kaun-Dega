@@ -131,7 +131,7 @@ export const api = {
   async getAllHistory() {
     const { data, error } = await supabase
       .from('expenses')
-      .select('*, group:groups(name, emoji), payer:paid_by(name)')
+      .select('*, group:groups(name, emoji), payer:profiles!paid_by(name)')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data;
@@ -158,7 +158,7 @@ export const api = {
   async getExpenses(groupId) {
     const { data, error } = await supabase
       .from('expenses')
-      .select('*, expense_shares(user_id, share_amount), payer:paid_by(name)')
+      .select('*, expense_shares(user_id, share_amount), payer:profiles!paid_by(name)')
       .eq('group_id', groupId)
       .order('created_at', { ascending: false });
     if (error) throw error;
