@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
@@ -11,6 +11,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const pendingCode = localStorage.getItem('pending_invite_code');
+        if (pendingCode) {
+          localStorage.removeItem('pending_invite_code');
+          router.replace(`/join/${pendingCode}`);
+        } else {
+          router.replace('/dashboard');
+        }
+      } else {
+        setCheckingAuth(false);
+      }
+    })();
+  }, [router]);
+
+  if (checkingAuth) {
+    return <main className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</main>;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,7 +47,15 @@ export default function LoginPage() {
       setError(error.message);
       return;
     }
-    router.push('/dashboard');
+
+    // Check if user came from an invite link
+    const pendingCode = localStorage.getItem('pending_invite_code');
+    if (pendingCode) {
+      localStorage.removeItem('pending_invite_code');
+      router.push(`/join/${pendingCode}`);
+    } else {
+      router.push('/dashboard');
+    }
   }
 
   return (

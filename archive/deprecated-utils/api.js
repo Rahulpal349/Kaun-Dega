@@ -21,7 +21,7 @@ export const api = {
     const userId = await currentUserId();
     const { data, error } = await supabase
       .from('group_members')
-      .select('groups(id, name, emoji, created_at)')
+      .select('groups(id, name, emoji, created_at, invite_code)')
       .eq('user_id', userId);
     if (error) throw error;
     
@@ -31,6 +31,39 @@ export const api = {
     try { hiddenGroups = JSON.parse(hiddenStr); } catch (e) {}
 
     return data.map((row) => row.groups).filter(g => !hiddenGroups.includes(g.id));
+  },
+
+  async getGroupByInviteCode(code) {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('id, name, emoji, invite_code')
+      .eq('invite_code', code.toUpperCase())
+      .single();
+    if (error) throw new Error('Invalid invite code or group not found.');
+    return data;
+  },
+
+  async joinGroupByCode(code) {
+    const userId = await currentUserId();
+    const group = await this.getGroupByInviteCode(code);
+
+    // Check if already a member
+    const { data: existing } = await supabase
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', group.id)
+      .eq('user_id', userId);
+    
+    if (existing && existing.length > 0) {
+      return { group, alreadyMember: true };
+    }
+
+    const { error } = await supabase
+      .from('group_members')
+      .insert({ group_id: group.id, user_id: userId });
+    if (error) throw error;
+
+    return { group, alreadyMember: false };
   },
 
   // Creates a group, adds the creator, then looks up any invited emails and adds them.

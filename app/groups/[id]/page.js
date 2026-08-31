@@ -6,7 +6,7 @@ import { supabase } from '../../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../../archive/deprecated-utils/api';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
-import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3 } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check } from 'lucide-react';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -20,6 +20,7 @@ export default function GroupDetailPage() {
   const [error, setError] = useState('');
   const [group, setGroup] = useState(null);
   const [sharing, setSharing] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Tabs and overlays
   const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'balance'
@@ -61,6 +62,21 @@ export default function GroupDetailPage() {
     }
   }
 
+  function shareInviteLink() {
+    if (!group?.invite_code) {
+      alert('Invite code not available yet.');
+      return;
+    }
+    const link = `${window.location.origin}/join/${group.invite_code}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }).catch(() => {
+      // Fallback: prompt
+      prompt('Copy this invite link:', link);
+    });
+  }
+
   const loadAll = useCallback(async () => {
     try {
       const [membersData, expensesData, balances, groupsData] = await Promise.all([
@@ -92,6 +108,23 @@ export default function GroupDetailPage() {
       await loadAll();
     })();
   }, [loadAll, router]);
+
+  // Realtime subscription — auto-refresh when any member changes data
+  useEffect(() => {
+    const channel = supabase
+      .channel(`group-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${id}` }, () => {
+        loadAll();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements', filter: `group_id=eq.${id}` }, () => {
+        loadAll();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, loadAll]);
 
   if (loading) {
     return <main className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</main>;
@@ -256,13 +289,15 @@ export default function GroupDetailPage() {
           <span className={`text-[11px] mt-1.5 font-medium ${activeTab === 'balance' ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>Balance</span>
         </button>
         <button 
-          onClick={shareOnWhatsapp}
+          onClick={shareInviteLink}
           className="flex flex-col items-center justify-center w-full h-full"
         >
-          <div className="px-5 py-1.5 rounded-full transition-colors text-gray-400 hover:text-gray-600 hover:bg-gray-50">
-            <Share2 size={24} strokeWidth={2} />
+          <div className={`px-5 py-1.5 rounded-full transition-colors ${copiedLink ? 'bg-[#e6f4ed] text-[#145C4B]' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}>
+            {copiedLink ? <Check size={24} strokeWidth={2.5} /> : <Link2 size={24} strokeWidth={2} />}
           </div>
-          <span className="text-[11px] mt-1.5 font-medium text-gray-500">Share</span>
+          <span className={`text-[11px] mt-1.5 font-medium ${copiedLink ? 'text-[#145C4B] font-semibold' : 'text-gray-500'}`}>
+            {copiedLink ? 'Copied!' : 'Invite'}
+          </span>
         </button>
         <button 
           onClick={() => router.push(`/groups/${id}/report`)}
