@@ -6,7 +6,7 @@ import { supabase } from '../../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../../archive/deprecated-utils/api';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
-import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3 } from 'lucide-react';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -25,6 +25,28 @@ export default function GroupDetailPage() {
   const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'balance'
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expandedExpenseId, setExpandedExpenseId] = useState(null);
+  const [editingPayerExpenseId, setEditingPayerExpenseId] = useState(null);
+
+  async function handleChangePayer(expenseId, newPayerId) {
+    try {
+      await api.updateExpensePayer(expenseId, newPayerId);
+      setEditingPayerExpenseId(null);
+      await loadAll();
+    } catch (err) {
+      alert('Failed to update payer: ' + err.message);
+    }
+  }
+
+  async function handleDeleteExpense(expenseId) {
+    if (!confirm('Delete this expense? This cannot be undone.')) return;
+    try {
+      await api.deleteExpense(expenseId);
+      setExpandedExpenseId(null);
+      await loadAll();
+    } catch (err) {
+      alert('Failed to delete: ' + err.message);
+    }
+  }
 
   async function shareOnWhatsapp() {
     setSharing(true);
@@ -131,7 +153,34 @@ export default function GroupDetailPage() {
                       
                       {/* Expanded Details */}
                       {isExpanded && (
-                        <div className="px-4 pb-3 pt-1 bg-gray-50 text-[13px]">
+                        <div className="px-4 pb-4 pt-2 bg-gray-50 text-[13px] border-t border-gray-100">
+                          {/* Edit Payer */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Edit3 size={14} className="text-gray-400" />
+                              <span className="font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Paid by</span>
+                            </div>
+                            {editingPayerExpenseId === e.id ? (
+                              <select
+                                className="text-[13px] bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#145C4B]/30"
+                                defaultValue={e.paid_by}
+                                onChange={(ev) => handleChangePayer(e.id, ev.target.value)}
+                              >
+                                {members.map(m => (
+                                  <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <button
+                                onClick={() => setEditingPayerExpenseId(e.id)}
+                                className="text-[13px] text-[#145C4B] font-semibold underline underline-offset-2 decoration-dashed"
+                              >
+                                {e.payer?.name || 'Someone'} ✎
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Split Breakdown */}
                           <p className="font-semibold text-gray-500 mb-2 uppercase tracking-wide text-[10px]">Split Details</p>
                           {e.expense_shares?.map(share => {
                             const member = members.find(m => m.id === share.user_id);
@@ -142,6 +191,15 @@ export default function GroupDetailPage() {
                               </div>
                             );
                           })}
+
+                          {/* Delete Expense */}
+                          <button
+                            onClick={() => handleDeleteExpense(e.id)}
+                            className="mt-3 w-full flex items-center justify-center gap-2 text-red-500 text-[12px] font-semibold py-2 rounded-lg border border-red-200 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                            Delete Expense
+                          </button>
                         </div>
                       )}
                     </div>

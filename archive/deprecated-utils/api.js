@@ -246,4 +246,30 @@ export const api = {
     if (groupErr) throw groupErr;
     return { text: buildWhatsappText(group, moves) };
   },
+
+  async updateExpensePayer(expenseId, newPayerId) {
+    const { data, error } = await supabase
+      .from('expenses')
+      .update({ paid_by: newPayerId })
+      .eq('id', expenseId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteExpense(expenseId) {
+    // Delete shares first (child rows), then the expense itself
+    const { error: sharesErr } = await supabase
+      .from('expense_shares')
+      .delete()
+      .eq('expense_id', expenseId);
+    if (sharesErr) throw sharesErr;
+
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', expenseId);
+    if (error) throw error;
+  },
 };
