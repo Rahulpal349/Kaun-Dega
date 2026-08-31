@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { api } from '../lib/api';
+import { api } from '../archive/deprecated-utils/api';
 import Chit from './Chit';
 
 export default function BalanceBoard({ groupId, balances, moves, currentUserId, onSettled }) {

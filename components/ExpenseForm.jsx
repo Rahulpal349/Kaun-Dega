@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '../lib/api';
+import { api } from '../archive/deprecated-utils/api';
 
 export default function ExpenseForm({ groupId, members, currentUserId, onAdded }) {
   const [description, setDescription] = useState('');

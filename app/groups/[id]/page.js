@@ -102,63 +102,80 @@ export default function GroupDetailPage() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-8">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
         {error && <p className="text-chili text-sm mb-4">{error}</p>}
 
-        <h3 className="font-mono text-xs uppercase tracking-widest font-semibold text-ink/50 mb-4 ml-2">Group Balances</h3>
-        <div id="balance-board" className="mb-10 shadow-[0_4px_20px_rgba(11,43,38,0.08)] scroll-mt-24">
-          <BalanceBoard
-            groupId={id}
-            balances={balanceData.balances}
-            moves={balanceData.moves}
-            currentUserId={userId}
-            onSettled={loadAll}
-          />
-        </div>
-
-        <div className="mb-10">
-          <ExpenseForm groupId={id} members={members} currentUserId={userId} onAdded={loadAll} />
-        </div>
-
-        <div>
-          <h3 className="font-mono text-xs uppercase tracking-widest font-semibold text-ink/50 mb-4 ml-2">Recent Chits</h3>
-          {expenses.length === 0 ? (
-            <p className="text-ink/50 text-sm ml-2">No expenses logged yet.</p>
-          ) : (
-            <div className="space-y-4">
-              {expenses.map((e) => (
-                <div key={e.id} className="chit rounded-sm px-5 py-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-display text-lg font-medium text-ink leading-tight">{e.description}</p>
-                      <p className="text-xs text-ink/60 font-body mt-1">
-                        paid by <span className="font-medium text-ink/80">{e.payer?.name || 'someone'}</span> · {e.split_type === 'equal' ? 'split evenly' : 'custom split'}
-                      </p>
-                    </div>
-                    <span className="font-mono font-bold text-lg text-ink">₹{Number(e.amount).toFixed(2)}</span>
-                  </div>
-                </div>
-              ))}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* Left Column: Net Balance & Add a Chit */}
+          <div className="lg:col-span-5 lg:sticky lg:top-28 flex flex-col gap-8">
+            
+            {/* Net Balance (Previously Fixed Footer) */}
+            <div className="bg-sage text-ink shadow-[4px_4px_0px_rgba(11,43,38,0.2)] border-2 border-ink p-5 rounded-xl flex justify-between items-center">
+              <div>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">Your Net Balance</p>
+                <p className="font-mono font-bold text-2xl">
+                  ₹{
+                    (() => {
+                      if (!userId || !balanceData.balances) return '0.00';
+                      const myBal = balanceData.balances.find(b => b.user_id === userId || b.userId === userId);
+                      return myBal ? (myBal.net_balance || myBal.netBalance > 0 ? '+' : '') + (myBal.net_balance || myBal.netBalance || 0).toFixed(2) : '0.00';
+                    })()
+                  }
+                </p>
+              </div>
+              <button 
+                onClick={() => document.getElementById('balance-board')?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-ink text-paper font-mono text-xs sm:text-sm font-bold uppercase tracking-widest px-4 sm:px-6 py-3 rounded-lg hover:bg-ink/90 transition-colors shadow-[2px_2px_0px_rgba(11,43,38,0.2)] active:translate-y-[1px] active:translate-x-[1px] active:shadow-none"
+              >
+                Settle Up
+              </button>
             </div>
-          )}
+
+            <ExpenseForm groupId={id} members={members} currentUserId={userId} onAdded={loadAll} />
+          </div>
+
+          {/* Right Column: Balances and Chits */}
+          <div className="lg:col-span-7 flex flex-col gap-10">
+            <div>
+              <h3 className="font-mono text-xs uppercase tracking-widest font-semibold text-ink/50 mb-4 ml-2">Group Balances</h3>
+              <div id="balance-board" className="shadow-[0_4px_20px_rgba(11,43,38,0.08)] scroll-mt-24">
+                <BalanceBoard
+                  groupId={id}
+                  balances={balanceData.balances}
+                  moves={balanceData.moves}
+                  currentUserId={userId}
+                  onSettled={loadAll}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-mono text-xs uppercase tracking-widest font-semibold text-ink/50 mb-4 ml-2">Recent Chits</h3>
+              {expenses.length === 0 ? (
+                <p className="text-ink/50 text-sm ml-2">No expenses logged yet.</p>
+              ) : (
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 pb-20">
+                  {expenses.map((e) => (
+                    <div key={e.id} className="chit rounded-sm px-5 py-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-display text-lg font-medium text-ink leading-tight">{e.description}</p>
+                          <p className="text-xs text-ink/60 font-body mt-1">
+                            paid by <span className="font-medium text-ink/80">{e.payer?.name || 'someone'}</span> · {e.split_type === 'equal' ? 'split evenly' : 'custom split'}
+                          </p>
+                        </div>
+                        <span className="font-mono font-bold text-lg text-ink">₹{Number(e.amount).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Bottom Fixed Banner (Net Balance) */}
-      <div className="fixed bottom-20 left-0 right-0 max-w-3xl mx-auto px-4 sm:px-6 pointer-events-none z-30">
-        <div className="bg-sage text-ink shadow-[0_-8px_30px_rgba(163,228,215,0.4)] border-t-2 border-x-2 border-ink p-4 sm:p-5 rounded-t-xl flex justify-between items-center pointer-events-auto">
-          <div>
-            <p className="font-mono text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">Your Net Balance</p>
-            <p className="font-mono font-bold text-2xl">₹0.00</p>
-          </div>
-          <button 
-            onClick={() => document.getElementById('balance-board')?.scrollIntoView({ behavior: 'smooth' })}
-            className="bg-ink text-paper font-mono text-xs sm:text-sm font-bold uppercase tracking-widest px-4 sm:px-6 py-3 rounded-lg hover:bg-ink/90 transition-colors shadow-[2px_2px_0px_rgba(11,43,38,0.2)] active:translate-y-[1px] active:translate-x-[1px] active:shadow-none"
-          >
-            Settle Up
-          </button>
-        </div>
-      </div>
+
     </main>
   );
 }
