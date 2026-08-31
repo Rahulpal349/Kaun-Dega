@@ -11,6 +11,8 @@ module.exports = {
         paper: '#FBF4E7',
         sage: '#A3E4D7', /* Minty green for active tabs */
         offwhite: '#F6F0E4',
+        primary: '#1E9D5A', /* Vibrant green for landing page CTAs */
+        'soft-green': '#E8F5E9', /* Light green for landing page backgrounds */
       },
       fontFamily: {
         display: ['var(--font-fraunces)', 'serif'],

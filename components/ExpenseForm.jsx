@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '../archive/deprecated-utils/api';
+import { Coffee, IndianRupee } from 'lucide-react';
 
 export default function ExpenseForm({ groupId, members, currentUserId, onAdded }) {
   const [description, setDescription] = useState('');
@@ -23,7 +24,6 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Re-calculate custom amounts when main amount changes or ratio changes
   useEffect(() => {
     if (splitType === 'custom') {
       const totalAmount = Number(amount || 0);
@@ -46,7 +46,6 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
 
   function handleAmountChange(memberId, val) {
     setCustomAmounts(prev => ({ ...prev, [memberId]: val }));
-    // Clear ratio so it doesn't auto-update from ratio anymore for this user
     setCustomRatios(prev => ({ ...prev, [memberId]: '' }));
   }
 
@@ -85,7 +84,6 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
       await api.addExpense(body);
       setDescription('');
       setAmount('');
-      // Reset splits
       setCheckedMembers(members.reduce((acc, m) => ({ ...acc, [m.id]: true }), {}));
       setCustomRatios(members.reduce((acc, m) => ({ ...acc, [m.id]: 1 }), {}));
       
@@ -97,63 +95,76 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
     }
   }
 
+  const activeSplitClass = "bg-ink text-white border-ink shadow-sm";
+  const inactiveSplitClass = "bg-white text-gray-600 border-gray-200 hover:border-gray-300 shadow-sm";
+
   return (
-    <form onSubmit={handleSubmit} className="chit rounded-sm p-5 space-y-4 shadow-[0_4px_20px_rgba(11,43,38,0.08)]">
-      <h3 className="font-display text-lg text-ink">Add a chit</h3>
+    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8 space-y-6">
+      <h3 className="font-bold text-xl text-gray-900">Add an expense</h3>
 
       <div>
-        <label className="block text-sm font-medium text-ink/70 mb-1">What was it for?</label>
-        <input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Chai at the tapri"
-          className="w-full rounded-sm border border-ink/15 bg-white px-3 py-2 font-body focus:outline-none focus:ring-2 focus:ring-teal"
-        />
+        <label className="block text-sm font-medium text-gray-600 mb-2">What was it for?</label>
+        <div className="relative">
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Chai at the tapri"
+            className="w-full rounded-lg border border-gray-200 bg-white pl-4 pr-10 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <Coffee size={20} />
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-ink/70 mb-1">Amount (₹)</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-            className="w-full rounded-sm border border-ink/15 bg-white px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-teal"
-          />
+          <label className="block text-sm font-medium text-gray-600 mb-2">Amount (₹)</label>
+          <div className="relative">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className="w-full rounded-lg border border-gray-200 bg-white pl-4 pr-10 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <IndianRupee size={16} />
+            </div>
+          </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-ink/70 mb-1">Paid by</label>
+          <label className="block text-sm font-medium text-gray-600 mb-2">Paid by</label>
           <select
             value={paidBy}
             onChange={(e) => setPaidBy(e.target.value)}
-            className="w-full rounded-sm border border-ink/15 bg-white px-3 py-2 font-body focus:outline-none focus:ring-2 focus:ring-teal"
+            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none"
           >
             {members.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
+              <option key={m.id} value={m.id}>{m.name} {m.id === currentUserId ? '(You)' : ''}</option>
             ))}
           </select>
         </div>
       </div>
 
       <div>
-        <div className="flex gap-2 mb-3 mt-2">
+        <div className="flex gap-3 mb-4">
           <button
             type="button"
             onClick={() => setSplitType('equal')}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium border ${
-              splitType === 'equal' ? 'bg-teal text-paper border-teal' : 'border-ink/20 text-ink/70'
+            className={`px-5 py-2 rounded-full text-sm font-semibold border transition-all ${
+              splitType === 'equal' ? activeSplitClass : inactiveSplitClass
             }`}
           >
-            Split evenly
+            Split equally
           </button>
           <button
             type="button"
             onClick={() => setSplitType('custom')}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium border ${
-              splitType === 'custom' ? 'bg-blue-500 text-white border-blue-500' : 'border-ink/20 text-ink/70'
+            className={`px-5 py-2 rounded-full text-sm font-semibold border transition-all ${
+              splitType === 'custom' ? activeSplitClass : inactiveSplitClass
             }`}
           >
             Custom shares
@@ -162,40 +173,47 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
 
         {/* EQUAL SPLIT UI */}
         {splitType === 'equal' && (
-          <div className="border border-teal/30 bg-teal/5 rounded-sm overflow-hidden mb-4">
-            <div className="flex items-center justify-between bg-teal/10 px-3 py-2 border-b border-teal/20">
-              <label className="flex items-center gap-2 text-sm font-semibold text-teal-900 cursor-pointer">
+          <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-100/50">
+              <label className="flex items-center gap-3 text-sm font-semibold text-gray-700 cursor-pointer">
                 <input 
                   type="checkbox" 
-                  className="accent-teal rounded-sm w-4 h-4"
+                  className="accent-primary rounded-sm w-4 h-4 cursor-pointer"
                   checked={Object.values(checkedMembers).every(Boolean)}
                   onChange={(e) => {
                     const val = e.target.checked;
                     setCheckedMembers(members.reduce((acc, m) => ({ ...acc, [m.id]: val }), {}));
                   }}
                 />
-                All
+                All ({members.length} people)
               </label>
-              <span className="text-xs font-mono uppercase tracking-wider text-teal-700 font-bold">Equal</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Equal Share</span>
             </div>
-            <div className="divide-y divide-teal/10">
-              {members.map((m) => {
+            <div className="divide-y divide-gray-100">
+              {members.map((m, idx) => {
                 const isChecked = checkedMembers[m.id];
                 const checkedCount = Object.values(checkedMembers).filter(Boolean).length;
                 const computedAmount = isChecked && checkedCount > 0 ? (Number(amount || 0) / checkedCount).toFixed(2) : '0.00';
+                const percentage = isChecked && checkedCount > 0 ? (100 / checkedCount).toFixed(2) : '0.00';
                 
                 return (
-                  <div key={m.id} className="flex items-center justify-between px-3 py-2 bg-white/40 hover:bg-white/60 transition-colors">
-                    <label className="flex items-center gap-3 text-sm text-ink/90 cursor-pointer w-full">
+                  <div key={m.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-colors">
+                    <label className="flex items-center gap-4 text-sm text-gray-800 font-medium cursor-pointer flex-1">
                       <input 
                         type="checkbox" 
-                        className="accent-teal rounded-sm w-4 h-4"
+                        className="accent-primary rounded-sm w-4 h-4 cursor-pointer"
                         checked={isChecked}
                         onChange={(e) => setCheckedMembers({...checkedMembers, [m.id]: e.target.checked})}
                       />
-                      {m.name}
+                      <div className="flex items-center gap-3">
+                        <img src={`https://i.pravatar.cc/150?u=${m.id}`} alt={m.name} className="w-8 h-8 rounded-full bg-gray-200 object-cover" />
+                        <span>{m.name} {m.id === currentUserId && <span className="text-gray-400 font-normal">(You)</span>}</span>
+                      </div>
                     </label>
-                    <span className="font-mono text-sm text-ink/70">{computedAmount} INR</span>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-900 font-semibold">₹{computedAmount}</div>
+                      <div className="text-[10px] text-gray-400 font-medium">{percentage}%</div>
+                    </div>
                   </div>
                 );
               })}
@@ -203,27 +221,31 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
           </div>
         )}
 
-        {/* CUSTOM SPLIT UI (Ratio) */}
+        {/* CUSTOM SPLIT UI */}
         {splitType === 'custom' && (
-          <div className="border border-blue-200 bg-blue-50/50 rounded-sm overflow-hidden mb-4">
-            <div className="flex items-center justify-between bg-blue-100 px-3 py-2 border-b border-blue-200">
-              <span className="text-sm font-semibold text-blue-900">Ratio</span>
-              <span className="text-xs font-mono uppercase tracking-wider text-blue-700 font-bold">Custom</span>
+          <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-100/50">
+              <span className="text-sm font-semibold text-gray-700">Ratio</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Custom Share</span>
             </div>
-            <div className="divide-y divide-blue-100">
+            <div className="divide-y divide-gray-100">
               {members.map((m) => {
                 return (
-                  <div key={m.id} className="flex items-center justify-between px-3 py-2 bg-white/60 gap-4">
-                    <span className="text-sm text-ink/90 flex-1 min-w-0 truncate pr-2">{m.name}</span>
+                  <div key={m.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-colors gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <img src={`https://i.pravatar.cc/150?u=${m.id}`} alt={m.name} className="w-8 h-8 rounded-full bg-gray-200 object-cover flex-shrink-0" />
+                      <span className="text-sm font-medium text-gray-800 truncate">{m.name} {m.id === currentUserId && <span className="text-gray-400 font-normal">(You)</span>}</span>
+                    </div>
                     <input
                       type="number"
                       step="0.1"
                       min="0"
                       value={customRatios[m.id] !== undefined ? customRatios[m.id] : ''}
                       onChange={(e) => handleRatioChange(m.id, e.target.value)}
-                      className="w-16 rounded-sm border-b-2 border-ink/20 bg-transparent px-1 py-1 font-mono text-sm text-center focus:outline-none focus:border-ink transition-colors"
+                      className="w-16 rounded border border-gray-200 bg-white px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                     />
-                    <div className="flex items-center gap-1">
+                    <div className="relative">
+                      <div className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</div>
                       <input
                         type="number"
                         step="0.01"
@@ -231,9 +253,8 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
                         value={customAmounts[m.id] || ''}
                         onChange={(e) => handleAmountChange(m.id, e.target.value)}
                         placeholder="0.00"
-                        className="w-20 rounded-sm border-b-2 border-ink/20 bg-transparent px-1 py-1 font-mono text-sm text-right focus:outline-none focus:border-ink transition-colors"
+                        className="w-24 rounded border border-gray-200 bg-white pl-6 pr-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-semibold"
                       />
-                      <span className="text-xs text-ink/40 font-mono">INR</span>
                     </div>
                   </div>
                 );
@@ -243,14 +264,14 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
         )}
       </div>
 
-      {error && <p className="text-chili text-sm">{error}</p>}
+      {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
 
       <button
         type="submit"
         disabled={saving}
-        className="w-full rounded-sm bg-marigold text-ink font-bold uppercase tracking-widest py-3 hover:brightness-95 disabled:opacity-60 transition-all shadow-[2px_2px_0px_rgba(11,43,38,0.2)] active:translate-y-[1px] active:translate-x-[1px] active:shadow-none"
+        className="w-full rounded-lg bg-ink text-white font-bold uppercase tracking-widest py-4 hover:bg-ink/90 disabled:opacity-60 transition-colors shadow-md"
       >
-        {saving ? 'Saving…' : 'Add to the ledger'}
+        {saving ? 'Saving…' : 'ADD TO THE LEDGER'}
       </button>
     </form>
   );

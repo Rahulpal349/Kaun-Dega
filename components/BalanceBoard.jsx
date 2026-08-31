@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { api } from '../archive/deprecated-utils/api';
-import Chit from './Chit';
+import { ChevronDown } from 'lucide-react';
 
 export default function BalanceBoard({ groupId, balances, moves, currentUserId, onSettled }) {
   const [settling, setSettling] = useState(null); // move index currently being settled
+  const [showMore, setShowMore] = useState(false);
 
   async function markSettled(move, idx) {
     setSettling(idx);
@@ -22,49 +23,61 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
     }
   }
 
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-display text-lg text-ink">Who owes whom</h3>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
+      <div className="p-6 pb-4">
+        <h3 className="font-bold text-lg text-gray-900 mb-6">Who owes whom</h3>
+
+        {moves.length === 0 ? (
+          <p className="text-gray-500 text-sm font-medium">Sab clear hai — no one owes anything right now. 🎉</p>
+        ) : (
+          <div className="space-y-4">
+            {moves.map((move, idx) => (
+              <div key={`${move.from}-${move.to}-${idx}`} className="flex items-center justify-between pb-4 border-b border-gray-50 last:border-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <img src={`https://i.pravatar.cc/150?u=${move.from}`} alt={move.fromName} className="w-10 h-10 rounded-full bg-gray-200 object-cover" />
+                  <div className="text-sm">
+                    <span className="font-semibold text-gray-800">{move.fromName}</span>
+                    <span className="text-gray-400 mx-1">owes</span>
+                    <span className="font-semibold text-gray-800 uppercase">{move.toName}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="font-bold text-red-500">₹{move.amount.toFixed(2)}</span>
+                  <button
+                    onClick={() => markSettled(move, idx)}
+                    disabled={settling === idx}
+                    className="text-xs font-semibold bg-soft-green text-primary rounded-full px-4 py-1.5 hover:bg-soft-green/80 disabled:opacity-60 transition-colors"
+                  >
+                    {settling === idx ? 'Marking…' : 'Mark paid'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {moves.length === 0 ? (
-        <Chit>
-          <p className="text-ink/70 font-body">Sab clear hai — no one owes anything right now. 🎉</p>
-        </Chit>
-      ) : (
-        moves.map((move, idx) => (
-          <Chit key={`${move.from}-${move.to}-${idx}`} className="flex items-center justify-between">
-            <div>
-              <span className="font-medium text-ink">{move.fromName}</span>
-              <span className="text-ink/50"> owes </span>
-              <span className="font-medium text-ink">{move.toName}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="font-mono font-semibold text-chili">₹{move.amount.toFixed(2)}</span>
-              <button
-                onClick={() => markSettled(move, idx)}
-                disabled={settling === idx}
-                className="text-xs font-medium bg-sage text-ink rounded-full px-2.5 py-1 hover:brightness-95 disabled:opacity-60"
-              >
-                {settling === idx ? 'Marking…' : 'Mark paid'}
-              </button>
-            </div>
-          </Chit>
-        ))
-      )}
+      <div className="border-t border-gray-100 px-6 py-3">
+        <button 
+          onClick={() => setShowMore(!showMore)}
+          className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          <ChevronDown size={16} className={`transition-transform ${showMore ? 'rotate-180' : ''}`} />
+          Show more balances
+        </button>
 
-      <details className="mt-4 text-sm text-ink/60">
-        <summary className="cursor-pointer">Show raw balances</summary>
-        <ul className="mt-2 space-y-1 font-mono">
-          {balances.map((b) => (
-            <li key={b.id} className={b.amount < 0 ? 'text-chili' : b.amount > 0 ? 'text-teal' : ''}>
-              {b.name}: {b.amount > 0 ? '+' : ''}₹{b.amount.toFixed(2)} {b.id === currentUserId ? '(you)' : ''}
-            </li>
-          ))}
-        </ul>
-      </details>
+        {showMore && (
+          <ul className="mt-4 pb-3 space-y-2 text-sm">
+            {balances.map((b) => (
+              <li key={b.id} className={`flex justify-between items-center ${b.amount < 0 ? 'text-red-500' : b.amount > 0 ? 'text-primary' : 'text-gray-500'}`}>
+                <span className="font-medium text-gray-700">{b.name} {b.id === currentUserId ? <span className="text-gray-400 font-normal">(you)</span> : ''}</span>
+                <span className="font-semibold">{b.amount > 0 ? '+' : ''}₹{b.amount.toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
