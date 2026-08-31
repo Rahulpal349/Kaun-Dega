@@ -20,7 +20,7 @@ CREATE INDEX idx_splits_expense_id ON splits(expense_id);
 CREATE INDEX idx_transactions_group_id ON transactions(group_id);
 CREATE INDEX idx_transactions_status ON transactions(status);
 CREATE INDEX idx_transactions_group_status ON transactions(group_id, status);
-CREATE INDEX idx_transactions_users ON transactions(from_user_id, to_user_id);
+CREATE INDEX idx_transactions_users ON transactions(from_user, to_user);
 
 -- 4. GROUP_MEMBERS (Join Table)
 -- Hibernate manages this, but we should ensure there's a covering index
