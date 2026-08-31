@@ -8,8 +8,9 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   if (
-    ['/', '/login', '/signup'].includes(pathname) || 
-    (pathname?.startsWith('/groups/') && pathname !== '/groups')
+    ['/', '/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname) ||
+    pathname?.startsWith('/groups/') ||
+    pathname?.startsWith('/join/')
   ) {
     return null;
   }

@@ -3,11 +3,24 @@
 @tailwind utilities;
 
 body {
-  background-color: #FBF4E7;
+  background-color: #f9fafb; /* gray-50, matches Tailwind bg-gray-50 */
   color: #0B2B26;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Removed old retro styles */
+/* Safe area for phones with notch/home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Prevent iOS zoom on inputs */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
 
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
@@ -16,4 +29,18 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar on mobile bottom nav areas */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

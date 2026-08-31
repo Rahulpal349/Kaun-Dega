@@ -42,7 +42,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${manrope.variable} ${plexMono.variable}`}>
-      <body className="font-body min-h-screen bg-paper pb-20 relative overflow-x-hidden">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+      </head>
+      <body className="font-body min-h-screen bg-gray-50 relative overflow-x-hidden antialiased">
         {children}
         <BottomNav />
       </body>
