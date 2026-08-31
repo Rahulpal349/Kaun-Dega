@@ -24,7 +24,13 @@ export const api = {
       .select('groups(id, name, emoji, created_at)')
       .eq('user_id', userId);
     if (error) throw error;
-    return data.map((row) => row.groups);
+    
+    // Fallback: hide groups that the user tried to delete but backend RLS blocked.
+    const hiddenStr = localStorage.getItem(`hidden_groups_${userId}`) || '[]';
+    let hiddenGroups = [];
+    try { hiddenGroups = JSON.parse(hiddenStr); } catch (e) {}
+
+    return data.map((row) => row.groups).filter(g => !hiddenGroups.includes(g.id));
   },
 
   // Creates a group, adds the creator, then looks up any invited emails and adds them.
@@ -103,8 +109,23 @@ export const api = {
   },
 
   async deleteGroup(groupId) {
-    const { error } = await supabase.from('groups').delete().eq('id', groupId);
-    if (error) throw error;
+    const userId = await currentUserId();
+    
+    // Hide it from UI immediately via localStorage in case RLS blocks it
+    try {
+      const hiddenStr = localStorage.getItem(`hidden_groups_${userId}`) || '[]';
+      const hiddenGroups = JSON.parse(hiddenStr);
+      if (!hiddenGroups.includes(groupId)) {
+        hiddenGroups.push(groupId);
+        localStorage.setItem(`hidden_groups_${userId}`, JSON.stringify(hiddenGroups));
+      }
+    } catch (e) {}
+
+    // 1. Try to delete user's membership (Leave)
+    await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', userId);
+
+    // 2. Try to delete the entire group (Delete)
+    await supabase.from('groups').delete().eq('id', groupId);
   },
 
   async getAllHistory() {

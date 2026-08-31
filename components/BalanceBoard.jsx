@@ -29,7 +29,7 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
         <h3 className="font-bold text-lg text-gray-900 mb-6">Who owes whom</h3>
 
         {moves.length === 0 ? (
-          <p className="text-gray-500 text-sm font-medium">Sab clear hai — no one owes anything right now. 🎉</p>
+          <p className="text-gray-500 text-sm font-medium">Sab clear hai — no one needs to pay anything right now. 🎉</p>
         ) : (
           <div className="space-y-4">
             {moves.map((move, idx) => (
@@ -40,8 +40,8 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
                   </div>
                   <div className="text-sm">
                     <span className="font-semibold text-gray-800">{move.fromName}</span>
-                    <span className="text-gray-400 mx-1">owes</span>
-                    <span className="font-semibold text-gray-800 uppercase">{move.toName}</span>
+                    <span className="text-gray-400 mx-1">to pay</span>
+                    <span className="font-semibold text-gray-800">{move.toName}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">

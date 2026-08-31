@@ -140,7 +140,7 @@ export default function DashboardPage() {
                     <button
                       onClick={async (e) => {
                         e.preventDefault();
-                        if (confirm('Delete this ledger?')) {
+                        if (confirm('Remove this ledger from your dashboard?')) {
                           try {
                             await api.deleteGroup(g.id);
                             setGroups(groups.filter(group => group.id !== g.id));

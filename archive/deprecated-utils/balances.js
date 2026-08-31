@@ -69,9 +69,9 @@ export function buildWhatsappText(group, moves) {
   const name = group?.name || 'Kaun Dega?';
 
   if (!moves.length) {
-    return `${emoji} ${name} — sab clear hai! No one owes anything. 🎉`;
+    return `${emoji} ${name} — sab clear hai! No one needs to pay anything. 🎉`;
   }
 
-  const lines = moves.map((m) => `• ${m.fromName} owes ${m.toName} ₹${m.amount.toFixed(2)}`);
+  const lines = moves.map((m) => `• ${m.fromName} to pay ${m.toName} ₹${m.amount.toFixed(2)}`);
   return [`${emoji} *${name}* — hisaab kitab:`, ...lines, '', 'Settle up on Kaun Dega? 👉'].join('\n');
 }
