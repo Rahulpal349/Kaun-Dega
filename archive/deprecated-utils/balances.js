@@ -5,18 +5,25 @@ export function computeBalances(members, expenses, settlements) {
   const names = {};
   const net = {};
 
+  const paid = {};
+  const charged = {};
+
   (members || []).forEach((m) => {
     if (!m) return;
     names[m.id] = m.name;
     net[m.id] = 0;
+    paid[m.id] = 0;
+    charged[m.id] = 0;
   });
 
   // Whoever paid gets credited the full amount; everyone with a share is debited theirs.
   (expenses || []).forEach((e) => {
     const shareTotal = (e.expense_shares || []).reduce((s, x) => s + Number(x.share_amount), 0);
     net[e.paid_by] = (net[e.paid_by] || 0) + shareTotal;
+    paid[e.paid_by] = (paid[e.paid_by] || 0) + shareTotal;
     (e.expense_shares || []).forEach((s) => {
       net[s.user_id] = (net[s.user_id] || 0) - Number(s.share_amount);
+      charged[s.user_id] = (charged[s.user_id] || 0) + Number(s.share_amount);
     });
   });
 
@@ -24,6 +31,8 @@ export function computeBalances(members, expenses, settlements) {
   (settlements || []).forEach((s) => {
     net[s.from_user] = (net[s.from_user] || 0) + Number(s.amount);
     net[s.to_user] = (net[s.to_user] || 0) - Number(s.amount);
+    paid[s.from_user] = (paid[s.from_user] || 0) + Number(s.amount); // giving money to someone is like paying an expense for them
+    charged[s.to_user] = (charged[s.to_user] || 0) + Number(s.amount); // receiving money is like being charged
   });
 
   // Debt simplification: greedily match biggest creditor with biggest debtor,
@@ -59,6 +68,8 @@ export function computeBalances(members, expenses, settlements) {
       id,
       name: names[id] || 'Someone',
       amount: Number(amount.toFixed(2)),
+      paid: Number((paid[id] || 0).toFixed(2)),
+      charged: Number((charged[id] || 0).toFixed(2)),
     })),
     moves,
   };

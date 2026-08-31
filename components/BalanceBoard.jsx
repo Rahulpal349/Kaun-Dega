@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { api } from '../archive/deprecated-utils/api';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
-export default function BalanceBoard({ groupId, balances, moves, currentUserId, onSettled }) {
+export default function BalanceBoard({ groupId, balances, moves, currentUserId, totalExpenses, onSettled }) {
   const [settling, setSettling] = useState(null); // move index currently being settled
-  const [showMore, setShowMore] = useState(false);
+  
+  const [showSummary, setShowSummary] = useState(true);
+  const [showSettle, setShowSettle] = useState(true);
 
   async function markSettled(move, idx) {
     setSettling(idx);
@@ -24,60 +26,82 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
-      <div className="p-6 pb-4">
-        <h3 className="font-bold text-lg text-gray-900 mb-6">Who owes whom</h3>
+    <div className="flex flex-col gap-4 p-4">
+      {/* Total Expenses Header */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col items-end">
+        <p className="text-[15px]">
+          <span className="font-semibold text-gray-500 uppercase tracking-widest text-[11px] mr-2">Expenses:</span>
+          <span className="font-bold text-[#145C4B] text-xl">{Number(totalExpenses || 0).toFixed(2)} INR</span>
+        </p>
+        <p className="text-[11px] text-gray-400 mt-1 font-medium">
+          Created {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </p>
+      </div>
 
-        {moves.length === 0 ? (
-          <p className="text-gray-500 text-sm font-medium">Sab clear hai — no one needs to pay anything right now. 🎉</p>
-        ) : (
-          <div className="space-y-4">
-            {moves.map((move, idx) => (
-              <div key={`${move.from}-${move.to}-${idx}`} className="flex items-center justify-between pb-4 border-b border-gray-50 last:border-0 last:pb-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0">
-                    {move.fromName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="text-sm">
-                    <span className="font-semibold text-gray-800">{move.fromName}</span>
-                    <span className="text-gray-400 mx-1">to pay</span>
-                    <span className="font-semibold text-gray-800">{move.toName}</span>
-                  </div>
+      {/* Summary Card */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
+        <button 
+          onClick={() => setShowSummary(!showSummary)}
+          className="w-full px-5 py-4 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 transition-colors"
+        >
+          <h3 className="font-bold text-gray-900 text-[15px]">Summary</h3>
+          {showSummary ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+        </button>
+        
+        {showSummary && (
+          <div className="flex flex-col">
+            {balances.map((b, idx) => (
+              <div key={b.id} className={`px-4 py-3 flex justify-between items-start ${idx !== balances.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                <div className="flex flex-col">
+                  <span className="text-gray-800 text-[15px]">{b.name}</span>
+                  <span className="text-gray-400 text-[12px] mt-0.5">
+                    Charged {(b.charged || 0).toFixed(2)}, Paid {(b.paid || 0).toFixed(2)}
+                  </span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-bold text-red-500">₹{move.amount.toFixed(2)}</span>
-                  <button
-                    onClick={() => markSettled(move, idx)}
-                    disabled={settling === idx}
-                    className="text-xs font-semibold bg-soft-green text-primary rounded-full px-4 py-1.5 hover:bg-soft-green/80 disabled:opacity-60 transition-colors"
-                  >
-                    {settling === idx ? 'Marking…' : 'Mark paid'}
-                  </button>
-                </div>
+                <span className={`font-semibold text-[15px] ${b.amount > 0 ? 'text-[#145C4B]' : b.amount < 0 ? 'text-red-500' : 'text-gray-600'}`}>
+                  {b.amount > 0 ? '+' : ''}{b.amount.toFixed(2)} INR
+                </span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="border-t border-gray-100 px-6 py-3">
+      {/* How to settle Card */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
         <button 
-          onClick={() => setShowMore(!showMore)}
-          className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+          onClick={() => setShowSettle(!showSettle)}
+          className="w-full px-5 py-4 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 transition-colors"
         >
-          <ChevronDown size={16} className={`transition-transform ${showMore ? 'rotate-180' : ''}`} />
-          Show more balances
+          <h3 className="font-bold text-gray-900 text-[15px]">How to settle?</h3>
+          {showSettle ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
         </button>
 
-        {showMore && (
-          <ul className="mt-4 pb-3 space-y-2 text-sm">
-            {balances.map((b) => (
-              <li key={b.id} className={`flex justify-between items-center ${b.amount < 0 ? 'text-red-500' : b.amount > 0 ? 'text-primary' : 'text-gray-500'}`}>
-                <span className="font-medium text-gray-700">{b.name} {b.id === currentUserId ? <span className="text-gray-400 font-normal">(you)</span> : ''}</span>
-                <span className="font-semibold">{b.amount > 0 ? '+' : ''}₹{b.amount.toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
+        {showSettle && (
+          <div className="flex flex-col">
+            {moves.length === 0 ? (
+              <p className="px-4 py-6 text-gray-500 text-sm text-center">No settlements needed right now.</p>
+            ) : (
+              moves.map((move, idx) => (
+                <div key={idx} className={`px-4 py-3 flex justify-between items-center ${idx !== moves.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                  <div className="flex flex-col cursor-pointer" onClick={() => markSettled(move, idx)}>
+                    <span className="text-gray-800 font-semibold text-[15px]">{move.fromName}</span>
+                    <span className="text-gray-400 text-[12px] mt-0.5">should pay to <span className="font-bold text-gray-700">{move.toName}</span></span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-[#145C4B] font-bold text-[15px]">{move.amount.toFixed(2)} INR</span>
+                    <button
+                      onClick={() => markSettled(move, idx)}
+                      disabled={settling === idx}
+                      className="text-[10px] font-bold uppercase tracking-widest bg-[#e6f4ed] text-[#145C4B] rounded-full px-3 py-1.5 hover:bg-[#d3ebd9] disabled:opacity-60 transition-colors"
+                    >
+                      {settling === idx ? 'Marking…' : 'Settle'}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         )}
       </div>
     </div>

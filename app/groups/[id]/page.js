@@ -2,13 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { supabase } from '../../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../../archive/deprecated-utils/api';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
-import BottomNav from '../../../components/BottomNav';
-import { ArrowLeft, User, Share2, Users, MoreVertical, Coffee, Wallet } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale } from 'lucide-react';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -23,9 +21,9 @@ export default function GroupDetailPage() {
   const [group, setGroup] = useState(null);
   const [sharing, setSharing] = useState(false);
 
-  // Modals state
-  const [showHistory, setShowHistory] = useState(false);
-  const [showBalances, setShowBalances] = useState(false);
+  // Tabs and overlays
+  const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'balance'
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expandedExpenseId, setExpandedExpenseId] = useState(null);
 
   async function shareOnWhatsapp() {
@@ -77,142 +75,73 @@ export default function GroupDetailPage() {
     return <main className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</main>;
   }
 
-  // Calculate Net Balance
-  let netBalanceStr = '0.00';
-  if (userId && balanceData.balances) {
-    const myBal = balanceData.balances.find(b => b.id === userId);
-    if (myBal) {
-      const amt = myBal.amount || 0;
-      netBalanceStr = (amt > 0 ? '+' : '') + amt.toFixed(2);
-    }
-  }
+  // Determine total expenses
+  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col font-body">
-      {/* Header */}
-      <header className="w-full h-16 px-4 flex items-center justify-between bg-gray-50 sticky top-0 z-40">
-        <button onClick={() => router.push('/dashboard')} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-900">
-          <ArrowLeft size={24} strokeWidth={2.5} />
-        </button>
-        
-        <div className="flex flex-col items-center">
-          <h1 className="font-bold text-lg tracking-tight text-gray-900">Add Expense</h1>
-          {group && (
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-              {group.name} {group.emoji}
-            </p>
-          )}
+    <main className="min-h-screen bg-gray-50 flex flex-col font-body" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
+      {/* Header - Clean Modern Theme */}
+      <header className="w-full h-16 px-4 flex items-center justify-between bg-gray-50 text-gray-900 sticky top-0 z-40">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/dashboard')} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+            <ArrowLeft size={24} strokeWidth={2.5} />
+          </button>
+          <div className="flex flex-col">
+            <h1 className="font-bold text-lg tracking-tight">
+              {group ? group.name : 'Group'}
+            </h1>
+            {group && <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{group.emoji} Expenses</p>}
+          </div>
         </div>
-
-        <button onClick={() => setShowHistory(true)} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-900">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <button className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400">
+          <MoreVertical size={20} strokeWidth={2.5} />
         </button>
       </header>
 
-      <div className="flex-1 w-full max-w-3xl mx-auto px-4 pb-8">
-        {error && <p className="text-red-500 text-sm font-medium mb-4">{error}</p>}
+      {/* Main Content Area */}
+      <div className="flex-1 w-full mx-auto bg-white">
+        {error && <p className="text-red-500 text-sm p-4">{error}</p>}
 
-        <div className="flex flex-col gap-4">
-          
-          {/* Net Balance (Light Green App style) */}
-          <div className="bg-[#e6f4ed] rounded-2xl flex justify-between items-center relative overflow-hidden shadow-sm p-5 border border-[#d3ebd9]">
-            <div className="relative z-10">
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-gray-600 flex items-center gap-1">
-                YOUR NEXT BALANCE
-                <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </p>
-              <p className="font-mono font-bold text-3xl text-[#145C4B]">₹{netBalanceStr}</p>
-            </div>
-            
-            {/* Centered Decorative Wallet Icon */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-60 pointer-events-none">
-              <Wallet size={64} className="text-[#145C4B] rotate-12 drop-shadow-md" strokeWidth={1.5} />
-            </div>
-
-            <button 
-              onClick={() => setShowBalances(true)}
-              className="relative z-10 bg-[#145C4B] text-white text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 rounded-lg hover:bg-[#145C4B]/90 transition-colors shadow-sm"
-            >
-              SETTLE UP
-            </button>
-          </div>
-
-          {/* Expense Form */}
-          <ExpenseForm groupId={id} members={members} currentUserId={userId} onAdded={loadAll} />
-          
-        </div>
-      </div>
-
-      {/* MODALS / OVERLAYS */}
-
-      {/* History Modal */}
-      {showHistory && (
-        <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col overflow-hidden">
-          <header className="w-full h-16 px-4 flex items-center justify-between border-b border-gray-200 bg-white shrink-0">
-            <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-900">
-              <ArrowLeft size={24} strokeWidth={2.5} />
-            </button>
-            <h2 className="font-bold text-lg text-gray-900">Recent Expenses</h2>
-            <div className="w-10"></div>
-          </header>
-          <div className="flex-1 overflow-y-auto p-4 max-w-3xl mx-auto w-full">
+        {activeTab === 'expenses' && (
+          <div className="flex flex-col">
             {expenses.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
-                No expenses logged yet.
-              </div>
+              <div className="p-8 text-center text-gray-400">No expenses logged yet.</div>
             ) : (
-              <div className="space-y-3">
+              <div className="flex flex-col">
                 {expenses.map((e) => {
                   const date = new Date(e.created_at || new Date());
                   const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                   const isExpanded = expandedExpenseId === e.id;
                   
                   return (
-                    <div key={e.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <div key={e.id} className="border-b border-gray-100 flex flex-col bg-white">
                       <div 
                         onClick={() => setExpandedExpenseId(isExpanded ? null : e.id)}
-                        className="p-4 flex items-center justify-between cursor-pointer"
+                        className="px-4 py-3 flex justify-between cursor-pointer hover:bg-gray-50"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-soft-green text-primary flex items-center justify-center flex-shrink-0">
-                            <Coffee size={20} />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-gray-900 mb-0.5">{dateStr}</p>
-                            <p className="text-sm font-medium text-gray-700 leading-tight mb-1">{e.description}</p>
-                            <p className="text-[11px] text-gray-400">
-                              Paid by {e.payer?.name || 'someone'} · {e.split_type === 'equal' ? 'Split equally' : 'Custom split'}
-                            </p>
-                          </div>
+                        <div className="flex flex-col">
+                          <p className="text-gray-800 font-medium text-[15px]">{e.description}</p>
+                          <p className="text-gray-400 text-[13px] mt-0.5">Paid by {e.payer?.name || 'Someone'}</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold text-base text-gray-900">₹{Number(e.amount).toFixed(2)}</span>
-                          <button className={`text-gray-400 hover:text-gray-600 p-1 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                          </button>
+                        <div className="flex flex-col items-end">
+                          <p className="text-gray-800 font-medium text-[15px]">{Number(e.amount).toFixed(2)} INR</p>
+                          <p className="text-gray-400 text-[13px] mt-0.5">{dateStr}</p>
                         </div>
                       </div>
                       
-                      {/* Expanded Breakdown */}
+                      {/* Expanded Details */}
                       {isExpanded && (
-                        <div className="px-4 pb-4 pt-3 border-t border-gray-50 bg-gray-50/50">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Split Breakdown</p>
-                          <div className="space-y-2">
-                            {e.expense_shares?.map(share => {
-                              const member = members.find(m => m.id === share.user_id);
-                              return (
-                                <div key={share.user_id} className="flex justify-between items-center text-sm">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 text-[10px] font-bold flex items-center justify-center">
-                                      {(member?.name || 'S').charAt(0).toUpperCase()}
-                                    </div>
-                                    <span className="text-gray-700 font-medium">{member?.name || 'Someone'}</span>
-                                  </div>
-                                  <span className="text-gray-900 font-bold">₹{Number(share.share_amount).toFixed(2)}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
+                        <div className="px-4 pb-3 pt-1 bg-gray-50 text-[13px]">
+                          <p className="font-semibold text-gray-500 mb-2 uppercase tracking-wide text-[10px]">Split Details</p>
+                          {e.expense_shares?.map(share => {
+                            const member = members.find(m => m.id === share.user_id);
+                            return (
+                              <div key={share.user_id} className="flex justify-between items-center mb-1">
+                                <span className="text-gray-600">{member?.name || 'Unknown'} owes</span>
+                                <span className="text-gray-800 font-medium">{Number(share.share_amount).toFixed(2)} INR</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -221,37 +150,96 @@ export default function GroupDetailPage() {
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Balances Modal */}
-      {showBalances && (
-        <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col overflow-hidden">
-          <header className="w-full h-16 px-4 flex items-center justify-between border-b border-gray-200 bg-white shrink-0">
-            <button onClick={() => setShowBalances(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-900">
-              <ArrowLeft size={24} strokeWidth={2.5} />
-            </button>
-            <h2 className="font-bold text-lg text-gray-900">Group Balances</h2>
-            <button 
-              onClick={shareOnWhatsapp} 
-              disabled={sharing}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-[#145C4B] disabled:opacity-50"
-            >
-              <Share2 size={20} />
-            </button>
-          </header>
-          <div className="flex-1 overflow-y-auto p-4 max-w-3xl mx-auto w-full">
+        {activeTab === 'balance' && (
+          <div className="bg-gray-100 min-h-full pb-8">
             <BalanceBoard
               groupId={id}
               balances={balanceData.balances}
               moves={balanceData.moves}
               currentUserId={userId}
+              totalExpenses={totalExpenses}
               onSettled={loadAll}
+              members={members}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Floating Action Button */}
+      {activeTab === 'expenses' && (
+        <button 
+          onClick={() => setShowExpenseForm(true)}
+          className="fixed bottom-24 right-6 w-14 h-14 bg-[#145C4B] hover:bg-[#145C4B]/90 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-40"
+        >
+          <Plus size={28} strokeWidth={2.5} />
+        </button>
+      )}
+
+      {/* Group Bottom Navigation (Clean Theme) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center h-20 px-2 sm:px-8 z-50 rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
+        <button 
+          onClick={() => setActiveTab('expenses')}
+          className="flex flex-col items-center justify-center w-full h-full"
+        >
+          <div className={`px-5 py-1.5 rounded-full transition-colors ${activeTab === 'expenses' ? 'bg-[#e6f4ed] text-[#145C4B]' : 'text-gray-400 hover:text-gray-600'}`}>
+            <Receipt size={24} strokeWidth={activeTab === 'expenses' ? 2.5 : 2} />
+          </div>
+          <span className={`text-[11px] mt-1.5 font-medium ${activeTab === 'expenses' ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>Expenses</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('balance')}
+          className="flex flex-col items-center justify-center w-full h-full"
+        >
+          <div className={`px-5 py-1.5 rounded-full transition-colors ${activeTab === 'balance' ? 'bg-[#e6f4ed] text-[#145C4B]' : 'text-gray-400 hover:text-gray-600'}`}>
+            <Scale size={24} strokeWidth={activeTab === 'balance' ? 2.5 : 2} />
+          </div>
+          <span className={`text-[11px] mt-1.5 font-medium ${activeTab === 'balance' ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>Balance</span>
+        </button>
+        <button 
+          onClick={shareOnWhatsapp}
+          className="flex flex-col items-center justify-center w-full h-full"
+        >
+          <div className="px-5 py-1.5 rounded-full transition-colors text-gray-400 hover:text-gray-600 hover:bg-gray-50">
+            <Share2 size={24} strokeWidth={2} />
+          </div>
+          <span className="text-[11px] mt-1.5 font-medium text-gray-500">Share</span>
+        </button>
+        <button 
+          onClick={() => router.push(`/groups/${id}/report`)}
+          className="flex flex-col items-center justify-center w-full h-full"
+        >
+          <div className="px-5 py-1.5 rounded-full transition-colors text-gray-400 hover:text-gray-600 hover:bg-gray-50">
+            <Settings size={24} strokeWidth={2} />
+          </div>
+          <span className="text-[11px] mt-1.5 font-medium text-gray-500">Report</span>
+        </button>
+      </div>
+
+      {/* Add Expense Overlay Modal */}
+      {showExpenseForm && (
+        <div className="fixed inset-0 bg-gray-50 z-[60] flex flex-col">
+          <header className="w-full h-16 px-4 flex items-center justify-between bg-white border-b border-gray-200 shrink-0">
+            <button onClick={() => setShowExpenseForm(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-900">
+              <ArrowLeft size={24} strokeWidth={2.5} />
+            </button>
+            <h2 className="font-bold text-lg text-gray-900">Add New Expense</h2>
+            <div className="w-10"></div>
+          </header>
+          <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+            <ExpenseForm 
+              groupId={id} 
+              members={members} 
+              currentUserId={userId} 
+              onAdded={() => {
+                setShowExpenseForm(false);
+                loadAll();
+              }} 
             />
           </div>
         </div>
       )}
-
     </main>
   );
 }
