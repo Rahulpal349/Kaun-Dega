@@ -1,10 +1,32 @@
 'use client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import LandingHeader from '../components/LandingHeader';
+import { supabase } from '../archive/deprecated-utils/supabaseClient';
 import { Play, Receipt, Users, ArrowRightLeft, ShieldCheck } from 'lucide-react';
 
 export default function LandingPage() {
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+
+  // If user is already logged in, go straight to dashboard
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.replace('/dashboard');
+      } else {
+        setReady(true);
+      }
+    })();
+  }, [router]);
+
+  if (!ready) {
+    return <main className="min-h-screen bg-white flex items-center justify-center text-gray-400">Loading...</main>;
+  }
+
   return (
     <main className="min-h-screen flex flex-col bg-white overflow-x-hidden">
       <LandingHeader />

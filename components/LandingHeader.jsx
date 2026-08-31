@@ -29,13 +29,21 @@ export default function LandingHeader() {
         </Link>
       </nav>
 
-      {/* CTA Button */}
-      <Link
-        href="/signup"
-        className="bg-primary text-white font-semibold px-6 py-2.5 rounded-md hover:bg-primary/90 transition-colors shadow-sm"
-      >
-        Get Started
-      </Link>
+      {/* CTA Buttons */}
+      <div className="flex items-center gap-4">
+        <Link
+          href="/login"
+          className="text-ink/70 hover:text-primary font-semibold text-sm transition-colors"
+        >
+          Log in
+        </Link>
+        <Link
+          href="/signup"
+          className="bg-primary text-white font-semibold px-6 py-2.5 rounded-md hover:bg-primary/90 transition-colors shadow-sm"
+        >
+          Get Started
+        </Link>
+      </div>
     </header>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../archive/deprecated-utils/api';
-import { Plus, Trash2, User, Users, ChevronRight, Wallet } from 'lucide-react';
+import { Plus, Trash2, User, Users, ChevronRight, Wallet, LogOut } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -58,9 +58,23 @@ export default function DashboardPage() {
             Your active ledgers
           </p>
         </div>
-        <Link href="/profile" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 hover:bg-gray-200 transition-colors">
-          <User size={20} className="text-ink/60" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              if (confirm('Sign out of Kaun Dega?')) {
+                await api.logout();
+                router.push('/login');
+              }
+            }}
+            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors text-ink/40"
+            title="Sign Out"
+          >
+            <LogOut size={18} />
+          </button>
+          <Link href="/profile" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 hover:bg-gray-200 transition-colors">
+            <User size={20} className="text-ink/60" />
+          </Link>
+        </div>
       </header>
 
       <div className="flex-1 flex flex-col w-full max-w-3xl mx-auto px-6 py-8 pb-32">
