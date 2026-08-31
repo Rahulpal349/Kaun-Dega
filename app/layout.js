@@ -21,9 +21,22 @@ const plexMono = IBM_Plex_Mono({
   weight: ['400', '600'],
 });
 
+export const viewport = {
+  themeColor: '#145C4B',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata = {
   title: 'Kaun Dega? — split expenses without the awkward math',
   description: 'Track group expenses, split them fair, and settle up over WhatsApp.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Kaun Dega',
+  },
 };
 
 export default function RootLayout({ children }) {
