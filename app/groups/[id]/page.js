@@ -23,6 +23,10 @@ export default function GroupDetailPage() {
   const [group, setGroup] = useState(null);
   const [sharing, setSharing] = useState(false);
 
+  // Modals state
+  const [showHistory, setShowHistory] = useState(false);
+  const [showBalances, setShowBalances] = useState(false);
+
   async function shareOnWhatsapp() {
     setSharing(true);
     try {
@@ -81,10 +85,6 @@ export default function GroupDetailPage() {
       netBalanceStr = (amt > 0 ? '+' : '') + amt.toFixed(2);
     }
   }
-
-  // Modals state
-  const [showHistory, setShowHistory] = useState(false);
-  const [showBalances, setShowBalances] = useState(false);
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col font-body">
