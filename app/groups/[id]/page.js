@@ -75,9 +75,9 @@ export default function GroupDetailPage() {
   // Calculate Net Balance
   let netBalanceStr = '0.00';
   if (userId && balanceData.balances) {
-    const myBal = balanceData.balances.find(b => b.user_id === userId || b.userId === userId);
+    const myBal = balanceData.balances.find(b => b.id === userId);
     if (myBal) {
-      const amt = myBal.net_balance || myBal.netBalance || 0;
+      const amt = myBal.amount || 0;
       netBalanceStr = (amt > 0 ? '+' : '') + amt.toFixed(2);
     }
   }

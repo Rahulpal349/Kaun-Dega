@@ -37,33 +37,40 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-dotted flex flex-col pb-24">
-      <TopHeader />
-
-      <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full px-6 py-10">
-        <div className="mb-12">
-          <h2 className="font-display text-2xl text-ink font-medium">Your Profile</h2>
-          <p className="font-display italic text-ink/70">Account settings and details.</p>
+    <main className="min-h-screen bg-gray-50 flex flex-col pb-24">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <h1 className="font-display font-bold text-xl text-gray-900 tracking-tight">Your Profile</h1>
+          </div>
         </div>
+      </header>
 
-        {error && <p className="text-chili text-sm mb-4">{error}</p>}
+      <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full px-4 sm:px-6 py-8">
+        {error && <p className="text-red-500 text-sm font-medium mb-4">{error}</p>}
 
         {profile === null ? (
-          <p className="text-ink/50 text-center py-20">Loading…</p>
+          <p className="text-gray-400 text-center py-20 font-medium">Loading…</p>
         ) : (
-          <div className="space-y-8">
-            <div className="bg-ruled p-8 border border-ink/10 rounded-xl shadow-sm">
-              <div className="mb-6">
-                <label className="block font-mono text-[10px] font-bold uppercase tracking-widest text-teal mb-1">Name</label>
-                <p className="font-display text-xl text-ink font-medium">{profile.name}</p>
+          <div className="space-y-6">
+            <div className="bg-white p-6 sm:p-8 border border-gray-100 rounded-2xl shadow-sm">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-16 h-16 rounded-full bg-primary/10 text-primary font-bold text-2xl flex items-center justify-center shrink-0">
+                  {profile.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h2 className="font-bold text-2xl text-gray-900">{profile.name}</h2>
+                  <p className="text-gray-500">{profile.email}</p>
+                </div>
               </div>
-              <div className="mb-6">
-                <label className="block font-mono text-[10px] font-bold uppercase tracking-widest text-teal mb-1">Email</label>
-                <p className="font-body text-lg text-ink/80">{profile.email}</p>
-              </div>
-              <div>
-                <label className="block font-mono text-[10px] font-bold uppercase tracking-widest text-teal mb-1">Joined</label>
-                <p className="font-body text-ink/60">
+              
+              <div className="pt-6 border-t border-gray-100">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Member Since</label>
+                <p className="text-gray-700 font-medium">
                   {new Date(profile.created_at).toLocaleDateString(undefined, {
                     month: 'long', day: 'numeric', year: 'numeric'
                   })}
@@ -73,7 +80,7 @@ export default function ProfilePage() {
 
             <button
               onClick={handleLogout}
-              className="w-full sm:w-auto px-6 py-4 rounded-lg bg-chili/10 text-chili border border-chili/20 font-mono text-sm font-bold uppercase tracking-widest hover:bg-chili hover:text-white transition-all flex items-center justify-center gap-3"
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-red-50 text-red-600 border border-red-100 font-semibold hover:bg-red-100 hover:border-red-200 transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               <LogOut size={18} />
               Sign Out

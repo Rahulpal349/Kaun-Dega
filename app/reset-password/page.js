@@ -1,61 +1,73 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.updateUser({
+      password: password,
+    });
 
     setLoading(false);
     if (error) {
       setError(error.message);
-      return;
+    } else {
+      router.push('/dashboard');
     }
-    router.push('/dashboard');
+  }
+
+  if (!session) {
+    return (
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-sm border border-gray-100 text-center">
+           <div className="w-8 h-8 border-4 border-gray-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+           <p className="font-medium text-sm text-ink/60">Verifying link...</p>
+        </div>
+      </main>
+    );
   }
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
       <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-sm border border-gray-100">
-        <h1 className="font-display font-bold text-2xl text-ink mb-1">Kaun Dega?</h1>
-        <p className="text-sm text-ink/60 mb-6 font-medium">Welcome back</p>
+        <h1 className="font-display font-bold text-2xl text-ink mb-1">New Password</h1>
+        <p className="text-sm text-ink/60 mb-6 font-medium">Please enter your new password</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-ink/70 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-            />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1">
-               <label className="block text-sm font-medium text-ink/70">Password</label>
-               <Link href="/forgot-password" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
-                 Forgot password?
-               </Link>
-            </div>
+            <label className="block text-sm font-semibold text-ink/80 mb-1.5">New Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={6}
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
@@ -65,14 +77,9 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-xl bg-primary text-white font-semibold py-3 hover:bg-primary/90 disabled:opacity-60 transition-colors shadow-sm"
           >
-            {loading ? 'Logging in…' : 'Log in'}
+            {loading ? 'Updating...' : 'Update password'}
           </button>
         </form>
-
-        <p className="text-sm text-ink/60 mt-6 text-center">
-          New here?{' '}
-          <Link href="/signup" className="text-primary font-medium">Create an account</Link>
-        </p>
       </div>
     </main>
   );

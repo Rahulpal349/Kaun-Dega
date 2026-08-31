@@ -20,33 +20,91 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
     members.reduce((acc, m) => ({ ...acc, [m.id]: 1 }), {})
   );
   const [customAmounts, setCustomAmounts] = useState({});
+  const [lockedMembers, setLockedMembers] = useState(new Set());
 
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Reset locks if total amount changes significantly? We can just leave them locked.
   useEffect(() => {
     if (splitType === 'custom') {
       const totalAmount = Number(amount || 0);
       const totalRatio = Object.values(customRatios).reduce((sum, r) => sum + Number(r || 0), 0);
       
       if (totalRatio > 0) {
+        // If we are using ratios, everything is unlocked
+        setLockedMembers(new Set());
         const newAmounts = {};
         members.forEach(m => {
           const r = Number(customRatios[m.id] || 0);
           newAmounts[m.id] = ((r / totalRatio) * totalAmount).toFixed(2);
         });
         setCustomAmounts(newAmounts);
+      } else if (lockedMembers.size > 0 && lockedMembers.size < members.length) {
+        // If total amount changes, adjust unlocked members to balance the new total
+        const currentLocked = Array.from(lockedMembers);
+        const sumLocked = currentLocked.reduce((sum, id) => sum + Number(customAmounts[id] || 0), 0);
+        const remainingAmount = Math.max(0, totalAmount - sumLocked);
+        
+        const unlockedMembers = members.filter(m => !lockedMembers.has(m.id));
+        if (unlockedMembers.length > 0) {
+          const splitForUnlocked = (remainingAmount / unlockedMembers.length).toFixed(2);
+          const remainder = Number((remainingAmount - (Number(splitForUnlocked) * unlockedMembers.length)).toFixed(2));
+          
+          const newAmounts = { ...customAmounts };
+          unlockedMembers.forEach((m, idx) => {
+            newAmounts[m.id] = idx === 0 
+              ? (Number(splitForUnlocked) + remainder).toFixed(2) 
+              : splitForUnlocked;
+          });
+          setCustomAmounts(newAmounts);
+        }
       }
     }
-  }, [amount, customRatios, splitType, members]);
+  }, [amount, customRatios, splitType, members]); // Note: omitted lockedMembers and customAmounts to avoid cycles on load
 
   function handleRatioChange(memberId, val) {
     setCustomRatios(prev => ({ ...prev, [memberId]: val }));
   }
 
   function handleAmountChange(memberId, val) {
-    setCustomAmounts(prev => ({ ...prev, [memberId]: val }));
-    setCustomRatios(prev => ({ ...prev, [memberId]: '' }));
+    const newAmounts = { ...customAmounts, [memberId]: val };
+    
+    // Update locks
+    const newLocked = new Set(lockedMembers);
+    if (val === '') {
+      newLocked.delete(memberId);
+    } else {
+      newLocked.add(memberId);
+    }
+    setLockedMembers(newLocked);
+
+    // Calculate remaining for unlocked members
+    const totalAmount = Number(amount || 0);
+    const currentLocked = Array.from(newLocked);
+    
+    if (currentLocked.length > 0 && currentLocked.length < members.length) {
+      const sumLocked = currentLocked.reduce((sum, id) => sum + Number(newAmounts[id] || 0), 0);
+      const remainingAmount = Math.max(0, totalAmount - sumLocked);
+      
+      const unlockedMembers = members.filter(m => !newLocked.has(m.id));
+      if (unlockedMembers.length > 0) {
+        const splitForUnlocked = (remainingAmount / unlockedMembers.length).toFixed(2);
+        
+        // Adjust for rounding error by adding remainder to the first unlocked member
+        const remainder = Number((remainingAmount - (Number(splitForUnlocked) * unlockedMembers.length)).toFixed(2));
+        
+        unlockedMembers.forEach((m, idx) => {
+          newAmounts[m.id] = idx === 0 
+            ? (Number(splitForUnlocked) + remainder).toFixed(2) 
+            : splitForUnlocked;
+        });
+      }
+    }
+
+    setCustomAmounts(newAmounts);
+    // Clear all ratios when user types an exact amount so it doesn't get overwritten
+    setCustomRatios(members.reduce((acc, m) => ({ ...acc, [m.id]: '' }), {}));
   }
 
   async function handleSubmit(e) {
@@ -206,7 +264,9 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
                         onChange={(e) => setCheckedMembers({...checkedMembers, [m.id]: e.target.checked})}
                       />
                       <div className="flex items-center gap-3">
-                        <img src={`https://i.pravatar.cc/150?u=${m.id}`} alt={m.name} className="w-8 h-8 rounded-full bg-gray-200 object-cover" />
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 text-sm">
+                          {m.name.charAt(0).toUpperCase()}
+                        </div>
                         <span>{m.name} {m.id === currentUserId && <span className="text-gray-400 font-normal">(You)</span>}</span>
                       </div>
                     </label>
@@ -233,7 +293,9 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
                 return (
                   <div key={m.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-colors gap-4">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <img src={`https://i.pravatar.cc/150?u=${m.id}`} alt={m.name} className="w-8 h-8 rounded-full bg-gray-200 object-cover flex-shrink-0" />
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 text-sm">
+                        {m.name.charAt(0).toUpperCase()}
+                      </div>
                       <span className="text-sm font-medium text-gray-800 truncate">{m.name} {m.id === currentUserId && <span className="text-gray-400 font-normal">(You)</span>}</span>
                     </div>
                     <input

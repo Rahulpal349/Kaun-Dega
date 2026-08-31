@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import LandingHeader from '../components/LandingHeader';
-import { Play, Receipt, Users, ArrowRightLeft, ShieldCheck, Twitter, Instagram, Facebook } from 'lucide-react';
+import { Play, Receipt, Users, ArrowRightLeft, ShieldCheck } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -199,9 +199,9 @@ export default function LandingPage() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <Link href="#" className="text-ink/40 hover:text-primary transition-colors"><Twitter size={20} /></Link>
-          <Link href="#" className="text-ink/40 hover:text-primary transition-colors"><Instagram size={20} /></Link>
-          <Link href="#" className="text-ink/40 hover:text-primary transition-colors"><Facebook size={20} /></Link>
+          <Link href="#" className="text-ink/40 hover:text-primary transition-colors text-sm font-medium">Twitter</Link>
+          <Link href="#" className="text-ink/40 hover:text-primary transition-colors text-sm font-medium">Instagram</Link>
+          <Link href="#" className="text-ink/40 hover:text-primary transition-colors text-sm font-medium">Facebook</Link>
         </div>
       </footer>
     </main>

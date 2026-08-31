@@ -34,14 +34,14 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="chit rounded-sm w-full max-w-sm p-8">
-        <h1 className="font-display text-2xl italic text-ink mb-1">Kaun Dega?</h1>
-        <p className="text-sm text-ink/60 mb-6">Open a new khata</p>
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-sm border border-gray-100">
+        <h1 className="font-display font-bold text-2xl text-ink mb-1">Kaun Dega?</h1>
+        <p className="text-sm text-ink/60 mb-6 font-medium">Open a new khata</p>
 
         {checkEmail ? (
           <p className="text-ink/70 text-sm">
-            Almost there — check <span className="font-medium">{email}</span> to confirm your account.
+            Almost there — check <span className="font-medium text-ink">{email}</span> to confirm your account.
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -51,7 +51,7 @@ export default function SignupPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full rounded-sm border border-ink/15 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
             <div>
@@ -61,7 +61,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-sm border border-ink/15 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
             <div>
@@ -72,14 +72,14 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full rounded-sm border border-ink/15 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
-            {error && <p className="text-chili text-sm">{error}</p>}
+            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-sm bg-marigold text-ink font-semibold py-2.5 hover:brightness-95 disabled:opacity-60"
+              className="w-full rounded-xl bg-primary text-white font-semibold py-3 hover:bg-primary/90 disabled:opacity-60 transition-colors shadow-sm"
             >
               {loading ? 'Creating account…' : 'Create account'}
             </button>
@@ -88,7 +88,7 @@ export default function SignupPage() {
 
         <p className="text-sm text-ink/60 mt-6 text-center">
           Already have an account?{' '}
-          <Link href="/login" className="text-teal font-medium">Log in</Link>
+          <Link href="/login" className="text-primary font-medium">Log in</Link>
         </p>
       </div>
     </main>

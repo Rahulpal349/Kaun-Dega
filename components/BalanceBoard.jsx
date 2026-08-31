@@ -35,7 +35,9 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
             {moves.map((move, idx) => (
               <div key={`${move.from}-${move.to}-${idx}`} className="flex items-center justify-between pb-4 border-b border-gray-50 last:border-0 last:pb-0">
                 <div className="flex items-center gap-3">
-                  <img src={`https://i.pravatar.cc/150?u=${move.from}`} alt={move.fromName} className="w-10 h-10 rounded-full bg-gray-200 object-cover" />
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0">
+                    {move.fromName.charAt(0).toUpperCase()}
+                  </div>
                   <div className="text-sm">
                     <span className="font-semibold text-gray-800">{move.fromName}</span>
                     <span className="text-gray-400 mx-1">owes</span>
