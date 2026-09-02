@@ -10,7 +10,7 @@ export function computeBalances(members, expenses, settlements) {
 
   (members || []).forEach((m) => {
     if (!m) return;
-    names[m.id] = m.name;
+    names[m.id] = m;
     net[m.id] = 0;
     paid[m.id] = 0;
     charged[m.id] = 0;
@@ -52,9 +52,10 @@ export function computeBalances(members, expenses, settlements) {
     const pay = Math.min(debtors[i].amount, creditors[j].amount);
     moves.push({
       from: debtors[i].id,
-      fromName: names[debtors[i].id] || 'Someone',
+      fromName: names[debtors[i].id]?.name || 'Someone',
       to: creditors[j].id,
-      toName: names[creditors[j].id] || 'Someone',
+      toName: names[creditors[j].id]?.name || 'Someone',
+      toUpiId: names[creditors[j].id]?.upi_id || null,
       amount: Number(pay.toFixed(2)),
     });
     debtors[i].amount -= pay;
@@ -66,7 +67,7 @@ export function computeBalances(members, expenses, settlements) {
   return {
     balances: Object.entries(net).map(([id, amount]) => ({
       id,
-      name: names[id] || 'Someone',
+      name: names[id]?.name || 'Someone',
       amount: Number(amount.toFixed(2)),
       paid: Number((paid[id] || 0).toFixed(2)),
       charged: Number((charged[id] || 0).toFixed(2)),

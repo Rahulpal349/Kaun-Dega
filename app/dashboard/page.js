@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../archive/deprecated-utils/api';
-import { Plus, Trash2, User, Users, ChevronRight, Wallet, LogOut } from 'lucide-react';
+import { Plus, User, Users, ChevronRight, Wallet, LogOut } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -142,32 +142,20 @@ export default function DashboardPage() {
                       {g.emoji}
                     </div>
                     <div>
-                      <h4 className="font-display font-bold text-lg text-ink group-hover:text-primary transition-colors">
-                        {g.name}
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-display font-bold text-lg text-ink group-hover:text-primary transition-colors">
+                          {g.name}
+                        </h4>
+                        {g.myRole === 'admin' && (
+                          <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Admin</span>
+                        )}
+                      </div>
                       <p className="text-xs text-ink/50 font-medium flex items-center gap-1 mt-0.5">
                         <Users size={12} /> Tap to view details
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        if (confirm('Remove this ledger from your dashboard?')) {
-                          try {
-                            await api.deleteGroup(g.id);
-                            setGroups(groups.filter(group => group.id !== g.id));
-                          } catch (err) {
-                            alert('Failed to delete: ' + err.message);
-                          }
-                        }
-                      }}
-                      className="w-10 h-10 rounded-full hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors z-10"
-                      title="Delete Group"
-                    >
-                      <Trash2 size={18} />
-                    </button>
                     <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-gray-400 group-hover:bg-soft-green group-hover:text-primary transition-colors">
                       <ChevronRight size={18} />
                     </div>

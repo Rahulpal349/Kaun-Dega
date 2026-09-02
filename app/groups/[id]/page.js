@@ -6,7 +6,7 @@ import { supabase } from '../../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../../archive/deprecated-utils/api';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
-import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check, Users, LogOut, Shield, Copy, X, Crown } from 'lucide-react';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -21,12 +21,20 @@ export default function GroupDetailPage() {
   const [group, setGroup] = useState(null);
   const [sharing, setSharing] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [userRole, setUserRole] = useState(null); // 'admin' | 'member'
 
   // Tabs and overlays
   const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'balance'
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expandedExpenseId, setExpandedExpenseId] = useState(null);
   const [editingPayerExpenseId, setEditingPayerExpenseId] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
+  const [generatingInvite, setGeneratingInvite] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  const isAdmin = userRole === 'admin';
 
   async function handleChangePayer(expenseId, newPayerId) {
     try {
@@ -62,6 +70,7 @@ export default function GroupDetailPage() {
     }
   }
 
+  // Legacy invite link (old 6-char code)
   function shareInviteLink() {
     if (!group?.invite_code) {
       alert('Invite code not available yet.');
@@ -72,22 +81,72 @@ export default function GroupDetailPage() {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }).catch(() => {
-      // Fallback: prompt
       prompt('Copy this invite link:', link);
     });
   }
 
+  // New secure invite generation (admin-only)
+  async function handleGenerateInvite() {
+    setGeneratingInvite(true);
+    try {
+      const result = await api.generateInviteLink(id);
+      const link = `${window.location.origin}/join/${result.token}`;
+      setInviteLink(link);
+      setShowInviteModal(true);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setGeneratingInvite(false);
+    }
+  }
+
+  function copyInviteLink() {
+    navigator.clipboard.writeText(inviteLink).then(() => {
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    }).catch(() => {
+      prompt('Copy this invite link:', inviteLink);
+    });
+  }
+
+  function shareInviteWhatsApp() {
+    const text = `Join my group "${group?.name}" on Kaun Dega!\n${inviteLink}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  }
+
+  async function handleDeleteGroup() {
+    if (!confirm(`Are you sure you want to delete "${group?.name}"? This will permanently remove all expenses, balances, and member data. This cannot be undone.`)) return;
+    try {
+      await api.deleteGroup(id);
+      router.push('/dashboard');
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleLeaveGroup() {
+    if (!confirm(`Are you sure you want to leave "${group?.name}"? You'll lose access to this group's expenses and balances.`)) return;
+    try {
+      await api.leaveGroup(id);
+      router.push('/dashboard');
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   const loadAll = useCallback(async () => {
     try {
-      const [membersData, expensesData, balances, groupsData] = await Promise.all([
+      const [membersData, expensesData, balances, groupsData, role] = await Promise.all([
         api.getMembers(id),
         api.getExpenses(id),
         api.getBalances(id),
         api.getGroups(),
+        api.getUserRole(id),
       ]);
       setMembers(membersData);
       setExpenses(expensesData);
       setBalanceData(balances);
+      setUserRole(role);
       const currentGroup = groupsData.find(g => g.id === id);
       setGroup(currentGroup);
     } catch (err) {
@@ -142,15 +201,94 @@ export default function GroupDetailPage() {
             <ArrowLeft size={24} strokeWidth={2.5} />
           </button>
           <div className="flex flex-col">
-            <h1 className="font-bold text-lg tracking-tight">
-              {group ? group.name : 'Group'}
-            </h1>
-            {group && <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{group.emoji} Expenses</p>}
+            <div className="flex items-center gap-2">
+              <h1 className="font-bold text-lg tracking-tight">
+                {group ? group.name : 'Group'}
+              </h1>
+              {isAdmin && (
+                <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Admin</span>
+              )}
+            </div>
+            {group && <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{group.emoji} {members.length} members</p>}
           </div>
         </div>
-        <button className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400">
-          <MoreVertical size={20} strokeWidth={2.5} />
-        </button>
+        <div className="relative">
+          <button 
+            onClick={() => setShowMenu(!showMenu)} 
+            className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400"
+          >
+            <MoreVertical size={20} strokeWidth={2.5} />
+          </button>
+
+          {/* Dropdown Menu */}
+          {showMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+              <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
+                {/* Members */}
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Members</p>
+                  {members.map(m => (
+                    <div key={m.id} className="flex items-center gap-2 py-1">
+                      <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                        {m.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <span className="text-sm text-gray-700 flex-1 truncate">{m.name}</span>
+                      {m.role === 'admin' && <Crown size={12} className="text-amber-500" />}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                {isAdmin && (
+                  <button
+                    onClick={() => { setShowMenu(false); handleGenerateInvite(); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Link2 size={16} className="text-[#145C4B]" />
+                    Generate Invite Link
+                  </button>
+                )}
+
+                <button
+                  onClick={() => { setShowMenu(false); shareOnWhatsapp(); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Share2 size={16} className="text-green-600" />
+                  Share on WhatsApp
+                </button>
+
+                <button
+                  onClick={() => { setShowMenu(false); router.push(`/groups/${id}/report`); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Settings size={16} className="text-gray-400" />
+                  View Report
+                </button>
+
+                <div className="border-t border-gray-100 mt-1 pt-1">
+                  {isAdmin ? (
+                    <button
+                      onClick={() => { setShowMenu(false); handleDeleteGroup(); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                      Delete Group
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { setShowMenu(false); handleLeaveGroup(); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut size={16} />
+                      Leave Group
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </header>
 
       {/* Main Content Area */}
@@ -291,7 +429,7 @@ export default function GroupDetailPage() {
           <span className={`text-[11px] mt-1.5 font-medium ${activeTab === 'balance' ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>Balance</span>
         </button>
         <button 
-          onClick={shareInviteLink}
+          onClick={isAdmin ? handleGenerateInvite : shareInviteLink}
           className="flex flex-col items-center justify-center w-full h-full"
         >
           <div className={`px-5 py-1.5 rounded-full transition-colors ${copiedLink ? 'bg-[#e6f4ed] text-[#145C4B]' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}>
@@ -334,6 +472,49 @@ export default function GroupDetailPage() {
             />
           </div>
         </div>
+      )}
+
+      {/* Invite Link Modal */}
+      {showInviteModal && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-[70]" onClick={() => setShowInviteModal(false)} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white rounded-2xl shadow-2xl z-[80] overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg text-gray-900">Invite Members</h3>
+                <button onClick={() => setShowInviteModal(false)} className="p-1 hover:bg-gray-100 rounded-full">
+                  <X size={18} className="text-gray-400" />
+                </button>
+              </div>
+              <p className="text-gray-500 text-sm mb-4">Share this link with friends to invite them to <strong>{group?.name}</strong>. The link expires in 7 days.</p>
+              
+              <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2 mb-4 border border-gray-100">
+                <p className="text-xs text-gray-600 flex-1 truncate font-mono">{inviteLink}</p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={copyInviteLink}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-colors ${
+                    inviteCopied 
+                      ? 'bg-green-100 text-green-700 border border-green-200' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {inviteCopied ? <Check size={16} /> : <Copy size={16} />}
+                  {inviteCopied ? 'Copied!' : 'Copy Link'}
+                </button>
+                <button
+                  onClick={shareInviteWhatsApp}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#145C4B] text-white font-semibold text-sm hover:bg-[#145C4B]/90 transition-colors"
+                >
+                  <Share2 size={16} />
+                  WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </main>
   );

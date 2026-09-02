@@ -11,6 +11,19 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
   const [showSettle, setShowSettle] = useState(true);
 
   async function markSettled(move, idx) {
+    if (move.toUpiId) {
+      try {
+        await navigator.clipboard.writeText(move.toUpiId);
+        // Small delay so user can see it before being redirected
+        setTimeout(() => {
+          const upiUrl = `upi://pay?pa=${move.toUpiId}&pn=${encodeURIComponent(move.toName)}&am=${move.amount}&cu=INR`;
+          window.location.href = upiUrl;
+        }, 500);
+      } catch (err) {
+        console.error("Failed to copy UPI ID", err);
+      }
+    }
+
     setSettling(idx);
     try {
       await api.addSettlement({
@@ -20,6 +33,8 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
         amount: move.amount,
       });
       onSettled?.();
+    } catch (err) {
+      alert("Failed to record settlement: " + err.message);
     } finally {
       setSettling(null);
     }
@@ -95,7 +110,7 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
                       disabled={settling === idx}
                       className="text-[10px] font-bold uppercase tracking-widest bg-[#e6f4ed] text-[#145C4B] rounded-full px-3 py-1.5 hover:bg-[#d3ebd9] disabled:opacity-60 transition-colors"
                     >
-                      {settling === idx ? 'Marking…' : 'Settle'}
+                      {settling === idx ? 'Settling…' : 'Settle'}
                     </button>
                   </div>
                 </div>

@@ -10,18 +10,21 @@ async function currentUserId() {
 async function fetchMembers(groupId) {
   const { data, error } = await supabase
     .from('group_members')
-    .select('profiles(id, name, email, phone)')
+    .select('role, profiles(id, name, email, phone, upi_id)')
     .eq('group_id', groupId);
   if (error) throw error;
-  return data.map((row) => row.profiles);
+  return data.map((row) => ({ ...row.profiles, role: row.role }));
 }
 
 export const api = {
+  // ============================================================
+  // GROUP LISTING
+  // ============================================================
   async getGroups() {
     const userId = await currentUserId();
     const { data, error } = await supabase
       .from('group_members')
-      .select('groups(id, name, emoji, created_at, invite_code)')
+      .select('role, groups(id, name, emoji, created_at, invite_code)')
       .eq('user_id', userId);
     if (error) throw error;
     
@@ -30,9 +33,44 @@ export const api = {
     let hiddenGroups = [];
     try { hiddenGroups = JSON.parse(hiddenStr); } catch (e) {}
 
-    return data.map((row) => row.groups).filter(g => !hiddenGroups.includes(g.id));
+    return data
+      .map((row) => ({ ...row.groups, myRole: row.role }))
+      .filter(g => !hiddenGroups.includes(g.id));
   },
 
+  // ============================================================
+  // INVITE SYSTEM (Secure Token-based)
+  // ============================================================
+
+  // Generate a secure invite link (admin-only, enforced server-side)
+  async generateInviteLink(groupId) {
+    const { data, error } = await supabase.rpc('generate_invite_token', {
+      p_group_id: groupId,
+      p_expires_in_days: 7,
+    });
+    if (error) throw new Error(error.message);
+    return data; // { id, token, groupId, expiresAt, createdAt }
+  },
+
+  // Get invite info for the join page (any authenticated user)
+  async getInviteInfo(token) {
+    const { data, error } = await supabase.rpc('get_invite_info', {
+      p_token: token,
+    });
+    if (error) throw new Error(error.message);
+    return data; // { valid, groupName, groupEmoji, invitedBy, memberCount, isAlreadyMember, error? }
+  },
+
+  // Join group using secure token (any authenticated user, enforced server-side)
+  async joinGroupByToken(token) {
+    const { data, error } = await supabase.rpc('join_group_by_token', {
+      p_token: token,
+    });
+    if (error) throw new Error(error.message);
+    return data; // { success, alreadyMember, groupId, groupName, message }
+  },
+
+  // Legacy: get group by old 6-char invite code (backward compat)
   async getGroupByInviteCode(code) {
     const { data, error } = await supabase
       .from('groups')
@@ -43,6 +81,7 @@ export const api = {
     return data;
   },
 
+  // Legacy: join by old 6-char code (backward compat)
   async joinGroupByCode(code) {
     const userId = await currentUserId();
     const group = await this.getGroupByInviteCode(code);
@@ -60,17 +99,17 @@ export const api = {
 
     const { error } = await supabase
       .from('group_members')
-      .insert({ group_id: group.id, user_id: userId });
+      .insert({ group_id: group.id, user_id: userId, role: 'member' });
     if (error) throw error;
 
     return { group, alreadyMember: false };
   },
 
-  // Creates a group, adds the creator, then looks up any invited emails and adds them.
-  // Two separate inserts (not one combined upsert) because Postgres RLS evaluates
-  // each row's "with check" against already-committed rows — the creator's own
-  // membership row has to land first before "is an existing member" checks for the
-  // invited rows can pass.
+  // ============================================================
+  // GROUP CRUD
+  // ============================================================
+
+  // Creates a group, adds the creator as admin
   async createGroup({ name, emoji, memberEmails = [] }) {
     const userId = await currentUserId();
 
@@ -81,14 +120,15 @@ export const api = {
       .single();
     if (groupErr) throw groupErr;
 
+    // Add creator as admin
     const { error: selfErr } = await supabase
       .from('group_members')
-      .insert({ group_id: group.id, user_id: userId });
+      .insert({ group_id: group.id, user_id: userId, role: 'admin' });
     if (selfErr) throw selfErr;
 
+    // Handle legacy participant adding (names/emails)
     if (memberEmails.length) {
-      const inputs = memberEmails; // These can now be names OR emails
-
+      const inputs = memberEmails;
       const emails = inputs.filter(i => i.includes('@'));
       const names = inputs.filter(i => !i.includes('@'));
 
@@ -111,7 +151,7 @@ export const api = {
 
         if (match) {
           if (match.id !== userId && !inviteeRows.find(r => r.user_id === match.id)) {
-            inviteeRows.push({ group_id: group.id, user_id: match.id });
+            inviteeRows.push({ group_id: group.id, user_id: match.id, role: 'member' });
           }
         } else {
           // Create shadow profile
@@ -126,7 +166,7 @@ export const api = {
           });
 
           if (shadowErr) throw shadowErr;
-          inviteeRows.push({ group_id: group.id, user_id: shadowId });
+          inviteeRows.push({ group_id: group.id, user_id: shadowId, role: 'member' });
         }
       }
 
@@ -141,10 +181,19 @@ export const api = {
     return group;
   },
 
+  // ============================================================
+  // GROUP DELETION & LEAVING (RPC-enforced)
+  // ============================================================
+
+  // Delete group (admin-only, enforced server-side)
   async deleteGroup(groupId) {
+    const { data, error } = await supabase.rpc('delete_group_as_admin', {
+      p_group_id: groupId,
+    });
+    if (error) throw new Error(error.message);
+
+    // Clean up localStorage hidden groups
     const userId = await currentUserId();
-    
-    // Hide it from UI immediately via localStorage in case RLS blocks it
     try {
       const hiddenStr = localStorage.getItem(`hidden_groups_${userId}`) || '[]';
       const hiddenGroups = JSON.parse(hiddenStr);
@@ -154,12 +203,34 @@ export const api = {
       }
     } catch (e) {}
 
-    // 1. Try to delete user's membership (Leave)
-    await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', userId);
-
-    // 2. Try to delete the entire group (Delete)
-    await supabase.from('groups').delete().eq('id', groupId);
+    return data;
   },
+
+  // Leave group (member-only, admin cannot leave)
+  async leaveGroup(groupId) {
+    const { data, error } = await supabase.rpc('leave_group', {
+      p_group_id: groupId,
+    });
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  // ============================================================
+  // ROLES
+  // ============================================================
+
+  // Get current user's role in a group
+  async getUserRole(groupId) {
+    const { data, error } = await supabase.rpc('get_user_role_in_group', {
+      p_group_id: groupId,
+    });
+    if (error) throw new Error(error.message);
+    return data; // 'admin' | 'member' | null
+  },
+
+  // ============================================================
+  // EXISTING FUNCTIONALITY (Preserved)
+  // ============================================================
 
   async getAllHistory() {
     const { data, error } = await supabase
@@ -176,6 +247,18 @@ export const api = {
       .from('profiles')
       .select('*')
       .eq('id', userId)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async updateProfile(updates) {
+    const userId = await currentUserId();
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
       .single();
     if (error) throw error;
     return data;
