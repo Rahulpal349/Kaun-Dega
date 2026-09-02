@@ -230,15 +230,56 @@ export const api = {
     return group;
   },
 
+  // Add a single shadow/offline member to an existing group
+  async addShadowMember(groupId, input) {
+    if (!input || !input.trim()) return;
+    const isEmail = input.includes('@');
+    
+    // Check if profile exists already
+    let existingProfile = null;
+    const { data } = await supabase.from('profiles').select('id, name, email').eq(isEmail ? 'email' : 'name', input).limit(1);
+    if (data && data.length > 0) existingProfile = data[0];
+
+    let userId;
+    if (existingProfile) {
+      userId = existingProfile.id;
+    } else {
+      userId = crypto.randomUUID();
+      const shadowEmail = isEmail ? input : `${userId}@shadow.local`;
+      const shadowName = isEmail ? input.split('@')[0] : input;
+
+      const { error: shadowErr } = await supabase.from('profiles').insert({
+        id: userId,
+        name: shadowName,
+        email: shadowEmail
+      });
+      if (shadowErr) throw shadowErr;
+    }
+
+    // Add to group
+    const { error: joinErr } = await supabase.from('group_members').insert({
+      group_id: groupId,
+      user_id: userId,
+      role: 'member'
+    });
+    
+    // Ignore duplicate conflict errors if already a member
+    if (joinErr && joinErr.code !== '23505') throw joinErr;
+    
+    return true;
+  },
+
   // ============================================================
   // GROUP DELETION & LEAVING (RPC-enforced)
   // ============================================================
 
-  // Delete group (admin-only, enforced server-side)
+  // Delete group (bypassing RPC since auth.uid() is null for Firebase users)
   async deleteGroup(groupId) {
-    const { data, error } = await supabase.rpc('delete_group_as_admin', {
-      p_group_id: groupId,
-    });
+    const { data, error } = await supabase
+      .from('groups')
+      .delete()
+      .eq('id', groupId);
+      
     if (error) throw new Error(error.message);
 
     // Clean up localStorage hidden groups
@@ -255,9 +296,15 @@ export const api = {
     return data;
   },
 
-  // Leave group (member-only, admin cannot leave)
+  // Leave group (bypassing RPC since auth.uid() is null for Firebase users)
   async leaveGroup(groupId) {
-    const { data, error } = await supabase.rpc('leave_group', { p_group_id: groupId });
+    const userId = await currentUserId();
+    const { data, error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('user_id', userId);
+      
     if (error) throw error;
     return data;
   },
@@ -290,10 +337,24 @@ export const api = {
   // ============================================================
 
   async getAllHistory() {
+    const userId = await currentUserId();
+    
+    // Only fetch history for groups the user is currently a member of
+    const { data: myGroups } = await supabase
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', userId);
+      
+    const groupIds = (myGroups || []).map(g => g.group_id);
+
+    if (groupIds.length === 0) return [];
+
     const { data, error } = await supabase
       .from('expenses')
       .select('*, group:groups(name, emoji), payer:profiles!paid_by(name)')
+      .in('group_id', groupIds)
       .order('created_at', { ascending: false });
+      
     if (error) throw error;
     return data;
   },

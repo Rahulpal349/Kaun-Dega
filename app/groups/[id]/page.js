@@ -72,20 +72,7 @@ export default function GroupDetailPage() {
     }
   }
 
-  // Legacy invite link (old 6-char code)
-  function shareInviteLink() {
-    if (!group?.invite_code) {
-      alert('Invite code not available yet.');
-      return;
-    }
-    const link = `${window.location.origin}/join/${group.invite_code}`;
-    navigator.clipboard.writeText(link).then(() => {
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    }).catch(() => {
-      prompt('Copy this invite link:', link);
-    });
-  }
+
 
   // New secure invite generation (admin-only)
   async function handleGenerateInvite() {
@@ -143,6 +130,18 @@ export default function GroupDetailPage() {
       await loadAll();
     } catch (err) {
       alert('Failed to remove member: ' + err.message);
+    }
+  }
+
+  async function handleAddShadowMember() {
+    setShowMenu(false);
+    const input = window.prompt("Enter the name of the new member (e.g. Rahul):");
+    if (!input || !input.trim()) return;
+    try {
+      await api.addShadowMember(id, input.trim());
+      await loadAll();
+    } catch (err) {
+      alert("Failed to add member: " + err.message);
     }
   }
 
@@ -258,6 +257,12 @@ export default function GroupDetailPage() {
                       )}
                     </div>
                   ))}
+                  <button 
+                    onClick={handleAddShadowMember}
+                    className="w-full flex items-center gap-2 mt-2 px-2 py-1.5 text-xs font-semibold text-[#145C4B] bg-[#145C4B]/10 hover:bg-[#145C4B]/20 rounded-lg transition-colors"
+                  >
+                    <Plus size={14} /> Add Offline Member
+                  </button>
                 </div>
 
                 {/* Actions */}
@@ -479,17 +484,19 @@ export default function GroupDetailPage() {
           </div>
           <span className={`text-[11px] mt-1.5 font-medium ${activeTab === 'balance' ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>Balance</span>
         </button>
-        <button 
-          onClick={isAdmin ? handleGenerateInvite : shareInviteLink}
-          className="flex flex-col items-center justify-center w-full h-full"
-        >
-          <div className={`px-5 py-1.5 rounded-full transition-colors ${copiedLink ? 'bg-[#e6f4ed] text-[#145C4B]' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}>
-            {copiedLink ? <Check size={24} strokeWidth={2.5} /> : <Link2 size={24} strokeWidth={2} />}
-          </div>
-          <span className={`text-[11px] mt-1.5 font-medium ${copiedLink ? 'text-[#145C4B] font-semibold' : 'text-gray-500'}`}>
-            {copiedLink ? 'Copied!' : 'Invite'}
-          </span>
-        </button>
+        {isAdmin && (
+          <button 
+            onClick={handleGenerateInvite}
+            className="flex flex-col items-center justify-center w-full h-full"
+          >
+            <div className={`px-5 py-1.5 rounded-full transition-colors ${copiedLink ? 'bg-[#e6f4ed] text-[#145C4B]' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}>
+              {copiedLink ? <Check size={24} strokeWidth={2.5} /> : <Link2 size={24} strokeWidth={2} />}
+            </div>
+            <span className={`text-[11px] mt-1.5 font-medium ${copiedLink ? 'text-[#145C4B] font-semibold' : 'text-gray-500'}`}>
+              {copiedLink ? 'Copied!' : 'Invite'}
+            </span>
+          </button>
+        )}
         <button 
           onClick={() => router.push(`/groups/${id}/report`)}
           className="flex flex-col items-center justify-center w-full h-full"

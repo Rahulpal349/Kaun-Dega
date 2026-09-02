@@ -7,47 +7,96 @@ import { auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../archive/deprecated-utils/api';
-import { Plus, User, Users, ChevronRight, Wallet, LogOut } from 'lucide-react';
+import { Plus, User, Users, ChevronRight, Wallet, LogOut, Trash2 } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [groups, setGroups] = useState(null);
   const [error, setError] = useState('');
   const [consolidatedBalance, setConsolidatedBalance] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0);
   const [netBalanceLoading, setNetBalanceLoading] = useState(true);
 
+  async function handleDeleteGroup(group) {
+    if (group.myRole === 'admin') {
+      if (!confirm(`Are you sure you want to delete "${group.name}"?`)) return;
+      try {
+        await api.deleteGroup(group.id);
+        const fetchedGroups = await api.getGroups();
+        setGroups(fetchedGroups);
+      } catch (err) {
+        alert(err.message);
+      }
+    } else {
+      if (!confirm(`Are you sure you want to leave "${group.name}"?`)) return;
+      try {
+        await api.leaveGroup(group.id);
+        const fetchedGroups = await api.getGroups();
+        setGroups(fetchedGroups);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+  }
+
   useEffect(() => {
+    let globalChannel;
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.push('/login');
         return;
       }
-      try {
-        const fetchedGroups = await api.getGroups();
-        setGroups(fetchedGroups);
-        
-        let total = 0;
-        await Promise.all(fetchedGroups.map(async (g) => {
-          try {
-            const balanceData = await api.getBalances(g.id);
-            const myBal = balanceData.balances.find(b => b.id === user.uid);
-            if (myBal) {
-              total += (myBal.amount || 0);
+      
+      const loadData = async () => {
+        try {
+          const myUuid = await api.currentUserId();
+          const fetchedGroups = await api.getGroups();
+          setGroups(fetchedGroups);
+          
+          let total = 0;
+          let spent = 0;
+          await Promise.all(fetchedGroups.map(async (g) => {
+            try {
+              const balanceData = await api.getBalances(g.id);
+              const myBal = balanceData.balances.find(b => b.id === myUuid);
+              if (myBal) {
+                total += (myBal.amount || 0);
+                spent += (myBal.charged || 0);
+              }
+            } catch (e) {
+              console.error('Error fetching balance for group', g.id, e);
             }
-          } catch (e) {
-            console.error('Error fetching balance for group', g.id, e);
-          }
-        }));
-        setConsolidatedBalance(total);
-      } catch (err) {
-        setError(err.message);
-        setGroups([]);
-      } finally {
-        setNetBalanceLoading(false);
-      }
+          }));
+          setConsolidatedBalance(total);
+          setTotalSpent(spent);
+        } catch (err) {
+          setError(err.message);
+          setGroups([]);
+        } finally {
+          setNetBalanceLoading(false);
+        }
+      };
+
+      loadData();
+
+      globalChannel = supabase
+        .channel('dashboard-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
+          loadData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements' }, () => {
+          loadData();
+        })
+        .subscribe();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (globalChannel) {
+        supabase.removeChannel(globalChannel);
+      }
+    };
   }, [router]);
 
   return (
@@ -103,13 +152,17 @@ export default function DashboardPage() {
               {consolidatedBalance >= 0 ? 'You are owed' : 'You owe'}
             </p>
           </div>
+          
+          {!netBalanceLoading && (
+            <div className="flex items-center justify-between relative z-10 mt-6 pt-4 border-t border-white/10">
+              <p className="text-sm font-medium text-white/60">Total Spent</p>
+              <p className="text-lg font-bold text-white tracking-tight">₹{totalSpent.toFixed(2)}</p>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-display font-bold text-xl text-ink">Your Groups</h3>
-          <Link href="/groups/new" className="text-primary font-semibold text-sm flex items-center gap-1 hover:text-primary/80 transition-colors">
-            <Plus size={16} /> New Group
-          </Link>
         </div>
 
         {error && (
@@ -129,12 +182,9 @@ export default function DashboardPage() {
               <Users size={32} />
             </div>
             <h3 className="font-display font-bold text-xl text-ink mb-2">No ledgers yet</h3>
-            <p className="text-ink/60 mb-6 max-w-xs text-sm">
+            <p className="text-ink/60 max-w-xs text-sm">
               Create a group to start splitting expenses with friends, family, or flatmates.
             </p>
-            <Link href="/groups/new" className="bg-primary text-white font-semibold px-6 py-2.5 rounded-full hover:bg-primary/90 transition-colors shadow-sm inline-flex items-center gap-2">
-              <Plus size={18} /> Create Group
-            </Link>
           </div>
         ) : (
           <div className="space-y-3">
@@ -160,6 +210,17 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        await handleDeleteGroup(g);
+                      }}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors z-10 relative"
+                      title={g.myRole === 'admin' ? 'Delete Group' : 'Leave Group'}
+                    >
+                      {g.myRole === 'admin' ? <Trash2 size={16} /> : <LogOut size={16} />}
+                    </button>
                     <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-gray-400 group-hover:bg-soft-green group-hover:text-primary transition-colors">
                       <ChevronRight size={18} />
                     </div>
@@ -171,8 +232,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Floating Action Button for mobile */}
-      <div className="fixed max-w-md w-full bottom-24 z-40 md:hidden flex justify-end px-6 left-1/2 -translate-x-1/2 pointer-events-none">
+      {/* Floating Action Button */}
+      <div className="fixed max-w-md w-full bottom-24 z-40 flex justify-end px-6 left-1/2 -translate-x-1/2 pointer-events-none">
         <Link href="/groups/new" className="pointer-events-auto w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
           <Plus size={24} strokeWidth={2.5} />
         </Link>

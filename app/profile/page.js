@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../archive/deprecated-utils/api';
-import { LogOut, ArrowLeft, Edit2, Save, X } from 'lucide-react';
+import { LogOut, ArrowLeft, Edit2, Save, X, Camera } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -12,6 +12,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -71,6 +72,69 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File is too large! Please choose an image under 5MB.");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const base64Data = await compressImage(file);
+      const updated = await api.updateProfile({ avatar_url: base64Data });
+      setProfile(updated);
+    } catch (err) {
+      alert("Failed to upload image: " + err.message);
+    } finally {
+      setUploadingImage(false);
+      e.target.value = null;
+    }
+  }
+
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 250;
+          const MAX_HEIGHT = 250;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress as JPEG
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(dataUrl);
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  }
+
   return (
     <main className="min-h-screen bg-green-50 flex flex-col pb-24">
       {/* Sticky Header */}
@@ -102,8 +166,33 @@ export default function ProfilePage() {
           <div className="space-y-6">
             <div className="bg-white p-6 sm:p-8 border border-gray-100 rounded-2xl shadow-sm">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-16 h-16 rounded-full bg-primary/10 text-primary font-bold text-2xl flex items-center justify-center shrink-0">
-                  {profile.name?.charAt(0).toUpperCase()}
+                <div className="relative group shrink-0">
+                  <div className="w-20 h-20 rounded-full bg-green-100 text-[#145C4B] font-bold text-3xl flex items-center justify-center overflow-hidden border-2 border-white shadow-sm relative">
+                    {profile.avatar_url ? (
+                      <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      profile.name?.charAt(0).toUpperCase()
+                    )}
+                    
+                    {uploadingImage && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 backdrop-blur-[1px]">
+                        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {isEditing && !uploadingImage && (
+                    <label className="absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full shadow border border-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors z-20">
+                      <Camera size={14} className="text-gray-600" />
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                      />
+                    </label>
+                  )}
                 </div>
                 <div>
                   <h2 className="font-bold text-2xl text-gray-900">{profile.name}</h2>
