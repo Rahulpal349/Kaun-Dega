@@ -27,6 +27,7 @@ export default function GroupDetailPage() {
   const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'balance'
   const [expenseSort, setExpenseSort] = useState('recent'); // 'recent' | 'highest' | 'lowest'
   const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
   const [expandedExpenseId, setExpandedExpenseId] = useState(null);
   const [editingPayerExpenseId, setEditingPayerExpenseId] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
@@ -388,7 +389,18 @@ export default function GroupDetailPage() {
                           </div>
 
                           {/* Split Breakdown */}
-                          <p className="font-semibold text-gray-500 mb-2 uppercase tracking-wide text-[10px]">Split Details</p>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Split Details</p>
+                            <button
+                              onClick={() => {
+                                setEditingExpense(e);
+                                setShowExpenseForm(true);
+                              }}
+                              className="text-[13px] text-[#145C4B] font-semibold underline underline-offset-2 decoration-dashed"
+                            >
+                              Edit ✎
+                            </button>
+                          </div>
                           {e.expense_shares?.map(share => {
                             const member = members.find(m => m.id === share.user_id);
                             return (
@@ -436,7 +448,10 @@ export default function GroupDetailPage() {
       {activeTab === 'expenses' && (
         <div className="fixed bottom-24 w-full max-w-md left-1/2 -translate-x-1/2 z-40 pointer-events-none flex justify-end px-6">
           <button 
-            onClick={() => setShowExpenseForm(true)}
+            onClick={() => {
+              setEditingExpense(null);
+              setShowExpenseForm(true);
+            }}
             className="pointer-events-auto w-14 h-14 bg-[#145C4B] hover:bg-[#145C4B]/90 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95"
           >
             <Plus size={28} strokeWidth={2.5} />
@@ -486,14 +501,14 @@ export default function GroupDetailPage() {
         </button>
       </div>
 
-      {/* Add Expense Overlay Modal */}
+      {/* Add/Edit Expense Overlay Modal */}
       {showExpenseForm && (
         <div className="fixed inset-y-0 w-full max-w-md left-1/2 -translate-x-1/2 bg-green-50 z-[60] flex flex-col shadow-2xl">
           <header className="w-full h-16 px-4 flex items-center justify-between bg-green-50/80 backdrop-blur-md border-b border-green-100/50 shrink-0 sticky top-0 z-10">
-            <button onClick={() => setShowExpenseForm(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-900">
+            <button onClick={() => { setShowExpenseForm(false); setEditingExpense(null); }} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-900">
               <ArrowLeft size={24} strokeWidth={2.5} />
             </button>
-            <h2 className="font-bold text-lg text-gray-900">Add New Expense</h2>
+            <h2 className="font-bold text-lg text-gray-900">{editingExpense ? 'Edit Expense' : 'Add New Expense'}</h2>
             <div className="w-10"></div>
           </header>
           <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
@@ -501,10 +516,17 @@ export default function GroupDetailPage() {
               groupId={id} 
               members={members} 
               currentUserId={userId} 
+              existingExpense={editingExpense}
               onAdded={() => {
                 setShowExpenseForm(false);
+                setEditingExpense(null);
                 loadAll();
-              }} 
+              }}
+              onUpdated={() => {
+                setShowExpenseForm(false);
+                setEditingExpense(null);
+                loadAll();
+              }}
             />
           </div>
         </div>

@@ -4,22 +4,37 @@ import { useState, useEffect } from 'react';
 import { api } from '../archive/deprecated-utils/api';
 import { Coffee, IndianRupee } from 'lucide-react';
 
-export default function ExpenseForm({ groupId, members, currentUserId, onAdded }) {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [paidBy, setPaidBy] = useState(currentUserId);
-  const [splitType, setSplitType] = useState('equal');
+export default function ExpenseForm({ groupId, members, currentUserId, onAdded, existingExpense = null, onUpdated }) {
+  const [description, setDescription] = useState(existingExpense ? existingExpense.description : '');
+  const [amount, setAmount] = useState(existingExpense ? String(existingExpense.amount) : '');
+  const [paidBy, setPaidBy] = useState(existingExpense ? existingExpense.paid_by : currentUserId);
+  const [splitType, setSplitType] = useState(existingExpense ? existingExpense.split_type : 'equal');
   
   // Equal Split State
   const [checkedMembers, setCheckedMembers] = useState(
-    members.reduce((acc, m) => ({ ...acc, [m.id]: true }), {})
+    members.reduce((acc, m) => {
+      let isChecked = true;
+      if (existingExpense && existingExpense.split_type === 'equal') {
+        isChecked = existingExpense.expense_shares.some(s => s.user_id === m.id);
+      }
+      return { ...acc, [m.id]: isChecked };
+    }, {})
   );
 
   // Custom Split State
   const [customRatios, setCustomRatios] = useState(
     members.reduce((acc, m) => ({ ...acc, [m.id]: 1 }), {})
   );
-  const [customAmounts, setCustomAmounts] = useState({});
+  const [customAmounts, setCustomAmounts] = useState(
+    members.reduce((acc, m) => {
+      let amt = '';
+      if (existingExpense && existingExpense.split_type === 'custom') {
+        const share = existingExpense.expense_shares.find(s => s.user_id === m.id);
+        if (share) amt = String(share.share_amount);
+      }
+      return { ...acc, [m.id]: amt };
+    }, {})
+  );
   const [lockedMembers, setLockedMembers] = useState(new Set());
 
   const [error, setError] = useState('');
@@ -139,13 +154,19 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
         body.memberIds = selectedIds;
       }
 
-      await api.addExpense(body);
-      setDescription('');
-      setAmount('');
-      setCheckedMembers(members.reduce((acc, m) => ({ ...acc, [m.id]: true }), {}));
-      setCustomRatios(members.reduce((acc, m) => ({ ...acc, [m.id]: 1 }), {}));
-      
-      onAdded?.();
+      if (existingExpense) {
+        await api.updateExpense(existingExpense.id, body);
+        if (onUpdated) onUpdated();
+        else if (onAdded) onAdded();
+      } else {
+        await api.addExpense(body);
+        setDescription('');
+        setAmount('');
+        setCheckedMembers(members.reduce((acc, m) => ({ ...acc, [m.id]: true }), {}));
+        setCustomRatios(members.reduce((acc, m) => ({ ...acc, [m.id]: 1 }), {}));
+        
+        onAdded?.();
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -184,7 +205,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Chai at the tapri"
+            placeholder={existingExpense ? "Description" : "Chai at the tapri"}
             className="w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#145C4B] focus:ring-1 focus:ring-[#145C4B] transition-all text-sm font-medium"
           />
         </div>
@@ -381,7 +402,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded }
             disabled={saving}
             className="w-full rounded-xl bg-[#145C4B] text-white font-bold uppercase tracking-widest py-4 hover:bg-[#145C4B]/90 disabled:opacity-60 transition-colors shadow-md"
           >
-            {saving ? 'SAVING...' : 'SAVE EXPENSE'}
+            {saving ? 'SAVING...' : (existingExpense ? 'UPDATE EXPENSE' : 'SAVE EXPENSE')}
           </button>
         </div>
       </div>

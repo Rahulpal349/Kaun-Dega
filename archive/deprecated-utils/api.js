@@ -336,6 +336,55 @@ export const api = {
     return { ...expense, expense_shares: shareRows };
   },
 
+  async updateExpense(expenseId, { groupId, description, amount, paidBy, splitType, shares, memberIds }) {
+    let computedShares = [];
+
+    if (splitType === 'custom') {
+      if (!Array.isArray(shares) || !shares.length) {
+        throw new Error('custom split requires at least one share');
+      }
+      const total = shares.reduce((sum, s) => sum + Number(s.amount), 0);
+      if (Math.abs(total - Number(amount)) > 0.01) {
+        throw new Error(
+          `Custom shares (₹${total.toFixed(2)}) must add up to the total amount (₹${Number(amount).toFixed(2)})`
+        );
+      }
+      computedShares = shares.map((s) => ({ user_id: s.userId, share_amount: Number(s.amount) }));
+    } else {
+      if (!Array.isArray(memberIds) || !memberIds.length) {
+        throw new Error('equal split requires at least one member');
+      }
+      const equalShare = Math.floor((Number(amount) / memberIds.length) * 100) / 100;
+      const remainder = Number((Number(amount) - equalShare * memberIds.length).toFixed(2));
+      computedShares = memberIds.map((userId, i) => ({
+        user_id: userId,
+        share_amount: i === 0 ? Number((equalShare + remainder).toFixed(2)) : equalShare,
+      }));
+    }
+
+    const { data: expense, error: expenseErr } = await supabase
+      .from('expenses')
+      .update({
+        description,
+        amount,
+        paid_by: paidBy,
+        split_type: splitType || 'equal',
+      })
+      .eq('id', expenseId)
+      .select()
+      .single();
+    if (expenseErr) throw expenseErr;
+
+    const { error: delErr } = await supabase.from('expense_shares').delete().eq('expense_id', expenseId);
+    if (delErr) throw delErr;
+
+    const shareRows = computedShares.map((s) => ({ ...s, expense_id: expense.id }));
+    const { error: shareErr } = await supabase.from('expense_shares').insert(shareRows);
+    if (shareErr) throw shareErr;
+
+    return { ...expense, expense_shares: shareRows };
+  },
+
   async getBalances(groupId) {
     const [members, expensesRes, settlementsRes] = await Promise.all([
       fetchMembers(groupId),
