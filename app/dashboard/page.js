@@ -131,35 +131,7 @@ export default function DashboardPage() {
       </header>
 
       <div className="flex-1 flex flex-col w-full max-w-3xl mx-auto px-6 py-8 pb-32">
-        {/* Consolidated Net Balance Card */}
-        <div className="bg-ink text-white rounded-2xl p-6 shadow-lg mb-8 relative overflow-hidden">
-          {/* Background pattern */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-          
-          <div className="flex items-center gap-3 mb-1 opacity-80">
-            <Wallet size={18} />
-            <p className="font-medium text-sm tracking-wide">Consolidated Net Balance</p>
-          </div>
-          <div className="flex items-end justify-between relative z-10">
-            {netBalanceLoading ? (
-              <h2 className="font-display font-bold text-4xl mt-2 tracking-tight text-white/50">...</h2>
-            ) : (
-              <h2 className="font-display font-bold text-4xl mt-2 tracking-tight">
-                {consolidatedBalance > 0 ? '+' : ''}₹{Math.abs(consolidatedBalance).toFixed(2)}
-              </h2>
-            )}
-            <p className="text-sm font-medium text-white/60 mb-1">
-              {consolidatedBalance >= 0 ? 'You are owed' : 'You owe'}
-            </p>
-          </div>
-          
-          {!netBalanceLoading && (
-            <div className="flex items-center justify-between relative z-10 mt-6 pt-4 border-t border-white/10">
-              <p className="text-sm font-medium text-white/60">Total Spent</p>
-              <p className="text-lg font-bold text-white tracking-tight">₹{totalSpent.toFixed(2)}</p>
-            </div>
-          )}
-        </div>
+
 
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-display font-bold text-xl text-ink">Your Groups</h3>
