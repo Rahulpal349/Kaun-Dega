@@ -13,15 +13,15 @@ export default function HistoryPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
       try {
+        await api.currentUserId();
         setHistory(await api.getAllHistory());
       } catch (err) {
-        setError(err.message);
+        if (err.message === 'Not logged in') {
+          router.push('/login');
+        } else {
+          setError(err.message);
+        }
       }
     })();
   }, [router]);

@@ -65,6 +65,7 @@ async function fetchMembers(groupId) {
 }
 
 export const api = {
+  currentUserId,
   // ============================================================
   // GROUP LISTING
   // ============================================================

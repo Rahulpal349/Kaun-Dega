@@ -44,12 +44,12 @@ export default function GroupReportPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      try {
+        await api.currentUserId();
+        await loadAll();
+      } catch (err) {
         router.push('/login');
-        return;
       }
-      await loadAll();
     })();
   }, [loadAll, router]);
 

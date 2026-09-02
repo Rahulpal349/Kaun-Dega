@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import LandingHeader from '../components/LandingHeader';
-import { supabase } from '../archive/deprecated-utils/supabaseClient';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Play, Receipt, Users, ArrowRightLeft, ShieldCheck } from 'lucide-react';
 
 export default function LandingPage() {
@@ -13,14 +14,14 @@ export default function LandingPage() {
 
   // If user is already logged in, go straight to dashboard
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
         router.replace('/dashboard');
       } else {
         setReady(true);
       }
-    })();
+    });
+    return () => unsubscribe();
   }, [router]);
 
   if (!ready) {

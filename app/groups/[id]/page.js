@@ -170,13 +170,13 @@ export default function GroupDetailPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      try {
+        const uuid = await api.currentUserId();
+        setUserId(uuid);
+        await loadAll();
+      } catch (err) {
         router.push('/login');
-        return;
       }
-      setUserId(session.user.id);
-      await loadAll();
     })();
   }, [loadAll, router]);
 

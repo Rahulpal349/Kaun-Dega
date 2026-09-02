@@ -22,8 +22,9 @@ export default function JoinGroupPage() {
   useEffect(() => {
     (async () => {
       // Check if logged in
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      try {
+        await api.currentUserId();
+      } catch (err) {
         // Save the invite code/token and redirect to login
         localStorage.setItem('pending_invite_code', code);
         router.push('/login');
