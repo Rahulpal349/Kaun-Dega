@@ -29,23 +29,51 @@ async function ensureProfileExists(uuid, firebaseUser) {
   }
 }
 
+let cachedAuthPromise = null;
+
 async function currentUserId() {
-  return new Promise((resolve, reject) => {
+  if (cachedAuthPromise) return cachedAuthPromise;
+
+  cachedAuthPromise = new Promise((resolve, reject) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       unsubscribe();
       if (user) {
         try {
-          const uuid = await firebaseUidToUuid(user.uid);
+          const idToken = await user.getIdToken();
+          
+          const res = await fetch('/api/auth/token', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          });
+          
+          if (!res.ok) {
+            throw new Error('Failed to exchange Firebase token for Supabase token');
+          }
+
+          const { token, uuid } = await res.json();
+          
+          // Set the session globally for this Supabase client
+          await supabase.auth.setSession({
+            access_token: token,
+            refresh_token: ''
+          });
+
           await ensureProfileExists(uuid, user);
           resolve(uuid);
         } catch (e) {
+          cachedAuthPromise = null;
           reject(e);
         }
       } else {
+        cachedAuthPromise = null;
         reject(new Error('Not logged in'));
       }
     });
   });
+
+  return cachedAuthPromise;
 }
 
 async function fetchMembers(groupId) {
@@ -383,6 +411,8 @@ export const api = {
   },
 
   async logout() {
+    cachedAuthPromise = null;
+    await supabase.auth.signOut(); // Also clear Supabase session
     await auth.signOut();
   },
 
