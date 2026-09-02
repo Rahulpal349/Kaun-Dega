@@ -186,9 +186,11 @@ export default function GroupReportPage() {
                       {b.amount > 0 ? '+' : ''}{b.amount.toFixed(2)} INR
                     </span>
                   </div>
-                  <div className="flex gap-4 text-[11px] text-gray-400">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-400">
                     <span>Charged: <span className="font-semibold text-gray-500">{(b.charged || 0).toFixed(2)}</span></span>
                     <span>Paid: <span className="font-semibold text-gray-500">{(b.paid || 0).toFixed(2)}</span></span>
+                    {b.settledPaid > 0 && <span>Settled: <span className="font-semibold text-gray-500">{b.settledPaid.toFixed(2)}</span></span>}
+                    {b.settledReceived > 0 && <span>Received: <span className="font-semibold text-gray-500">{b.settledReceived.toFixed(2)}</span></span>}
                   </div>
                 </div>
               ))}

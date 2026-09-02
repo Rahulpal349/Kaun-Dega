@@ -386,7 +386,9 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
         <div className="max-w-3xl mx-auto flex flex-col gap-4">
           <div className="flex justify-between items-center px-2">
             <div>
-              <p className="text-xs font-semibold text-gray-500 mb-0.5">You are paying</p>
+              <p className="text-xs font-semibold text-gray-500 mb-0.5">
+                {paidBy === currentUserId ? 'You are paying' : `${payingMember?.name || 'Someone'} is paying`}
+              </p>
               <p className="text-xl font-bold text-[#145C4B]">₹{totalAmountNum.toFixed(2)}</p>
             </div>
             <div className="w-[1px] h-8 bg-gray-200"></div>

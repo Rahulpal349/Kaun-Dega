@@ -7,32 +7,53 @@ export function computeBalances(members, expenses, settlements) {
 
   const paid = {};
   const charged = {};
+  const settledPaid = {};
+  const settledReceived = {};
 
+  const memberIdSet = new Set();
   (members || []).forEach((m) => {
-    if (!m) return;
+    if (!m || !m.id) return;
+    memberIdSet.add(m.id);
     names[m.id] = m;
     net[m.id] = 0;
     paid[m.id] = 0;
     charged[m.id] = 0;
+    settledPaid[m.id] = 0;
+    settledReceived[m.id] = 0;
   });
 
-  // Whoever paid gets credited the full amount; everyone with a share is debited theirs.
+  // Whoever paid for an expense gets credited; everyone with a share is debited theirs.
+  // "Paid" and "Charged" track pure group expenses.
   (expenses || []).forEach((e) => {
-    const shareTotal = (e.expense_shares || []).reduce((s, x) => s + Number(x.share_amount), 0);
-    net[e.paid_by] = (net[e.paid_by] || 0) + shareTotal;
-    paid[e.paid_by] = (paid[e.paid_by] || 0) + shareTotal;
+    const shareTotal = (e.expense_shares || []).reduce((s, x) => s + Number(x.share_amount || 0), 0);
+    const paidBy = e.paid_by;
+    if (paidBy) {
+      net[paidBy] = (net[paidBy] || 0) + shareTotal;
+      paid[paidBy] = (paid[paidBy] || 0) + shareTotal;
+    }
     (e.expense_shares || []).forEach((s) => {
-      net[s.user_id] = (net[s.user_id] || 0) - Number(s.share_amount);
-      charged[s.user_id] = (charged[s.user_id] || 0) + Number(s.share_amount);
+      const uId = s.user_id;
+      if (uId) {
+        const shareAmt = Number(s.share_amount || 0);
+        net[uId] = (net[uId] || 0) - shareAmt;
+        charged[uId] = (charged[uId] || 0) + shareAmt;
+      }
     });
   });
 
-  // Past settlements move money from payer to receiver directly.
+  // Past settlements move money from debtor (from_user) to creditor (to_user) directly.
+  // Settlements settle debts — they do NOT inflate expense consumption (charged) or expense payments (paid).
   (settlements || []).forEach((s) => {
-    net[s.from_user] = (net[s.from_user] || 0) + Number(s.amount);
-    net[s.to_user] = (net[s.to_user] || 0) - Number(s.amount);
-    paid[s.from_user] = (paid[s.from_user] || 0) + Number(s.amount); // giving money to someone is like paying an expense for them
-    charged[s.to_user] = (charged[s.to_user] || 0) + Number(s.amount); // receiving money is like being charged
+    const amt = Number(s.amount || 0);
+    if (amt <= 0) return;
+    if (s.from_user) {
+      net[s.from_user] = (net[s.from_user] || 0) + amt;
+      settledPaid[s.from_user] = (settledPaid[s.from_user] || 0) + amt;
+    }
+    if (s.to_user) {
+      net[s.to_user] = (net[s.to_user] || 0) - amt;
+      settledReceived[s.to_user] = (settledReceived[s.to_user] || 0) + amt;
+    }
   });
 
   // Debt simplification: greedily match biggest creditor with biggest debtor,
@@ -52,9 +73,9 @@ export function computeBalances(members, expenses, settlements) {
     const pay = Math.min(debtors[i].amount, creditors[j].amount);
     moves.push({
       from: debtors[i].id,
-      fromName: names[debtors[i].id]?.name || 'Someone',
+      fromName: names[debtors[i].id]?.name || 'Former Member',
       to: creditors[j].id,
-      toName: names[creditors[j].id]?.name || 'Someone',
+      toName: names[creditors[j].id]?.name || 'Former Member',
       toUpiId: names[creditors[j].id]?.upi_id || null,
       amount: Number(pay.toFixed(2)),
     });
@@ -64,14 +85,33 @@ export function computeBalances(members, expenses, settlements) {
     if (creditors[j].amount < 0.01) j++;
   }
 
-  return {
-    balances: Object.entries(net).map(([id, amount]) => ({
+  // Ensure all current group members are included in balances.
+  // Non-members (former participants) are only included if they have an active unsettled balance.
+  const allIds = [
+    ...(members || []).map((m) => m?.id).filter(Boolean),
+    ...Object.keys(net).filter((id) => !memberIdSet.has(id)),
+  ];
+
+  const balances = [];
+  for (const id of allIds) {
+    const isMember = memberIdSet.has(id);
+    const amount = Number((net[id] || 0).toFixed(2));
+    // Skip former members who are already settled up (0 balance)
+    if (!isMember && Math.abs(amount) < 0.01) continue;
+
+    balances.push({
       id,
-      name: names[id]?.name || 'Someone',
-      amount: Number(amount.toFixed(2)),
+      name: names[id]?.name || 'Former Member',
+      amount,
       paid: Number((paid[id] || 0).toFixed(2)),
       charged: Number((charged[id] || 0).toFixed(2)),
-    })),
+      settledPaid: Number((settledPaid[id] || 0).toFixed(2)),
+      settledReceived: Number((settledReceived[id] || 0).toFixed(2)),
+    });
+  }
+
+  return {
+    balances,
     moves,
   };
 }

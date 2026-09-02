@@ -10,10 +10,17 @@ async function currentUserId() {
 async function fetchMembers(groupId) {
   const { data, error } = await supabase
     .from('group_members')
-    .select('role, profiles(id, name, email, phone, upi_id)')
+    .select('user_id, role, profiles(id, name, email, phone, upi_id)')
     .eq('group_id', groupId);
   if (error) throw error;
-  return data.map((row) => ({ ...row.profiles, role: row.role }));
+  return data.map((row) => ({
+    id: row.profiles?.id || row.user_id,
+    name: row.profiles?.name || row.profiles?.email?.split('@')[0] || 'Member',
+    email: row.profiles?.email || null,
+    phone: row.profiles?.phone || null,
+    upi_id: row.profiles?.upi_id || null,
+    role: row.role,
+  }));
 }
 
 export const api = {
@@ -307,12 +314,13 @@ export const api = {
       if (!Array.isArray(memberIds) || !memberIds.length) {
         throw new Error('equal split requires at least one member');
       }
-      // Equal split with any rounding remainder going to the first member (the payer).
+      // Equal split with any rounding remainder going to the payer (or first member).
       const equalShare = Math.floor((Number(amount) / memberIds.length) * 100) / 100;
       const remainder = Number((Number(amount) - equalShare * memberIds.length).toFixed(2));
-      computedShares = memberIds.map((userId, i) => ({
+      const remainderTargetId = memberIds.includes(paidBy) ? paidBy : memberIds[0];
+      computedShares = memberIds.map((userId) => ({
         user_id: userId,
-        share_amount: i === 0 ? Number((equalShare + remainder).toFixed(2)) : equalShare,
+        share_amount: userId === remainderTargetId ? Number((equalShare + remainder).toFixed(2)) : equalShare,
       }));
     }
 
@@ -356,9 +364,10 @@ export const api = {
       }
       const equalShare = Math.floor((Number(amount) / memberIds.length) * 100) / 100;
       const remainder = Number((Number(amount) - equalShare * memberIds.length).toFixed(2));
-      computedShares = memberIds.map((userId, i) => ({
+      const remainderTargetId = memberIds.includes(paidBy) ? paidBy : memberIds[0];
+      computedShares = memberIds.map((userId) => ({
         user_id: userId,
-        share_amount: i === 0 ? Number((equalShare + remainder).toFixed(2)) : equalShare,
+        share_amount: userId === remainderTargetId ? Number((equalShare + remainder).toFixed(2)) : equalShare,
       }));
     }
 
@@ -390,7 +399,7 @@ export const api = {
       fetchMembers(groupId),
       supabase
         .from('expenses')
-        .select('paid_by, expense_shares(user_id, share_amount)')
+        .select('paid_by, expense_shares(user_id, share_amount), payer:profiles!paid_by(id, name, upi_id)')
         .eq('group_id', groupId),
       supabase.from('settlements').select('from_user, to_user, amount').eq('group_id', groupId),
     ]);
@@ -398,7 +407,22 @@ export const api = {
     if (expensesRes.error) throw expensesRes.error;
     if (settlementsRes.error) throw settlementsRes.error;
 
-    return computeBalances(members, expensesRes.data, settlementsRes.data);
+    // Enrich members list with known payer profiles (in case former members paid expenses)
+    const knownMembers = [...members];
+    const memberIds = new Set(knownMembers.map((m) => m.id));
+    (expensesRes.data || []).forEach((e) => {
+      if (e.payer && e.payer.id && !memberIds.has(e.payer.id)) {
+        knownMembers.push({
+          id: e.payer.id,
+          name: e.payer.name || 'Former Member',
+          upi_id: e.payer.upi_id || null,
+          role: 'former',
+        });
+        memberIds.add(e.payer.id);
+      }
+    });
+
+    return computeBalances(knownMembers, expensesRes.data, settlementsRes.data);
   },
 
   async addSettlement({ groupId, fromUser, toUser, amount }) {
