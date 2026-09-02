@@ -25,6 +25,7 @@ export default function GroupDetailPage() {
 
   // Tabs and overlays
   const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'balance'
+  const [expenseSort, setExpenseSort] = useState('recent'); // 'recent' | 'highest' | 'lowest'
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expandedExpenseId, setExpandedExpenseId] = useState(null);
   const [editingPayerExpenseId, setEditingPayerExpenseId] = useState(null);
@@ -134,6 +135,16 @@ export default function GroupDetailPage() {
     }
   }
 
+  async function handleRemoveMember(memberId, memberName) {
+    if (!confirm(`Remove ${memberName} from this group?`)) return;
+    try {
+      await api.removeMember(id, memberId);
+      await loadAll();
+    } catch (err) {
+      alert('Failed to remove member: ' + err.message);
+    }
+  }
+
   const loadAll = useCallback(async () => {
     try {
       const [membersData, expensesData, balances, groupsData, role] = await Promise.all([
@@ -235,6 +246,15 @@ export default function GroupDetailPage() {
                       </div>
                       <span className="text-sm text-gray-700 flex-1 truncate">{m.name}</span>
                       {m.role === 'admin' && <Crown size={12} className="text-amber-500" />}
+                      {isAdmin && m.id !== userId && (
+                        <button 
+                          onClick={() => handleRemoveMember(m.id, m.name)}
+                          className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-colors"
+                          title={`Remove ${m.name}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -301,7 +321,23 @@ export default function GroupDetailPage() {
               <div className="p-8 text-center text-gray-400">No expenses logged yet.</div>
             ) : (
               <div className="flex flex-col">
-                {expenses.map((e) => {
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between sticky top-16 z-20">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Transactions</span>
+                  <select 
+                    value={expenseSort} 
+                    onChange={e => setExpenseSort(e.target.value)}
+                    className="text-xs bg-white border border-gray-200 text-gray-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#145C4B]"
+                  >
+                    <option value="recent">Recent First</option>
+                    <option value="highest">Highest Amount</option>
+                    <option value="lowest">Lowest Amount</option>
+                  </select>
+                </div>
+                {[...expenses].sort((a, b) => {
+                  if (expenseSort === 'highest') return Number(b.amount) - Number(a.amount);
+                  if (expenseSort === 'lowest') return Number(a.amount) - Number(b.amount);
+                  return new Date(b.created_at) - new Date(a.created_at);
+                }).map((e) => {
                   const date = new Date(e.created_at || new Date());
                   const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                   const isExpanded = expandedExpenseId === e.id;

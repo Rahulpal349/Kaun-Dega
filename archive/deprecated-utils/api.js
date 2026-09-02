@@ -208,11 +208,19 @@ export const api = {
 
   // Leave group (member-only, admin cannot leave)
   async leaveGroup(groupId) {
-    const { data, error } = await supabase.rpc('leave_group', {
-      p_group_id: groupId,
-    });
-    if (error) throw new Error(error.message);
+    const { data, error } = await supabase.rpc('leave_group', { p_group_id: groupId });
+    if (error) throw error;
     return data;
+  },
+
+  async removeMember(groupId, userId) {
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .match({ group_id: groupId, user_id: userId });
+    
+    if (error) throw error;
+    return true;
   },
 
   // ============================================================
