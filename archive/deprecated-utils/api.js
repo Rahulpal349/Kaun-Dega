@@ -1,10 +1,16 @@
 import { supabase } from './supabaseClient';
 import { computeBalances, buildWhatsappText } from './balances';
+import { auth } from '../../lib/firebase';
+import { toStandardUuid } from '../../lib/uidHelper';
 
 async function currentUserId() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) throw new Error('Not logged in');
-  return data.user.id;
+  const firebaseUser = auth.currentUser;
+  if (firebaseUser) {
+    return toStandardUuid(firebaseUser.uid);
+  }
+  const { data } = await supabase.auth.getUser();
+  if (data?.user) return data.user.id;
+  throw new Error('Not logged in');
 }
 
 async function fetchMembers(groupId) {
@@ -280,8 +286,13 @@ export const api = {
   },
 
   async logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { signOut } = await import('../../lib/firebase');
+      await signOut(auth);
+    } catch (e) {}
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
   },
 
   getMembers: fetchMembers,

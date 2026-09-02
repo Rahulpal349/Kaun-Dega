@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../../archive/deprecated-utils/api';
+import { auth, onAuthStateChanged } from '../../../lib/firebase';
+import { toStandardUuid } from '../../../lib/uidHelper';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
 import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check, Users, LogOut, Shield, Copy, X, Crown } from 'lucide-react';
@@ -169,15 +171,27 @@ export default function GroupDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      let activeUserId = null;
+      if (firebaseUser) {
+        activeUserId = toStandardUuid(firebaseUser.uid);
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          activeUserId = session.user.id;
+        }
+      }
+
+      if (!activeUserId) {
         router.push('/login');
         return;
       }
-      setUserId(session.user.id);
+
+      setUserId(activeUserId);
       await loadAll();
-    })();
+    });
+
+    return () => unsubscribe();
   }, [loadAll, router]);
 
   // Realtime subscription — auto-refresh when any member changes data

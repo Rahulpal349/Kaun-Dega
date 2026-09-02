@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '../../archive/deprecated-utils/supabaseClient';
+import { auth, sendPasswordResetEmail } from '../../lib/firebase';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -16,15 +16,19 @@ export default function ForgotPasswordPage() {
     setMessage('');
     setLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-    } else {
-      setMessage('Password reset instructions have been sent to your email.');
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setMessage('Password reset email sent! Check your inbox for instructions to reset your password.');
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else {
+        setError(err.message || 'Failed to send reset email.');
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -32,7 +36,6 @@ export default function ForgotPasswordPage() {
     <main className="min-h-screen bg-green-50 flex items-center justify-center px-6 relative overflow-hidden">
       {/* Premium Green Header Background */}
       <div className="absolute top-0 left-0 w-full h-[45%] bg-primary rounded-b-[2.5rem]">
-        {/* Soft decorative elements */}
         <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
         <div className="absolute top-[20%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
         <div className="absolute bottom-0 left-1/4 w-32 h-32 bg-soft-green/20 rounded-full blur-2xl"></div>
@@ -49,7 +52,7 @@ export default function ForgotPasswordPage() {
 
         {message ? (
           <div className="bg-soft-green/30 border border-primary/20 rounded-2xl p-6 text-center mb-4">
-            <p className="text-ink text-sm font-medium">
+            <p className="text-ink text-sm font-medium leading-relaxed">
               {message}
             </p>
           </div>
@@ -85,4 +88,3 @@ export default function ForgotPasswordPage() {
     </main>
   );
 }
-

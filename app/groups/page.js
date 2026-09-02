@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../archive/deprecated-utils/api';
+import { auth, onAuthStateChanged } from '../../lib/firebase';
 import { Plus, Trash2, ChevronRight, Users } from 'lucide-react';
 
 export default function GroupsPage() {
@@ -13,18 +14,28 @@ export default function GroupsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      let active = false;
+      if (firebaseUser) {
+        active = true;
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) active = true;
+      }
+
+      if (!active) {
         router.push('/login');
         return;
       }
+
       try {
         setGroups(await api.getGroups());
       } catch (err) {
         setError(err.message);
       }
-    })();
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   return (

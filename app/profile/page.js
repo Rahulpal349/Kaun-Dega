@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../archive/deprecated-utils/api';
+import { auth, onAuthStateChanged } from '../../lib/firebase';
 import { LogOut, ArrowLeft, Edit2, Save, X } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -22,9 +23,16 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      let active = false;
+      if (firebaseUser) {
+        active = true;
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) active = true;
+      }
+
+      if (!active) {
         router.push('/login');
         return;
       }
@@ -32,15 +40,17 @@ export default function ProfilePage() {
         const data = await api.getProfile();
         setProfile(data);
         setEditForm({
-          name: data.name || '',
-          phone: data.phone || '',
-          upi_id: data.upi_id || '',
-          gender: data.gender || ''
+          name: data?.name || firebaseUser?.displayName || '',
+          phone: data?.phone || '',
+          upi_id: data?.upi_id || '',
+          gender: data?.gender || ''
         });
       } catch (err) {
         setError(err.message);
       }
-    })();
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   async function handleLogout() {

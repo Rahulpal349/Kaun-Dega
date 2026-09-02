@@ -7,20 +7,28 @@ import LandingHeader from '../components/LandingHeader';
 import { supabase } from '../archive/deprecated-utils/supabaseClient';
 import { Play, Receipt, Users, ArrowRightLeft, ShieldCheck } from 'lucide-react';
 
+import { auth, onAuthStateChanged } from '../lib/firebase';
+
 export default function LandingPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
   // If user is already logged in, go straight to dashboard
   useEffect(() => {
-    (async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        router.replace('/dashboard');
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         router.replace('/dashboard');
       } else {
         setReady(true);
       }
-    })();
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   if (!ready) {

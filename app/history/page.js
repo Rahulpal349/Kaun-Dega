@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../archive/deprecated-utils/api';
+import { auth, onAuthStateChanged } from '../../lib/firebase';
 import { ArrowLeft } from 'lucide-react';
 
 export default function HistoryPage() {
@@ -12,18 +13,28 @@ export default function HistoryPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      let active = false;
+      if (firebaseUser) {
+        active = true;
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) active = true;
+      }
+
+      if (!active) {
         router.push('/login');
         return;
       }
+
       try {
         setHistory(await api.getAllHistory());
       } catch (err) {
         setError(err.message);
       }
-    })();
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   return (

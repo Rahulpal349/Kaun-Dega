@@ -1,6 +1,7 @@
 import { Fraunces, Manrope, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import BottomNav from '../components/BottomNav';
+import { AuthProvider } from '../lib/AuthContext';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -51,8 +52,10 @@ export default function RootLayout({ children }) {
           transform translate-x-0 ensures 'fixed' position elements inside act relative to this container.
         */}
         <div className="w-full max-w-md min-h-screen bg-green-50 relative shadow-2xl shadow-gray-400/20 flex flex-col overflow-x-hidden">
-          {children}
-          <BottomNav />
+          <AuthProvider>
+            {children}
+            <BottomNav />
+          </AuthProvider>
         </div>
       </body>
     </html>
