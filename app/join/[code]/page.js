@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../../archive/deprecated-utils/api';
-import { auth, onAuthStateChanged } from '../../../lib/firebase';
 import { Users, LogIn, CheckCircle2, Loader2, AlertCircle, Clock, Shield } from 'lucide-react';
 
 export default function JoinGroupPage() {
@@ -21,16 +20,11 @@ export default function JoinGroupPage() {
   const isSecureToken = code && code.length > 6;
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      let active = false;
-      if (firebaseUser) {
-        active = true;
-      } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) active = true;
-      }
-
-      if (!active) {
+    (async () => {
+      // Check if logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // Save the invite code/token and redirect to login
         localStorage.setItem('pending_invite_code', code);
         router.push('/login');
         return;
@@ -63,9 +57,7 @@ export default function JoinGroupPage() {
       } finally {
         setLoading(false);
       }
-    });
-
-    return () => unsubscribe();
+    })();
   }, [code, router, isSecureToken]);
 
   async function handleJoin() {

@@ -7,9 +7,6 @@ import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../archive/deprecated-utils/api';
 import { Plus, User, Users, ChevronRight, Wallet, LogOut } from 'lucide-react';
 
-import { auth, onAuthStateChanged } from '../../lib/firebase';
-import { toStandardUuid } from '../../lib/uidHelper';
-
 export default function DashboardPage() {
   const router = useRouter();
   const [groups, setGroups] = useState(null);
@@ -18,22 +15,12 @@ export default function DashboardPage() {
   const [netBalanceLoading, setNetBalanceLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      let activeUserId = null;
-      if (firebaseUser) {
-        activeUserId = toStandardUuid(firebaseUser.uid);
-      } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          activeUserId = session.user.id;
-        }
-      }
-
-      if (!activeUserId) {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         router.push('/login');
         return;
       }
-
       try {
         const fetchedGroups = await api.getGroups();
         setGroups(fetchedGroups);
@@ -42,7 +29,7 @@ export default function DashboardPage() {
         await Promise.all(fetchedGroups.map(async (g) => {
           try {
             const balanceData = await api.getBalances(g.id);
-            const myBal = balanceData.balances.find(b => b.id === activeUserId);
+            const myBal = balanceData.balances.find(b => b.id === session.user.id);
             if (myBal) {
               total += (myBal.amount || 0);
             }
@@ -56,9 +43,7 @@ export default function DashboardPage() {
       } finally {
         setNetBalanceLoading(false);
       }
-    });
-
-    return () => unsubscribe();
+    })();
   }, [router]);
 
   return (

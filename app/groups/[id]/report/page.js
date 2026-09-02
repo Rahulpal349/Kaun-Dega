@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../../../archive/deprecated-utils/api';
-import { auth, onAuthStateChanged } from '../../../../lib/firebase';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Generates a simple color palette for the pie chart
@@ -44,23 +43,14 @@ export default function GroupReportPage() {
   }, [id]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      let active = false;
-      if (firebaseUser) {
-        active = true;
-      } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) active = true;
-      }
-
-      if (!active) {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         router.push('/login');
         return;
       }
       await loadAll();
-    });
-
-    return () => unsubscribe();
+    })();
   }, [loadAll, router]);
 
   if (loading) {
