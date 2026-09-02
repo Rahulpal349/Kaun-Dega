@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { auth } from '../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { supabase } from '../../archive/deprecated-utils/supabaseClient';
 import { api } from '../../archive/deprecated-utils/api';
 import { Plus, User, Users, ChevronRight, Wallet, LogOut } from 'lucide-react';
@@ -15,9 +17,8 @@ export default function DashboardPage() {
   const [netBalanceLoading, setNetBalanceLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
         router.push('/login');
         return;
       }
@@ -29,7 +30,7 @@ export default function DashboardPage() {
         await Promise.all(fetchedGroups.map(async (g) => {
           try {
             const balanceData = await api.getBalances(g.id);
-            const myBal = balanceData.balances.find(b => b.id === session.user.id);
+            const myBal = balanceData.balances.find(b => b.id === user.uid);
             if (myBal) {
               total += (myBal.amount || 0);
             }
@@ -40,10 +41,13 @@ export default function DashboardPage() {
         setConsolidatedBalance(total);
       } catch (err) {
         setError(err.message);
+        setGroups([]);
       } finally {
         setNetBalanceLoading(false);
       }
-    })();
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   return (

@@ -1,10 +1,51 @@
 import { supabase } from './supabaseClient';
 import { computeBalances, buildWhatsappText } from './balances';
+import { auth } from '../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+
+async function firebaseUidToUuid(uid) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(uid);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+async function ensureProfileExists(uuid, firebaseUser) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', uuid)
+    .single();
+
+  if (error && error.code === 'PGRST116') {
+    const name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User';
+    await supabase.from('profiles').insert({
+      id: uuid,
+      name: name,
+      email: firebaseUser.email
+    });
+  }
+}
 
 async function currentUserId() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) throw new Error('Not logged in');
-  return data.user.id;
+  return new Promise((resolve, reject) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      unsubscribe();
+      if (user) {
+        try {
+          const uuid = await firebaseUidToUuid(user.uid);
+          await ensureProfileExists(uuid, user);
+          resolve(uuid);
+        } catch (e) {
+          reject(e);
+        }
+      } else {
+        reject(new Error('Not logged in'));
+      }
+    });
+  });
 }
 
 async function fetchMembers(groupId) {
@@ -280,8 +321,7 @@ export const api = {
   },
 
   async logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    await auth.signOut();
   },
 
   getMembers: fetchMembers,
