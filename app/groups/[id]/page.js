@@ -127,16 +127,16 @@ export default function GroupDetailPage() {
   }, [id, loadAll]);
 
   if (loading) {
-    return <main className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</main>;
+    return <main className="min-h-screen bg-green-50 flex items-center justify-center text-gray-400">Loading...</main>;
   }
 
   // Determine total expenses
   const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col font-body" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
+    <main className="min-h-screen bg-green-50 flex flex-col font-body" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
       {/* Header - Clean Modern Theme */}
-      <header className="w-full h-16 px-4 flex items-center justify-between bg-gray-50 text-gray-900 sticky top-0 z-40">
+      <header className="w-full h-16 px-4 flex items-center justify-between bg-green-50/80 backdrop-blur-md text-gray-900 border-b border-green-100/50 sticky top-0 z-40">
         <div className="flex items-center gap-4">
           <button onClick={() => router.push('/dashboard')} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
             <ArrowLeft size={24} strokeWidth={2.5} />
@@ -260,16 +260,18 @@ export default function GroupDetailPage() {
 
       {/* Floating Action Button */}
       {activeTab === 'expenses' && (
-        <button 
-          onClick={() => setShowExpenseForm(true)}
-          className="fixed bottom-24 right-6 w-14 h-14 bg-[#145C4B] hover:bg-[#145C4B]/90 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-40"
-        >
-          <Plus size={28} strokeWidth={2.5} />
-        </button>
+        <div className="fixed bottom-24 w-full max-w-md left-1/2 -translate-x-1/2 z-40 pointer-events-none flex justify-end px-6">
+          <button 
+            onClick={() => setShowExpenseForm(true)}
+            className="pointer-events-auto w-14 h-14 bg-[#145C4B] hover:bg-[#145C4B]/90 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95"
+          >
+            <Plus size={28} strokeWidth={2.5} />
+          </button>
+        </div>
       )}
 
       {/* Group Bottom Navigation (Clean Theme) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center h-20 px-2 sm:px-8 z-50 rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
+      <div className="fixed bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 bg-white border-t border-gray-100 flex justify-around items-center h-20 px-2 sm:px-8 z-50 rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
         <button 
           onClick={() => setActiveTab('expenses')}
           className="flex flex-col items-center justify-center w-full h-full"
@@ -312,8 +314,8 @@ export default function GroupDetailPage() {
 
       {/* Add Expense Overlay Modal */}
       {showExpenseForm && (
-        <div className="fixed inset-0 bg-gray-50 z-[60] flex flex-col">
-          <header className="w-full h-16 px-4 flex items-center justify-between bg-white border-b border-gray-200 shrink-0">
+        <div className="fixed inset-y-0 w-full max-w-md left-1/2 -translate-x-1/2 bg-green-50 z-[60] flex flex-col shadow-2xl">
+          <header className="w-full h-16 px-4 flex items-center justify-between bg-green-50/80 backdrop-blur-md border-b border-green-100/50 shrink-0 sticky top-0 z-10">
             <button onClick={() => setShowExpenseForm(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-900">
               <ArrowLeft size={24} strokeWidth={2.5} />
             </button>

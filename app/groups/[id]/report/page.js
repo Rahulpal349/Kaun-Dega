@@ -54,7 +54,7 @@ export default function GroupReportPage() {
   }, [loadAll, router]);
 
   if (loading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading Report...</div>;
+    return <div className="min-h-screen bg-green-50 flex items-center justify-center text-gray-400">Loading Report...</div>;
   }
 
   const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
@@ -80,9 +80,9 @@ export default function GroupReportPage() {
   const gradientStops = pieData.map(d => `${d.color} ${d.startAngle}% ${d.endAngle}%`).join(', ');
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-body pb-10">
+    <div className="min-h-screen bg-green-50 text-gray-800 font-body pb-10">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-40">
+      <header className="bg-green-50/80 backdrop-blur-md border-b border-green-100/50 px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-40">
         <button onClick={() => router.back()} className="text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2">
           <ArrowLeft size={20} strokeWidth={2.5} />
           <span className="font-bold text-lg">{group?.name}</span>

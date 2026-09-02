@@ -64,10 +64,10 @@ export default function NewGroupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6">
+    <main className="min-h-screen bg-green-50 flex flex-col items-center py-12 px-4 sm:px-6">
       <div className="w-full max-w-xl">
         <div className="flex justify-end mb-4">
-          <Link href="/dashboard" className="w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm">
+          <Link href="/dashboard" className="w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-green-50 transition-colors shadow-sm">
             <X size={20} className="text-gray-500" />
           </Link>
         </div>
@@ -125,7 +125,7 @@ export default function NewGroupPage() {
               {participants.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {participants.map((p, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full">
+                    <div key={idx} className="flex items-center gap-2 bg-green-50 border border-gray-200 px-3 py-1.5 rounded-full">
                       <span className="text-sm font-medium text-gray-700">{p}</span>
                       <button 
                         type="button" 
@@ -156,7 +156,7 @@ export default function NewGroupPage() {
                       className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
                         isSelected 
                           ? 'border-primary bg-primary text-white shadow-sm'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-green-50'
                       }`}
                     >
                       <span>{t.emoji}</span>
@@ -186,3 +186,4 @@ export default function NewGroupPage() {
     </main>
   );
 }
+

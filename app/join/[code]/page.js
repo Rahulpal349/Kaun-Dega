@@ -61,7 +61,7 @@ export default function JoinGroupPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center font-body">
+      <main className="min-h-screen bg-green-50 flex items-center justify-center font-body">
         <div className="flex items-center gap-3 text-gray-400">
           <Loader2 size={24} className="animate-spin" />
           <span className="text-lg">Loading invite...</span>
@@ -72,7 +72,7 @@ export default function JoinGroupPage() {
 
   if (error && !group) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center font-body px-6">
+      <main className="min-h-screen bg-green-50 flex items-center justify-center font-body px-6">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center max-w-sm w-full">
           <div className="w-16 h-16 rounded-full bg-red-50 text-red-400 flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">✕</span>
@@ -91,7 +91,7 @@ export default function JoinGroupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center font-body px-6">
+    <main className="min-h-screen bg-green-50 flex items-center justify-center font-body px-6">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center max-w-sm w-full">
         {/* Group Icon */}
         <div className="w-20 h-20 rounded-full bg-[#e6f4ed] text-[#145C4B] flex items-center justify-center mx-auto mb-4">

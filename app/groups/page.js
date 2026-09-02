@@ -28,9 +28,9 @@ export default function GroupsPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col pb-24">
+    <main className="min-h-screen bg-green-50 flex flex-col pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <header className="sticky top-0 z-30 bg-green-50/80 backdrop-blur-md border-b border-green-100/50">
         <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 h-16 flex items-center justify-between">
           <h1 className="font-display font-bold text-xl text-gray-900 tracking-tight">Your Groups</h1>
           <Link href="/groups/new" className="bg-[#145C4B] text-white px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-1.5 hover:bg-[#145C4B]/90 transition-colors shadow-sm">
@@ -60,7 +60,7 @@ export default function GroupsPage() {
               <Link key={g.id} href={`/groups/${g.id}`} className="block group">
                 <div className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md hover:border-gray-200 transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-green-50 border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
                       {g.emoji}
                     </div>
                     <div>
@@ -90,7 +90,7 @@ export default function GroupsPage() {
                     >
                       <Trash2 size={18} />
                     </button>
-                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#e6f4ed] group-hover:text-[#145C4B] transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-gray-400 group-hover:bg-[#e6f4ed] group-hover:text-[#145C4B] transition-colors">
                       <ChevronRight size={18} />
                     </div>
                   </div>
@@ -103,3 +103,4 @@ export default function GroupsPage() {
     </main>
   );
 }
+

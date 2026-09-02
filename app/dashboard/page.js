@@ -47,9 +47,9 @@ export default function DashboardPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col">
+    <main className="min-h-screen bg-green-50 flex flex-col">
       {/* SaaS Style Header */}
-      <header className="w-full bg-white border-b border-gray-100 sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
+      <header className="w-full bg-green-50/80 backdrop-blur-md border-b border-green-100/50 sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="font-display font-bold text-2xl text-ink leading-tight">
             Dashboard
@@ -138,7 +138,7 @@ export default function DashboardPage() {
               <Link key={g.id} href={`/groups/${g.id}`} className="block group">
                 <div className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md hover:border-gray-200 transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-green-50 border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
                       {g.emoji}
                     </div>
                     <div>
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                     >
                       <Trash2 size={18} />
                     </button>
-                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-soft-green group-hover:text-primary transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-gray-400 group-hover:bg-soft-green group-hover:text-primary transition-colors">
                       <ChevronRight size={18} />
                     </div>
                   </div>
@@ -180,11 +180,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Floating Action Button for mobile */}
-      <div className="fixed right-6 bottom-24 z-40 md:hidden">
-        <Link href="/groups/new" className="w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
+      <div className="fixed max-w-md w-full bottom-24 z-40 md:hidden flex justify-end px-6 left-1/2 -translate-x-1/2 pointer-events-none">
+        <Link href="/groups/new" className="pointer-events-auto w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
           <Plus size={24} strokeWidth={2.5} />
         </Link>
       </div>
     </main>
   );
 }
+
