@@ -16,79 +16,70 @@ export default function JoinGroupPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Determine if this is a new secure token (long) or legacy 6-char code
-  const isSecureToken = code && code.length > 6;
-
   useEffect(() => {
     (async () => {
-      // Check if logged in
+      let myId;
       try {
-        await api.currentUserId();
+        myId = await api.currentUserId();
       } catch (err) {
-        // Save the invite code/token and redirect to login
         localStorage.setItem('pending_invite_code', code);
         router.push('/login');
         return;
       }
 
       try {
-        if (isSecureToken) {
-          // New secure token flow
-          const info = await api.getInviteInfo(code);
-          if (!info.valid) {
-            setError(info.error || 'This invite link is invalid.');
-          } else {
-            setInviteInfo(info);
-          }
-        } else {
-          // Legacy 6-char code flow
-          const groupData = await api.getGroupByInviteCode(code);
-          setInviteInfo({
-            valid: true,
-            groupId: groupData.id,
-            groupName: groupData.name,
-            groupEmoji: groupData.emoji,
-            invitedBy: null,
-            memberCount: null,
-            isAlreadyMember: false,
-          });
+        // We use the group ID directly as the invite code
+        const { data: groupData, error } = await supabase
+          .from('groups')
+          .select('id, name, emoji, created_by, profiles!groups_created_by_fkey(name)')
+          .eq('id', code)
+          .single();
+
+        if (error || !groupData) {
+          throw new Error('This invite link is invalid or has expired.');
         }
+
+        const { data: members, error: memErr } = await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', code);
+
+        setInviteInfo({
+          valid: true,
+          groupId: groupData.id,
+          groupName: groupData.name,
+          groupEmoji: groupData.emoji,
+          invitedBy: groupData.profiles?.name || 'Admin',
+          memberCount: members?.length || 0,
+          isAlreadyMember: members?.some(m => m.user_id === myId),
+        });
       } catch (err) {
         setError(err.message || 'This invite link is invalid or has expired.');
       } finally {
         setLoading(false);
       }
     })();
-  }, [code, router, isSecureToken]);
+  }, [code, router]);
 
   async function handleJoin() {
     setJoining(true);
     setError('');
     try {
-      let result;
-      if (isSecureToken) {
-        // New secure token flow
-        result = await api.joinGroupByToken(code);
-        if (result.alreadyMember) {
-          setSuccess('You are already a member!');
-        } else {
-          setSuccess(result.message || 'You joined the group!');
-        }
-        setTimeout(() => {
-          router.push(`/groups/${result.groupId}`);
-        }, 1200);
-      } else {
-        // Legacy code flow
-        result = await api.joinGroupByCode(code);
-        if (result.alreadyMember) {
-          setSuccess('You are already a member!');
-        } else {
-          setSuccess('You joined the group!');
-        }
-        setTimeout(() => {
-          router.push(`/groups/${result.group.id}`);
-        }, 1200);
+      if (inviteInfo.isAlreadyMember) {
+        setSuccess('You are already a member!');
+        setTimeout(() => router.push(`/groups/${code}`), 1200);
+        return;
       }
+      
+      const myId = await api.currentUserId();
+      const { error: joinErr } = await supabase
+        .from('group_members')
+        .insert({ group_id: code, user_id: myId, role: 'member' });
+        
+      if (joinErr && joinErr.code !== '23505') throw joinErr;
+
+      setSuccess('You joined the group!');
+      setTimeout(() => router.push(`/groups/${code}`), 1200);
     } catch (err) {
       setError(err.message);
       setJoining(false);
@@ -194,18 +185,6 @@ export default function JoinGroupPage() {
           </button>
         )}
 
-        {isSecureToken && inviteInfo?.expiresAt && (
-          <div className="flex items-center justify-center gap-1 text-gray-300 text-xs mt-6">
-            <Clock size={12} />
-            <span>Expires {new Date(inviteInfo.expiresAt).toLocaleDateString()}</span>
-          </div>
-        )}
-
-        {!isSecureToken && (
-          <p className="text-gray-300 text-xs mt-6">
-            Invite code: <span className="font-mono font-bold text-gray-400">{code?.toUpperCase()}</span>
-          </p>
-        )}
       </div>
     </main>
   );

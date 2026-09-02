@@ -78,8 +78,7 @@ export default function GroupDetailPage() {
   async function handleGenerateInvite() {
     setGeneratingInvite(true);
     try {
-      const result = await api.generateInviteLink(id);
-      const link = `${window.location.origin}/join/${result.token}`;
+      const link = `${window.location.origin}/join/${id}`;
       setInviteLink(link);
       setShowInviteModal(true);
     } catch (err) {
@@ -147,25 +146,26 @@ export default function GroupDetailPage() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [membersData, expensesData, balances, groupsData, role] = await Promise.all([
+      const [membersData, expensesData, balances, groupsData] = await Promise.all([
         api.getMembers(id),
         api.getExpenses(id),
         api.getBalances(id),
         api.getGroups(),
-        api.getUserRole(id),
       ]);
       setMembers(membersData);
       setExpenses(expensesData);
       setBalanceData(balances);
-      setUserRole(role);
       const currentGroup = groupsData.find(g => g.id === id);
       setGroup(currentGroup);
+      
+      const myMember = membersData.find(m => m.id === userId);
+      setUserRole(myMember?.role || null);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, userId]);
 
   useEffect(() => {
     (async () => {
