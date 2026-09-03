@@ -1,28 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '../../archive/deprecated-utils/supabaseClient';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { auth } from '../../lib/firebase';
+import { confirmPasswordReset, updatePassword, onAuthStateChanged } from 'firebase/auth';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const oobCode = searchParams ? searchParams.get('oobCode') : null;
+
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [session, setSession] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(!oobCode);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setCheckingAuth(false);
     });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   async function handleSubmit(e) {
@@ -30,24 +29,30 @@ export default function ResetPasswordPage() {
     setError('');
     setLoading(true);
 
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
+    try {
+      if (oobCode) {
+        await confirmPasswordReset(auth, oobCode, password);
+      } else if (auth.currentUser) {
+        await updatePassword(auth.currentUser, password);
+      } else {
+        throw new Error('No valid reset code or user session found.');
+      }
 
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push('/dashboard');
+      setLoading(false);
+      alert('Password successfully updated! Please log in with your new password.');
+      router.push('/login');
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'Failed to update password');
     }
   }
 
-  if (!session) {
+  if (checkingAuth) {
     return (
       <main className="min-h-screen bg-green-50 flex items-center justify-center px-6">
         <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-sm border border-gray-100 text-center">
            <div className="w-8 h-8 border-4 border-gray-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-           <p className="font-medium text-sm text-ink/60">Verifying link...</p>
+           <p className="font-medium text-sm text-ink/60">Verifying session...</p>
         </div>
       </main>
     );
@@ -99,3 +104,17 @@ export default function ResetPasswordPage() {
   );
 }
 
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-green-50 flex items-center justify-center px-6">
+        <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-sm border border-gray-100 text-center">
+           <div className="w-8 h-8 border-4 border-gray-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+           <p className="font-medium text-sm text-ink/60">Loading...</p>
+        </div>
+      </main>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
+  );
+}

@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '../../archive/deprecated-utils/supabaseClient';
-import { api } from '../../archive/deprecated-utils/api';
+import { auth } from '../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { api } from '../../lib/firebaseApi';
+import GroupIcon from '../../components/GroupIcon';
+import { GroupCardSkeleton } from '../../components/Skeleton';
 import { Plus, Trash2, ChevronRight, Users } from 'lucide-react';
 
 export default function GroupsPage() {
@@ -13,18 +16,27 @@ export default function GroupsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    let unsubscribeGroups = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
         router.push('/login');
         return;
       }
+
       try {
-        setGroups(await api.getGroups());
+        unsubscribeGroups = api.subscribeGroups((fetchedGroups) => {
+          setGroups(fetchedGroups);
+        });
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Failed to load groups');
       }
-    })();
+    });
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeGroups) unsubscribeGroups();
+    };
   }, [router]);
 
   return (
@@ -43,7 +55,7 @@ export default function GroupsPage() {
         {error && <p className="text-red-500 text-sm font-medium mb-4">{error}</p>}
 
         {groups === null ? (
-          <p className="text-gray-400 text-center py-20 font-medium">Loading…</p>
+          <GroupCardSkeleton count={3} />
         ) : groups.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="w-16 h-16 bg-[#e6f4ed] text-[#145C4B] rounded-full flex items-center justify-center mb-4">
@@ -60,8 +72,8 @@ export default function GroupsPage() {
               <Link key={g.id} href={`/groups/${g.id}`} className="block group">
                 <div className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md hover:border-gray-200 transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-green-50 border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
-                      {g.emoji}
+                    <div className="w-12 h-12 rounded-full bg-green-50 border border-gray-100 flex items-center justify-center shadow-sm">
+                      <GroupIcon icon={g.icon || g.emoji} size={22} />
                     </div>
                     <div>
                       <h4 className="font-bold text-lg text-gray-900 group-hover:text-[#145C4B] transition-colors">
@@ -76,7 +88,7 @@ export default function GroupsPage() {
                     <button
                       onClick={async (e) => {
                         e.preventDefault();
-                        if (confirm('Remove this ledger from your dashboard?')) {
+                        if (confirm('Delete this group? This cannot be undone.')) {
                           try {
                             await api.deleteGroup(g.id);
                             setGroups(groups.filter(group => group.id !== g.id));
@@ -103,4 +115,3 @@ export default function GroupsPage() {
     </main>
   );
 }
-

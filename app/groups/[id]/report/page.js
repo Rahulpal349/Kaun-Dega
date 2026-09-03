@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '../../../../archive/deprecated-utils/supabaseClient';
-import { api } from '../../../../archive/deprecated-utils/api';
+import { auth } from '../../../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { api } from '../../../../lib/firebaseApi';
+import { ReportSkeleton } from '../../../../components/Skeleton';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 
-// Generates a simple color palette for the pie chart
 const PIE_COLORS = ['#145C4B', '#42a5f5', '#ffca28', '#ab47bc', '#ef5350', '#5ce65c'];
 
 export default function GroupReportPage() {
@@ -25,16 +26,16 @@ export default function GroupReportPage() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [membersData, expensesData, balances, groupsData] = await Promise.all([
+      const [membersData, expensesData, balances, groupData] = await Promise.all([
         api.getMembers(id),
         api.getExpenses(id),
         api.getBalances(id),
-        api.getGroups(),
+        api.getGroup(id),
       ]);
       setMembers(membersData);
       setExpenses(expensesData);
       setBalanceData(balances);
-      setGroup(groupsData.find(g => g.id === id));
+      setGroup(groupData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -43,22 +44,23 @@ export default function GroupReportPage() {
   }, [id]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        await api.currentUserId();
-        await loadAll();
-      } catch (err) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
         router.push('/login');
+        return;
       }
-    })();
+      await loadAll();
+    });
+
+    return () => unsubscribe();
   }, [loadAll, router]);
 
   if (loading) {
-    return <div className="min-h-screen bg-green-50 flex items-center justify-center text-gray-400">Loading Report...</div>;
+    return <ReportSkeleton />;
   }
 
   const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-  const dateStr = group ? new Date(group.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+  const dateStr = group?.created_at ? new Date(group.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
 
   // Calculate Pie Chart logic based on "Charged" amounts
   let currentAngle = 0;
@@ -138,8 +140,9 @@ export default function GroupReportPage() {
               {expenses.map((e, i) => {
                 const date = new Date(e.created_at || new Date()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
                 let involvesText = 'Everyone';
-                if (e.split_type === 'custom') {
-                  const involvedIds = (e.expense_shares || []).map(s => s.user_id);
+                const shares = e.expense_shares || e.shares || [];
+                if (e.split_type === 'custom' || e.splitType === 'custom') {
+                  const involvedIds = shares.map(s => s.user_id || s.userId);
                   involvesText = members.filter(m => involvedIds.includes(m.id)).map(m => m.name).join(', ');
                 }
 

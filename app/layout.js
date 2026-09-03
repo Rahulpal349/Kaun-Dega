@@ -31,6 +31,11 @@ export const viewport = {
 export const metadata = {
   title: 'Kaun Dega? — split expenses without the awkward math',
   description: 'Track group expenses, split them fair, and settle up over WhatsApp.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -45,12 +50,8 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
       </head>
-      <body className="font-body min-h-screen bg-gray-200 relative antialiased flex justify-center">
-        {/* 
-          Wrapper for mobile device view on desktop. 
-          transform translate-x-0 ensures 'fixed' position elements inside act relative to this container.
-        */}
-        <div className="w-full max-w-md min-h-screen bg-green-50 relative shadow-2xl shadow-gray-400/20 flex flex-col overflow-x-hidden">
+      <body className="font-body min-h-screen bg-green-50 text-ink antialiased flex flex-col items-center">
+        <div className="w-full max-w-lg min-h-screen flex flex-col bg-green-50 relative">
           {children}
           <BottomNav />
         </div>
@@ -58,4 +59,3 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-

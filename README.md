@@ -1,83 +1,74 @@
-# Kaun Dega? 🧾
+# Kaun Dega?
 
-Split expenses among friends, groups, or trips — without the group-chat math.
-Track who paid what, see who owes whom, and settle up with a WhatsApp message.
-
-**Stack:** Next.js (frontend) · Supabase (Postgres + Auth) — no separate backend server.
-All data access goes straight from the browser to Supabase, secured by Row Level Security.
+> **Effortless expense splitting and smart group settlements — without the awkward group chat math.**
 
 ---
 
-## 1. Set up Supabase
+## Overview
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. Go to **SQL Editor > New query**, paste the contents of `database/schema.sql`, and run it.
-   This creates all tables, Row Level Security policies (including the ones that let
-   the frontend insert expenses/shares/settlements directly), and a trigger that
-   auto-creates a `profiles` row whenever someone signs up.
-3. Go to **Project Settings > API** and copy the `Project URL` and the `anon public` key.
-   (You do **not** need the `service_role` key anywhere in this version — everything
-   runs under the user's own session, gated by RLS.)
+**Kaun Dega?** is an intuitive, modern group expense manager built to eliminate the hassle of tracking shared bills. Whether you are planning a weekend trip, splitting rent with flatmates, or enjoying a dinner outing with friends, Kaun Dega keeps your collective finances clear, transparent, and fair.
 
-## 2. Run the frontend
+With real-time sync, smart debt simplification, and instant WhatsApp summary sharing, settling up has never been easier.
 
-```bash
-cp .env.local.example .env.local
-# fill in NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
-npm install
-npm run dev
+---
+
+## ✨ Key Features
+
+### ⚡ Smart Bill Splitting
+- **Equal Splits**: Distribute costs across all or selected members in one tap.
+- **Custom Splits**: Set exact custom amounts for every participant with automatic total balance validation.
+
+### 👥 Multi-Group Ledgers
+- Create separate ledgers for trips, house expenses, weekend parties, or daily office expenses.
+- Categorize groups with distinct visual icons for quick navigation.
+
+### 🔄 Intelligent Debt Simplification
+- Automatically minimizes the number of transactions needed to settle all debts.
+- Instead of everyone paying everyone, our algorithm computes the most direct settlement paths.
+
+### 📲 Instant WhatsApp Share
+- Export a clean, beautifully formatted settlement summary directly to your WhatsApp group with one click.
+- Everyone gets a clear breakdown of who owes whom in seconds.
+
+### 🤝 Offline & Guest Participants
+- Add friends and colleagues to ledgers by name, even before they create an account.
+- Seamlessly invite them later via secure link sharing.
+
+### 📊 Visual Analytics & Reports
+- Interactive charts that display expense distribution and category breakdowns across members.
+- Complete transaction history and individual balance tracking.
+
+---
+
+## 🎯 Ideal For
+
+- ✈️ **Trips & Vacations**: Track hotels, travel tickets, food, and activities effortlessly.
+- 🏠 **Flatmates & Roommates**: Manage shared rent, utilities, groceries, and domestic supplies.
+- 🍽️ **Dining Out & Social Events**: Split restaurant bills, cafe outings, and celebration costs.
+- ☕ **Daily Expenses**: Quick split for daily office tea, coffees, and rides.
+
+---
+
+## 🚀 How It Works
+
+```
+1. Create a Group ➔ 2. Add Expenses ➔ 3. Settle Up via WhatsApp
 ```
 
-The app runs on `http://localhost:3000`. That's it — there's no backend to start.
+1. **Create a Ledger**: Set up a group and add your friends or flatmates.
+2. **Log Expenses**: Whenever someone pays, record the amount, description, and split type.
+3. **View Balances & Settle**: View real-time net balances and share optimized payment instructions directly to WhatsApp.
 
-## How it works
+---
 
-- **Auth** — Supabase Auth in the browser (`lib/supabaseClient.js`). Every table read/write
-  goes out with the user's session automatically attached.
-- **Authorization** — entirely via Postgres Row Level Security (`database/schema.sql`).
-  A user can only see/modify groups, expenses, and settlements they're a member of.
-  There is no service-role key or trusted server in this setup, so RLS is the only
-  thing standing between one user's data and another's — it's been written to be strict.
-- **Groups** — a group has members (`group_members`) and expenses (`expenses`).
-  Creating a group does two sequential inserts (create the group + creator's own
-  membership row, then invited members) rather than one batch insert, because RLS
-  checks each inserted row against already-committed data.
-- **Expenses ("chits")** — split either **evenly** across all members, or with
-  **custom shares** you set per person. The split math + validation (custom shares
-  must add up to the total) happens client-side in `lib/api.js`, then both the
-  expense and its `expense_shares` rows are inserted directly.
-- **Settling up** — `api.getBalances(groupId)` (`lib/balances.js`) fetches expenses,
-  shares, and past settlements, computes each member's net balance, then runs a
-  debt-simplification pass so instead of 5 people owing each other 8 different
-  amounts, you get the minimum number of payments.
-- **WhatsApp share** — `lib/balances.js` also builds the share message text client-side;
-  the frontend opens `wa.me/?text=...` with it pre-filled. No network call needed beyond
-  the Supabase reads.
+## 🏁 Getting Started
 
-## Project structure
+1. Open **Kaun Dega?** in your browser.
+2. Sign in using your **Email** or **Google Account**.
+3. Tap the **+** button to create your first group ledger and invite friends.
 
-```
-kaun-dega/
-├── database/
-│   └── schema.sql          # Run this in Supabase's SQL editor — tables + RLS policies
-├── app/                    # pages (landing, login, signup, dashboard, groups)
-├── components/             # Chit, ExpenseForm, BalanceBoard
-└── lib/
-    ├── supabaseClient.js   # browser Supabase client (anon key only)
-    ├── api.js              # all reads/writes to Supabase tables
-    └── balances.js         # pure JS: balance calc, debt simplification, WhatsApp text
-```
+---
 
-## Notes & next steps
-
-- Inviting members currently requires the invitee to have already signed up (matched
-  by email). A nice next step: send an actual invite email/link for people without
-  accounts yet.
-- Because there's no server holding a service-role key, **RLS is the whole security
-  model**. If you add new tables or features, make sure every one of them has SELECT/
-  INSERT/UPDATE/DELETE policies — an unprotected table is readable/writable by anyone
-  logged in.
-- `phone` on `profiles` is there so you could later build direct 1:1 WhatsApp reminders
-  (`wa.me/<phone>?text=...`) instead of the general share link.
-- All amounts are stored as `numeric(10,2)` — fine for rupees; adjust precision if you
-  add other currencies.
+<div align="center">
+  <sub>Built with care for seamless group living and shared adventures.</sub>
+</div>

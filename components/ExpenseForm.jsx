@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '../archive/deprecated-utils/api';
+import { api } from '../lib/firebaseApi';
 import { Coffee, IndianRupee } from 'lucide-react';
 
 export default function ExpenseForm({ groupId, members, currentUserId, onAdded, existingExpense = null, onUpdated }) {

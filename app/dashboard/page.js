@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { supabase } from '../../archive/deprecated-utils/supabaseClient';
-import { api } from '../../archive/deprecated-utils/api';
-import { Plus, User, Users, ChevronRight, Wallet, LogOut, Trash2 } from 'lucide-react';
+import { api } from '../../lib/firebaseApi';
+import GroupIcon from '../../components/GroupIcon';
+import { GroupCardSkeleton } from '../../components/Skeleton';
+import { Plus, User, Users, ChevronRight, LogOut, Trash2 } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function DashboardPage() {
 
   async function handleDeleteGroup(group) {
     if (group.myRole === 'admin') {
-      if (!confirm(`Are you sure you want to delete "${group.name}"?`)) return;
+      if (!confirm(`Are you sure you want to delete "${group.name}"? This will permanently delete all expenses and balances.`)) return;
       try {
         await api.deleteGroup(group.id);
         const fetchedGroups = await api.getGroups();
@@ -40,62 +41,51 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    let globalChannel;
-    
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeGroups = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.push('/login');
         return;
       }
-      
-      const loadData = async () => {
-        try {
-          const myUuid = await api.currentUserId();
-          const fetchedGroups = await api.getGroups();
+
+      try {
+        await api.ensureUserProfile(user);
+
+        // Real-time Firestore groups listener
+        unsubscribeGroups = api.subscribeGroups(async (fetchedGroups) => {
           setGroups(fetchedGroups);
           
           let total = 0;
           let spent = 0;
-          await Promise.all(fetchedGroups.map(async (g) => {
-            try {
-              const balanceData = await api.getBalances(g.id);
-              const myBal = balanceData.balances.find(b => b.id === myUuid);
-              if (myBal) {
-                total += (myBal.amount || 0);
-                spent += (myBal.charged || 0);
+          await Promise.all(
+            fetchedGroups.map(async (g) => {
+              try {
+                const balanceData = await api.getBalances(g.id);
+                const myBal = balanceData.balances.find((b) => b.id === user.uid);
+                if (myBal) {
+                  total += (myBal.amount || 0);
+                  spent += (myBal.charged || 0);
+                }
+              } catch (e) {
+                console.error('Error fetching balance for group', g.id, e);
               }
-            } catch (e) {
-              console.error('Error fetching balance for group', g.id, e);
-            }
-          }));
+            })
+          );
           setConsolidatedBalance(total);
           setTotalSpent(spent);
-        } catch (err) {
-          setError(err.message);
-          setGroups([]);
-        } finally {
           setNetBalanceLoading(false);
-        }
-      };
-
-      loadData();
-
-      globalChannel = supabase
-        .channel('dashboard-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
-          loadData();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements' }, () => {
-          loadData();
-        })
-        .subscribe();
+        });
+      } catch (err) {
+        setError(err.message || 'Failed to load dashboard');
+        setGroups([]);
+        setNetBalanceLoading(false);
+      }
     });
 
     return () => {
-      unsubscribe();
-      if (globalChannel) {
-        supabase.removeChannel(globalChannel);
-      }
+      unsubscribeAuth();
+      if (unsubscribeGroups) unsubscribeGroups();
     };
   }, [router]);
 
@@ -131,8 +121,6 @@ export default function DashboardPage() {
       </header>
 
       <div className="flex-1 flex flex-col w-full max-w-3xl mx-auto px-6 py-8 pb-32">
-
-
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-display font-bold text-xl text-ink">Your Groups</h3>
         </div>
@@ -144,10 +132,7 @@ export default function DashboardPage() {
         )}
 
         {groups === null ? (
-          <div className="flex flex-col items-center justify-center py-20 text-ink/40">
-            <div className="w-8 h-8 border-4 border-ink/20 border-t-primary rounded-full animate-spin mb-4"></div>
-            <p className="font-medium text-sm">Loading ledgers...</p>
-          </div>
+          <GroupCardSkeleton count={3} />
         ) : groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center bg-white border border-gray-100 rounded-2xl p-12 text-center shadow-sm">
             <div className="w-16 h-16 bg-soft-green text-primary rounded-full flex items-center justify-center mb-4">
@@ -164,8 +149,8 @@ export default function DashboardPage() {
               <Link key={g.id} href={`/groups/${g.id}`} className="block group">
                 <div className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md hover:border-gray-200 transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-green-50 border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
-                      {g.emoji}
+                    <div className="w-12 h-12 rounded-full bg-green-50 border border-gray-100 flex items-center justify-center shadow-sm">
+                      <GroupIcon icon={g.icon || g.emoji} size={22} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -213,4 +198,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-
