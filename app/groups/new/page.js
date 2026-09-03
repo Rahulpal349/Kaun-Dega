@@ -4,20 +4,19 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/firebaseApi';
-import { X, Check, Utensils, Plane, Home, Sparkles, Receipt } from 'lucide-react';
+import { X, Check, Plane, Home, Heart, List, Camera } from 'lucide-react';
 
-const THEMES = [
-  { id: 'food', icon: 'food', label: 'Food & Drinks', Icon: Utensils },
-  { id: 'trip', icon: 'trip', label: 'Trip / Travel', Icon: Plane },
-  { id: 'home', icon: 'home', label: 'Household', Icon: Home },
-  { id: 'party', icon: 'party', label: 'Party', Icon: Sparkles },
-  { id: 'other', icon: 'other', label: 'Other', Icon: Receipt },
+const GROUP_TYPES = [
+  { id: 'trip', icon: 'trip', label: 'Trip', Icon: Plane },
+  { id: 'home', icon: 'home', label: 'Home', Icon: Home },
+  { id: 'couple', icon: 'couple', label: 'Couple', Icon: Heart },
+  { id: 'other', icon: 'other', label: 'Other', Icon: List },
 ];
 
 export default function NewGroupPage() {
   const router = useRouter();
   const [name, setName] = useState('');
-  const [theme, setTheme] = useState(THEMES[0]);
+  const [type, setType] = useState(GROUP_TYPES[0]);
   const [participants, setParticipants] = useState([]);
   const [currentParticipant, setCurrentParticipant] = useState('');
   const [error, setError] = useState('');
@@ -53,7 +52,7 @@ export default function NewGroupPage() {
     setSaving(true);
     try {
       const memberEmails = participants;
-      const group = await api.createGroup({ name: name.trim(), emoji: theme.icon, icon: theme.icon, memberEmails });
+      const group = await api.createGroup({ name: name.trim(), emoji: type.icon, groupType: type.id, icon: type.icon, memberEmails });
       router.push(`/groups/${group.id}`);
     } catch (err) {
       setError(err.message || 'Failed to create group');
@@ -80,17 +79,51 @@ export default function NewGroupPage() {
 
           <form onSubmit={handleSubmit} className="p-8 space-y-8 min-h-[400px]">
             {/* Group Identity */}
+            <div className="flex gap-4">
+              <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50 text-gray-400 shrink-0 cursor-pointer hover:bg-gray-100 hover:border-gray-400 transition-colors">
+                <Camera size={24} />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  Group name
+                </label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Goa Trip"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-lg font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder-gray-300"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Group Type */}
             <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">
-                Group Identity <span className="normal-case tracking-normal font-medium text-gray-400">(e.g. Chai Chums or Roommates)</span>
+              <label className="block text-sm font-bold uppercase tracking-wider text-gray-400 mb-3">
+                Type
               </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Name your ledger..."
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-lg font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder-gray-300"
-                autoFocus
-              />
+              <div className="flex flex-wrap gap-3">
+                {GROUP_TYPES.map((t) => {
+                  const isSelected = type.id === t.id;
+                  const TypeIcon = t.Icon;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setType(t)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
+                        isSelected 
+                          ? 'border-primary bg-primary text-white shadow-sm'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-green-50'
+                      }`}
+                    >
+                      <TypeIcon size={16} className={isSelected ? 'text-white' : 'text-[#145C4B]'} />
+                      <span>{t.label}</span>
+                      {isSelected && <Check size={14} className="ml-1" />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Members */}
@@ -139,34 +172,7 @@ export default function NewGroupPage() {
               )}
             </div>
 
-            {/* Ledger Theme */}
-            <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-gray-400 mb-3">
-                Ledger Theme
-              </label>
-              <div className="flex flex-wrap gap-3">
-                {THEMES.map((t) => {
-                  const isSelected = theme.id === t.id;
-                  const ThemeIcon = t.Icon;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setTheme(t)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
-                        isSelected 
-                          ? 'border-primary bg-primary text-white shadow-sm'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-green-50'
-                      }`}
-                    >
-                      <ThemeIcon size={16} className={isSelected ? 'text-white' : 'text-[#145C4B]'} />
-                      <span>{t.label}</span>
-                      {isSelected && <Check size={14} className="ml-1" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+
 
             {error && <p className="text-red-500 text-sm font-medium bg-red-50 p-3 border border-red-100 rounded-lg">{error}</p>}
 

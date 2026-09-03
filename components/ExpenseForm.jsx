@@ -2,126 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '../lib/firebaseApi';
-import { Coffee, IndianRupee } from 'lucide-react';
+import { Coffee, IndianRupee, FileText } from 'lucide-react';
+import AdjustSplitModal from './AdjustSplitModal';
 
 export default function ExpenseForm({ groupId, members, currentUserId, onAdded, existingExpense = null, onUpdated }) {
   const [description, setDescription] = useState(existingExpense ? existingExpense.description : '');
   const [amount, setAmount] = useState(existingExpense ? String(existingExpense.amount) : '');
   const [paidBy, setPaidBy] = useState(existingExpense ? existingExpense.paid_by : currentUserId);
   const [splitType, setSplitType] = useState(existingExpense ? existingExpense.split_type : 'equal');
-  
-  // Equal Split State
-  const [checkedMembers, setCheckedMembers] = useState(
-    members.reduce((acc, m) => {
-      let isChecked = true;
-      if (existingExpense && existingExpense.split_type === 'equal') {
-        isChecked = existingExpense.expense_shares.some(s => s.user_id === m.id);
-      }
-      return { ...acc, [m.id]: isChecked };
-    }, {})
-  );
-
-  // Custom Split State
-  const [customRatios, setCustomRatios] = useState(
-    members.reduce((acc, m) => ({ ...acc, [m.id]: 1 }), {})
-  );
-  const [customAmounts, setCustomAmounts] = useState(
-    members.reduce((acc, m) => {
-      let amt = '';
-      if (existingExpense && existingExpense.split_type === 'custom') {
-        const share = existingExpense.expense_shares.find(s => s.user_id === m.id);
-        if (share) amt = String(share.share_amount);
-      }
-      return { ...acc, [m.id]: amt };
-    }, {})
-  );
-  const [lockedMembers, setLockedMembers] = useState(new Set());
-
+  const [splitData, setSplitData] = useState(existingExpense ? existingExpense.splitData : null);
+  const [shares, setShares] = useState(existingExpense ? existingExpense.expense_shares : null);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-
-  // Reset locks if total amount changes significantly? We can just leave them locked.
-  useEffect(() => {
-    if (splitType === 'custom') {
-      const totalAmount = Number(amount || 0);
-      const totalRatio = Object.values(customRatios).reduce((sum, r) => sum + Number(r || 0), 0);
-      
-      if (totalRatio > 0) {
-        // If we are using ratios, everything is unlocked
-        setLockedMembers(new Set());
-        const newAmounts = {};
-        members.forEach(m => {
-          const r = Number(customRatios[m.id] || 0);
-          newAmounts[m.id] = ((r / totalRatio) * totalAmount).toFixed(2);
-        });
-        setCustomAmounts(newAmounts);
-      } else if (lockedMembers.size > 0 && lockedMembers.size < members.length) {
-        // If total amount changes, adjust unlocked members to balance the new total
-        const currentLocked = Array.from(lockedMembers);
-        const sumLocked = currentLocked.reduce((sum, id) => sum + Number(customAmounts[id] || 0), 0);
-        const remainingAmount = Math.max(0, totalAmount - sumLocked);
-        
-        const unlockedMembers = members.filter(m => !lockedMembers.has(m.id));
-        if (unlockedMembers.length > 0) {
-          const splitForUnlocked = (remainingAmount / unlockedMembers.length).toFixed(2);
-          const remainder = Number((remainingAmount - (Number(splitForUnlocked) * unlockedMembers.length)).toFixed(2));
-          
-          const newAmounts = { ...customAmounts };
-          unlockedMembers.forEach((m, idx) => {
-            newAmounts[m.id] = idx === 0 
-              ? (Number(splitForUnlocked) + remainder).toFixed(2) 
-              : splitForUnlocked;
-          });
-          setCustomAmounts(newAmounts);
-        }
-      }
-    }
-  }, [amount, customRatios, splitType, members]); // Note: omitted lockedMembers and customAmounts to avoid cycles on load
-
-  function handleRatioChange(memberId, val) {
-    setCustomRatios(prev => ({ ...prev, [memberId]: val }));
-  }
-
-  function handleAmountChange(memberId, val) {
-    const newAmounts = { ...customAmounts, [memberId]: val };
-    
-    // Update locks
-    const newLocked = new Set(lockedMembers);
-    if (val === '') {
-      newLocked.delete(memberId);
-    } else {
-      newLocked.add(memberId);
-    }
-    setLockedMembers(newLocked);
-
-    // Calculate remaining for unlocked members
-    const totalAmount = Number(amount || 0);
-    const currentLocked = Array.from(newLocked);
-    
-    if (currentLocked.length > 0 && currentLocked.length < members.length) {
-      const sumLocked = currentLocked.reduce((sum, id) => sum + Number(newAmounts[id] || 0), 0);
-      const remainingAmount = Math.max(0, totalAmount - sumLocked);
-      
-      const unlockedMembers = members.filter(m => !newLocked.has(m.id));
-      if (unlockedMembers.length > 0) {
-        const splitForUnlocked = (remainingAmount / unlockedMembers.length).toFixed(2);
-        
-        // Adjust for rounding error by adding remainder to the first unlocked member
-        const remainder = Number((remainingAmount - (Number(splitForUnlocked) * unlockedMembers.length)).toFixed(2));
-        
-        unlockedMembers.forEach((m, idx) => {
-          newAmounts[m.id] = idx === 0 
-            ? (Number(splitForUnlocked) + remainder).toFixed(2) 
-            : splitForUnlocked;
-        });
-      }
-    }
-
-    setCustomAmounts(newAmounts);
-    // Clear all ratios when user types an exact amount so it doesn't get overwritten
-    setCustomRatios(members.reduce((acc, m) => ({ ...acc, [m.id]: '' }), {}));
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -139,19 +32,13 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
         amount: Number(amount),
         paidBy,
         splitType,
+        splitData,
       };
 
-      if (splitType === 'custom') {
-        body.shares = members.map((m) => ({
-          userId: m.id,
-          amount: Number(customAmounts[m.id] || 0),
-        })).filter(s => s.amount > 0);
+      if (shares) {
+        body.shares = shares;
       } else {
-        const selectedIds = members.filter(m => checkedMembers[m.id]).map(m => m.id);
-        if (selectedIds.length === 0) {
-          throw new Error('Please select at least one member for the split.');
-        }
-        body.memberIds = selectedIds;
+        body.memberIds = members.map(m => m.id);
       }
 
       if (existingExpense) {
@@ -162,8 +49,9 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
         await api.addExpense(body);
         setDescription('');
         setAmount('');
-        setCheckedMembers(members.reduce((acc, m) => ({ ...acc, [m.id]: true }), {}));
-        setCustomRatios(members.reduce((acc, m) => ({ ...acc, [m.id]: 1 }), {}));
+        setSplitType('equal');
+        setSplitData(null);
+        setShares(null);
         
         onAdded?.();
       }
@@ -177,35 +65,27 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
   const activeSplitClass = "bg-[#145C4B] text-white shadow-sm";
   const inactiveSplitClass = "text-gray-500 hover:text-gray-700 bg-transparent";
 
-  // Compute total selected for bottom bar
   const payingMember = members.find(m => m.id === paidBy);
   const totalAmountNum = Number(amount || 0);
-  let splitAmount = '0.00';
-  let splitPeopleCount = 0;
   
-  if (splitType === 'equal') {
-    const checkedCount = Object.values(checkedMembers).filter(Boolean).length;
-    splitPeopleCount = checkedCount;
-    splitAmount = checkedCount > 0 ? (totalAmountNum / checkedCount).toFixed(2) : '0.00';
-  } else {
-    // Custom split just shows how many people have > 0 amount
-    const activeCustom = members.filter(m => Number(customAmounts[m.id] || 0) > 0);
-    splitPeopleCount = activeCustom.length;
-    splitAmount = 'Custom'; // or omit
-  }
+  let splitSummary = 'equally';
+  if (splitType === 'exact') splitSummary = 'unequally';
+  if (splitType === 'percentage') splitSummary = 'by percentages';
+  if (splitType === 'shares') splitSummary = 'by shares';
+  if (splitType === 'adjustment') splitSummary = 'by adjustment';
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-8 space-y-5 pb-32">
       <div>
-        <label className="block text-sm font-semibold text-gray-800 mb-2">What was it for?</label>
+        <label className="block text-sm font-semibold text-gray-800 mb-2">Description</label>
         <div className="relative">
           <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-            <Coffee size={20} />
+            <FileText size={20} />
           </div>
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={existingExpense ? "Description" : "Chai at the tapri"}
+            placeholder={existingExpense ? "Description" : "Enter a description"}
             className="w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#145C4B] focus:ring-1 focus:ring-[#145C4B] transition-all text-sm font-medium"
           />
         </div>
@@ -243,129 +123,14 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
         </div>
       </div>
 
-      <div>
-        <div className="flex bg-gray-50/80 p-1 rounded-xl mb-4 border border-gray-100">
-          <button
-            type="button"
-            onClick={() => setSplitType('equal')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
-              splitType === 'equal' ? activeSplitClass : inactiveSplitClass
-            }`}
-          >
-            Split equally
-          </button>
-          <button
-            type="button"
-            onClick={() => setSplitType('custom')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
-              splitType === 'custom' ? activeSplitClass : inactiveSplitClass
-            }`}
-          >
-            Custom shares
-          </button>
-        </div>
-
-        {/* EQUAL SPLIT UI */}
-        {splitType === 'equal' && (
-          <div className="bg-gray-50/50 rounded-xl overflow-hidden border border-gray-100">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <label className="flex items-center gap-3 text-sm font-semibold text-gray-800 cursor-pointer">
-                <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${Object.values(checkedMembers).every(Boolean) ? 'bg-[#145C4B]' : 'bg-white border-2 border-gray-300'}`}>
-                  {Object.values(checkedMembers).every(Boolean) && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                </div>
-                <input 
-                  type="checkbox" 
-                  className="hidden"
-                  checked={Object.values(checkedMembers).every(Boolean)}
-                  onChange={(e) => {
-                    const val = e.target.checked;
-                    setCheckedMembers(members.reduce((acc, m) => ({ ...acc, [m.id]: val }), {}));
-                  }}
-                />
-                All ({members.length} people)
-              </label>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#145C4B]">Equal Share</span>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {members.map((m, idx) => {
-                const isChecked = checkedMembers[m.id];
-                const checkedCount = Object.values(checkedMembers).filter(Boolean).length;
-                const computedAmount = isChecked && checkedCount > 0 ? (Number(amount || 0) / checkedCount).toFixed(2) : '0.00';
-                const percentage = isChecked && checkedCount > 0 ? (100 / checkedCount).toFixed(2) : '0.00';
-                
-                return (
-                  <div key={m.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50/50 transition-colors">
-                    <label className="flex items-center gap-3 text-sm text-gray-800 font-semibold cursor-pointer flex-1">
-                      <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${isChecked ? 'bg-[#145C4B]' : 'bg-white border-2 border-gray-300'}`}>
-                        {isChecked && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                      </div>
-                      <input 
-                        type="checkbox" 
-                        className="hidden"
-                        checked={isChecked}
-                        onChange={(e) => setCheckedMembers({...checkedMembers, [m.id]: e.target.checked})}
-                      />
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center shrink-0 text-xs">
-                          {m.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span>{m.name} {m.id === currentUserId && <span className="text-[#145C4B] font-medium">(You)</span>}</span>
-                      </div>
-                    </label>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-900 font-semibold">₹{computedAmount}</div>
-                      <div className="text-[11px] text-gray-400 font-medium">{percentage}%</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* CUSTOM SPLIT UI */}
-        {splitType === 'custom' && (
-          <div className="bg-gray-50/50 rounded-xl overflow-hidden border border-gray-100">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Ratio</span>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#145C4B]">Custom Share</span>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {members.map((m) => {
-                return (
-                  <div key={m.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50/50 transition-colors gap-4">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center shrink-0 text-xs">
-                        {m.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-sm font-semibold text-gray-800 truncate">{m.name} {m.id === currentUserId && <span className="text-[#145C4B] font-medium">(You)</span>}</span>
-                    </div>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={customRatios[m.id] !== undefined ? customRatios[m.id] : ''}
-                      onChange={(e) => handleRatioChange(m.id, e.target.value)}
-                      className="w-16 rounded border border-gray-200 bg-white px-2 py-1.5 text-sm text-center focus:outline-none focus:border-[#145C4B] focus:ring-1 focus:ring-[#145C4B] transition-all"
-                    />
-                    <div className="relative">
-                      <div className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</div>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={customAmounts[m.id] || ''}
-                        onChange={(e) => handleAmountChange(m.id, e.target.value)}
-                        placeholder="0.00"
-                        className="w-24 rounded border border-gray-200 bg-white pl-6 pr-2 py-1.5 text-sm text-right focus:outline-none focus:border-[#145C4B] focus:ring-1 focus:ring-[#145C4B] transition-all font-semibold"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+      <div className="flex justify-center mt-6">
+        <button
+          type="button"
+          onClick={() => setShowAdjustModal(true)}
+          className="bg-green-50 text-[#145C4B] font-semibold text-sm px-6 py-3 rounded-full border border-green-100 hover:bg-green-100 transition-colors shadow-sm"
+        >
+          Paid by <span className="font-bold">{paidBy === currentUserId ? 'you' : payingMember?.name}</span> and split <span className="font-bold">{splitSummary}</span>.
+        </button>
       </div>
 
       <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-100 flex items-start gap-3">
@@ -392,10 +157,9 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
               <p className="text-xl font-bold text-[#145C4B]">₹{totalAmountNum.toFixed(2)}</p>
             </div>
             <div className="w-[1px] h-8 bg-gray-200"></div>
-            <div className="text-right">
-              <p className="text-xs font-semibold text-gray-500 mb-0.5">Split between {splitPeopleCount} people</p>
+            <div className="text-right flex flex-col justify-center">
               <p className="text-sm font-bold text-[#145C4B]">
-                {splitType === 'equal' ? `₹${splitAmount} each` : 'Custom amounts'}
+                {shares ? `${shares.length} people` : `${members.length} people`}
               </p>
             </div>
           </div>
@@ -408,6 +172,22 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
           </button>
         </div>
       </div>
+
+      {showAdjustModal && (
+        <AdjustSplitModal 
+          members={members} 
+          totalAmount={amount} 
+          currentSplitType={splitType} 
+          currentSplitData={splitData} 
+          onClose={() => setShowAdjustModal(false)}
+          onSave={(newType, newData, computedShares) => {
+            setSplitType(newType);
+            setSplitData(newData);
+            setShares(computedShares);
+            setShowAdjustModal(false);
+          }}
+        />
+      )}
     </form>
   );
 }

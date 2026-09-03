@@ -37,8 +37,20 @@ export default function GroupDetailPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
-
+  const [dismissedEmptyState, setDismissedEmptyState] = useState(false);
+  
   const isAdmin = userRole === 'admin';
+
+  async function handleEditGroupName() {
+    if (!isAdmin) return;
+    const newName = window.prompt("Enter new group name:", group?.name);
+    if (!newName || !newName.trim() || newName.trim() === group?.name) return;
+    try {
+      await api.updateGroupName(id, newName.trim());
+    } catch (err) {
+      alert("Failed to update group name: " + err.message);
+    }
+  }
 
   async function handleChangePayer(expenseId, newPayerId) {
     try {
@@ -220,8 +232,13 @@ export default function GroupDetailPage() {
           </button>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-lg tracking-tight">
+              <h1 className="font-bold text-lg tracking-tight flex items-center gap-2">
                 {group ? group.name : 'Group'}
+                {isAdmin && (
+                  <button onClick={handleEditGroupName} className="p-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors">
+                    <Edit3 size={14} />
+                  </button>
+                )}
               </h1>
               {isAdmin && (
                 <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Admin</span>
@@ -589,6 +606,41 @@ export default function GroupDetailPage() {
                 >
                   <Share2 size={16} />
                   WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Empty Group State Modal */}
+      {group && members.length === 1 && expenses.length === 0 && !dismissedEmptyState && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-[70]" onClick={() => setDismissedEmptyState(true)} />
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white rounded-t-3xl shadow-2xl z-[80] overflow-hidden p-6 animate-slide-up">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users size={32} className="text-[#145C4B]" />
+              </div>
+              <h3 className="font-bold text-xl text-gray-900 mb-2">You are the only person in this group.</h3>
+              <p className="text-gray-500 mb-6">Do you need to add anyone else to <strong>{group.name}</strong>?</p>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setDismissedEmptyState(true);
+                    handleGenerateInvite();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#145C4B] text-white font-bold tracking-wide shadow-md hover:bg-[#145C4B]/90 transition-colors"
+                >
+                  <Plus size={20} />
+                  Add group members
+                </button>
+                <button
+                  onClick={() => setDismissedEmptyState(true)}
+                  className="w-full py-4 rounded-xl font-bold tracking-wide text-[#145C4B] hover:bg-green-50 transition-colors"
+                >
+                  Start adding expenses
                 </button>
               </div>
             </div>
