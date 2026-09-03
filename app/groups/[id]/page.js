@@ -6,6 +6,7 @@ import { auth } from '../../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../../../lib/firebaseApi';
 import GroupIcon from '../../../components/GroupIcon';
+import { GroupDetailSkeleton } from '../../../components/Skeleton';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
 import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check, Users, LogOut, Copy, X, Crown } from 'lucide-react';
@@ -203,7 +204,7 @@ export default function GroupDetailPage() {
   }, [id, loadAll, router]);
 
   if (loading) {
-    return <main className="min-h-screen bg-green-50 flex items-center justify-center text-gray-400">Loading...</main>;
+    return <GroupDetailSkeleton />;
   }
 
   // Determine total expenses

@@ -6,6 +6,7 @@ import { auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../../lib/firebaseApi';
 import GroupIcon from '../../components/GroupIcon';
+import { TransactionSkeleton } from '../../components/Skeleton';
 import { ArrowLeft } from 'lucide-react';
 
 export default function HistoryPage() {
@@ -48,7 +49,7 @@ export default function HistoryPage() {
         {error && <p className="text-red-500 text-sm font-medium mb-4">{error}</p>}
 
         {history === null ? (
-          <p className="text-gray-400 text-center py-20 font-medium">Loading…</p>
+          <TransactionSkeleton count={5} />
         ) : history.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center -mt-10">
             <p className="text-gray-500 mb-4 font-medium">No expenses found.</p>

@@ -7,6 +7,7 @@ import { auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../../lib/firebaseApi';
 import GroupIcon from '../../components/GroupIcon';
+import { GroupCardSkeleton } from '../../components/Skeleton';
 import { Plus, Trash2, ChevronRight, Users } from 'lucide-react';
 
 export default function GroupsPage() {
@@ -54,7 +55,7 @@ export default function GroupsPage() {
         {error && <p className="text-red-500 text-sm font-medium mb-4">{error}</p>}
 
         {groups === null ? (
-          <p className="text-gray-400 text-center py-20 font-medium">Loading…</p>
+          <GroupCardSkeleton count={3} />
         ) : groups.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="w-16 h-16 bg-[#e6f4ed] text-[#145C4B] rounded-full flex items-center justify-center mb-4">

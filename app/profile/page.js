@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../../lib/firebaseApi';
+import { ProfileSkeleton } from '../../components/Skeleton';
 import { LogOut, ArrowLeft, Edit2, Save, X, Camera } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -163,7 +164,7 @@ export default function ProfilePage() {
         {error && <p className="text-red-500 text-sm font-medium mb-4">{error}</p>}
 
         {profile === null ? (
-          <p className="text-gray-400 text-center py-20 font-medium">Loading…</p>
+          <ProfileSkeleton />
         ) : (
           <div className="space-y-6">
             <div className="bg-white p-6 sm:p-8 border border-gray-100 rounded-2xl shadow-sm">

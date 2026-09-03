@@ -4,15 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '../../lib/firebase';
-import { signInWithEmailAndPassword, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { api } from '../../lib/firebaseApi';
-import { Eye, EyeOff } from 'lucide-react';
+import { Shield, Sparkles, ArrowRight, Zap, CheckCircle2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -37,30 +34,14 @@ export default function LoginPage() {
   }, [router]);
 
   if (checkingAuth) {
-    return <main className="min-h-screen bg-green-50 flex items-center justify-center text-gray-400">Loading...</main>;
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      await api.ensureUserProfile(result.user);
-      setLoading(false);
-      
-      const pendingCode = localStorage.getItem('pending_invite_code');
-      if (pendingCode) {
-        localStorage.removeItem('pending_invite_code');
-        router.push(`/join/${pendingCode}`);
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (err) {
-      setLoading(false);
-      setError(err.message || 'Login failed');
-    }
+    return (
+      <main className="min-h-screen bg-[#0E382F] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-3 border-emerald-400/20 border-t-emerald-400 rounded-full animate-spin"></div>
+          <p className="text-sm font-medium text-emerald-100/70">Connecting to Kaun Dega...</p>
+        </div>
+      </main>
+    );
   }
 
   async function handleGoogleLogin() {
@@ -82,100 +63,110 @@ export default function LoginPage() {
       }
     } catch (err) {
       setLoading(false);
-      setError(err.message || 'Google sign in failed');
+      setError(err.message || 'Google sign in failed. Please try again.');
     }
   }
 
   return (
-    <main className="min-h-screen bg-green-50 flex items-center justify-center px-6 relative overflow-hidden">
-      {/* Premium Green Header Background */}
-      <div className="absolute top-0 left-0 w-full h-[45%] bg-primary rounded-b-[2.5rem]">
-        {/* Soft decorative elements */}
-        <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-        <div className="absolute top-[20%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-0 left-1/4 w-32 h-32 bg-soft-green/20 rounded-full blur-2xl"></div>
-      </div>
+    <main className="min-h-screen bg-gradient-to-b from-[#0F3E34] via-[#145C4B] to-[#0A2E26] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden font-body selection:bg-emerald-300 selection:text-[#0E382F]">
+      {/* Dynamic Background Glows */}
+      <div className="absolute top-[-20%] left-[-15%] w-[500px] h-[500px] bg-emerald-400/15 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-20%] right-[-15%] w-[500px] h-[500px] bg-teal-300/10 rounded-full blur-[140px] pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg h-[400px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
-      <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl shadow-gray-200/50 border border-gray-100 relative z-10 mt-12">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-white shadow-sm overflow-hidden border border-gray-100">
-            <img src="/logo.png" alt="Kaun Dega Logo" className="w-full h-full object-cover" />
+      {/* Main Glassmorphic Auth Card */}
+      <div className="w-full max-w-[420px] bg-white rounded-[2.5rem] p-7 sm:p-10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] border border-white/80 relative z-10 my-auto">
+        
+        {/* Brand Header */}
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-50 to-emerald-100 flex items-center justify-center mb-4 p-1 shadow-sm border border-emerald-100">
+            <img 
+              src="/logo.png" 
+              alt="Kaun Dega Logo" 
+              className="w-full h-full object-cover rounded-full"
+            />
           </div>
-          <h1 className="font-display font-bold text-3xl text-ink mb-1 text-center">Kaun Dega?</h1>
-          <p className="text-sm text-ink/60 font-medium text-center">Welcome back</p>
+          <h1 className="font-display font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-2">
+            Kaun Dega?
+          </h1>
+          <p className="text-sm sm:text-[15px] text-gray-500 font-medium max-w-[280px]">
+            Split bills and settle debts with friends in seconds.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-ink/70 mb-1.5 ml-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-2xl border border-gray-200 bg-green-50/50 px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium text-ink placeholder:text-ink/40"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div className="relative">
-            <div className="flex items-center justify-between mb-1.5 ml-1">
-               <label className="block text-sm font-medium text-ink/70">Password</label>
-               <Link href="/forgot-password" className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors">
-                 Forgot?
-               </Link>
+        {/* Feature Badges */}
+        <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-4 mb-7 space-y-2.5">
+          <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
+            <div className="w-5 h-5 rounded-full bg-[#145C4B] text-white flex items-center justify-center shrink-0">
+              <Zap size={11} strokeWidth={2.5} />
             </div>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-2xl border border-gray-200 bg-green-50/50 px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium text-ink placeholder:text-ink/40"
-              placeholder="••••••••"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-[38px] text-ink/40 hover:text-ink/70 transition-colors"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+            <span>Instant access with your Google account</span>
           </div>
-          {error && <p className="text-red-500 text-sm font-medium text-center bg-red-50 py-2 rounded-lg border border-red-100">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-2xl bg-primary text-white font-semibold py-3.5 mt-2 hover:bg-primary/90 disabled:opacity-60 transition-colors shadow-lg shadow-primary/20 active:scale-[0.98]"
-          >
-            {loading ? 'Logging in…' : 'Log in'}
-          </button>
-
-          <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-gray-200"></div>
-            <span className="flex-shrink-0 mx-4 text-ink/40 text-sm font-medium">Or</span>
-            <div className="flex-grow border-t border-gray-200"></div>
+          <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
+            <div className="w-5 h-5 rounded-full bg-[#145C4B] text-white flex items-center justify-center shrink-0">
+              <CheckCircle2 size={11} strokeWidth={2.5} />
+            </div>
+            <span>No passwords or tedious signup forms</span>
           </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-white border border-gray-200 text-ink font-semibold py-3.5 hover:bg-gray-50 disabled:opacity-60 transition-colors shadow-sm active:scale-[0.98]"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
+        {error && (
+          <div className="bg-red-50 border border-red-200/80 text-red-600 px-4 py-3 rounded-xl text-xs font-medium mb-6 text-center leading-relaxed">
+            {error}
+          </div>
+        )}
+
+        {/* Google Sign-in Button */}
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full relative flex items-center justify-center gap-3.5 rounded-2xl bg-white border border-gray-300 text-gray-800 font-semibold py-4 px-6 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 active:scale-[0.98] transition-all shadow-sm disabled:opacity-60 group cursor-pointer"
+        >
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            Continue with Google
-          </button>
-        </form>
+          )}
+          <span className="text-[15px] font-semibold text-gray-800">
+            {loading ? 'Authenticating...' : 'Continue with Google'}
+          </span>
+          {!loading && (
+            <ArrowRight size={16} className="text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all ml-auto" />
+          )}
+        </button>
 
-        <p className="text-sm text-ink/60 mt-8 text-center font-medium">
-          New here?{' '}
-          <Link href="/signup" className="text-primary font-bold hover:underline underline-offset-4 decoration-primary/30">Create an account</Link>
-        </p>
+        {/* Legal Links Footer */}
+        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+          <p className="text-xs text-gray-400 leading-relaxed">
+            By signing in, you agree to our{' '}
+            <Link 
+              href="/terms" 
+              className="text-[#145C4B] font-semibold hover:underline underline-offset-2 decoration-emerald-600/40"
+            >
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link 
+              href="/privacy" 
+              className="text-[#145C4B] font-semibold hover:underline underline-offset-2 decoration-emerald-600/40"
+            >
+              Privacy Policy
+            </Link>.
+          </p>
+        </div>
+
       </div>
+
+      {/* Safe Area & Bottom note */}
+      <footer className="mt-6 text-center text-xs text-white/50 relative z-10">
+        &copy; {new Date().getFullYear()} Kaun Dega? All rights reserved.
+      </footer>
     </main>
   );
 }

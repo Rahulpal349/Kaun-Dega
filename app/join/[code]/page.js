@@ -6,6 +6,7 @@ import { auth } from '../../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../../../lib/firebaseApi';
 import GroupIcon from '../../../components/GroupIcon';
+import { JoinSkeleton } from '../../../components/Skeleton';
 import { Users, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 
 export default function JoinGroupPage() {
@@ -60,14 +61,7 @@ export default function JoinGroupPage() {
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-green-50 flex items-center justify-center font-body">
-        <div className="flex items-center gap-3 text-gray-400">
-          <Loader2 size={24} className="animate-spin" />
-          <span className="text-lg">Validating invite...</span>
-        </div>
-      </main>
-    );
+    return <JoinSkeleton />;
   }
 
   if (error && !inviteInfo) {

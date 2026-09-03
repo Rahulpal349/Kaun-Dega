@@ -7,6 +7,7 @@ import { auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../../lib/firebaseApi';
 import GroupIcon from '../../components/GroupIcon';
+import { GroupCardSkeleton } from '../../components/Skeleton';
 import { Plus, User, Users, ChevronRight, LogOut, Trash2 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -131,10 +132,7 @@ export default function DashboardPage() {
         )}
 
         {groups === null ? (
-          <div className="flex flex-col items-center justify-center py-20 text-ink/40">
-            <div className="w-8 h-8 border-4 border-ink/20 border-t-primary rounded-full animate-spin mb-4"></div>
-            <p className="font-medium text-sm">Loading ledgers...</p>
-          </div>
+          <GroupCardSkeleton count={3} />
         ) : groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center bg-white border border-gray-100 rounded-2xl p-12 text-center shadow-sm">
             <div className="w-16 h-16 bg-soft-green text-primary rounded-full flex items-center justify-center mb-4">

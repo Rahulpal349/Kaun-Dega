@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { auth } from '../../../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../../../../lib/firebaseApi';
+import { ReportSkeleton } from '../../../../components/Skeleton';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 
 const PIE_COLORS = ['#145C4B', '#42a5f5', '#ffca28', '#ab47bc', '#ef5350', '#5ce65c'];
@@ -55,7 +56,7 @@ export default function GroupReportPage() {
   }, [loadAll, router]);
 
   if (loading) {
-    return <div className="min-h-screen bg-green-50 flex items-center justify-center text-gray-400">Loading Report...</div>;
+    return <ReportSkeleton />;
   }
 
   const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);

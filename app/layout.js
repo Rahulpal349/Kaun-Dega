@@ -31,6 +31,11 @@ export const viewport = {
 export const metadata = {
   title: 'Kaun Dega? — split expenses without the awkward math',
   description: 'Track group expenses, split them fair, and settle up over WhatsApp.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
