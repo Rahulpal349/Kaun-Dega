@@ -1,6 +1,5 @@
 import { Fraunces, Manrope, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
-import BottomNav from '../components/BottomNav';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -39,6 +38,8 @@ export const metadata = {
   },
 };
 
+import LayoutWrapper from './LayoutWrapper';
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${manrope.variable} ${plexMono.variable}`}>
@@ -46,14 +47,7 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
       </head>
       <body className="font-body min-h-screen bg-gray-200 relative antialiased flex justify-center">
-        {/* 
-          Wrapper for mobile device view on desktop. 
-          transform translate-x-0 ensures 'fixed' position elements inside act relative to this container.
-        */}
-        <div className="w-full max-w-md min-h-screen bg-green-50 relative shadow-2xl shadow-gray-400/20 flex flex-col overflow-x-hidden">
-          {children}
-          <BottomNav />
-        </div>
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );
