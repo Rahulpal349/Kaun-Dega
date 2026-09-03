@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '../../../archive/deprecated-utils/supabaseClient';
-import { api } from '../../../archive/deprecated-utils/api';
-import { Users, LogIn, CheckCircle2, Loader2, AlertCircle, Clock, Shield } from 'lucide-react';
+import { auth } from '../../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { api } from '../../../lib/firebaseApi';
+import GroupIcon from '../../../components/GroupIcon';
+import { JoinSkeleton } from '../../../components/Skeleton';
+import { Users, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 
 export default function JoinGroupPage() {
   const { code } = useParams();
@@ -17,84 +20,48 @@ export default function JoinGroupPage() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    (async () => {
-      let myId;
-      try {
-        myId = await api.currentUserId();
-      } catch (err) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
         localStorage.setItem('pending_invite_code', code);
         router.push('/login');
         return;
       }
 
       try {
-        // We use the group ID directly as the invite code
-        const { data: groupData, error } = await supabase
-          .from('groups')
-          .select('id, name, emoji, created_by, profiles!groups_created_by_fkey(name)')
-          .eq('id', code)
-          .single();
-
-        if (error || !groupData) {
-          throw new Error('This invite link is invalid or has expired.');
-        }
-
-        const { data: members, error: memErr } = await supabase
-          .from('group_members')
-          .select('user_id')
-          .eq('group_id', code);
-
-        setInviteInfo({
-          valid: true,
-          groupId: groupData.id,
-          groupName: groupData.name,
-          groupEmoji: groupData.emoji,
-          invitedBy: groupData.profiles?.name || 'Admin',
-          memberCount: members?.length || 0,
-          isAlreadyMember: members?.some(m => m.user_id === myId),
-        });
+        await api.ensureUserProfile(user);
+        const info = await api.getInviteInfo(code);
+        setInviteInfo(info);
       } catch (err) {
         setError(err.message || 'This invite link is invalid or has expired.');
       } finally {
         setLoading(false);
       }
-    })();
+    });
+
+    return () => unsubscribe();
   }, [code, router]);
 
   async function handleJoin() {
     setJoining(true);
     setError('');
     try {
-      if (inviteInfo.isAlreadyMember) {
+      if (inviteInfo?.isAlreadyMember) {
         setSuccess('You are already a member!');
-        setTimeout(() => router.push(`/groups/${code}`), 1200);
+        setTimeout(() => router.push(`/groups/${code}`), 1000);
         return;
       }
       
-      const myId = await api.currentUserId();
-      const { error: joinErr } = await supabase
-        .from('group_members')
-        .insert({ group_id: code, user_id: myId, role: 'member' });
-        
-      if (joinErr && joinErr.code !== '23505') throw joinErr;
-
+      await api.joinGroupByCode(code);
       setSuccess('You joined the group!');
-      setTimeout(() => router.push(`/groups/${code}`), 1200);
+      setTimeout(() => router.push(`/groups/${code}`), 1000);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to join group');
       setJoining(false);
     }
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-green-50 flex items-center justify-center font-body">
-        <div className="flex items-center gap-3 text-gray-400">
-          <Loader2 size={24} className="animate-spin" />
-          <span className="text-lg">Validating invite...</span>
-        </div>
-      </main>
-    );
+    return <JoinSkeleton />;
   }
 
   if (error && !inviteInfo) {
@@ -122,7 +89,7 @@ export default function JoinGroupPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center max-w-sm w-full">
         {/* Group Icon */}
         <div className="w-20 h-20 rounded-full bg-[#e6f4ed] text-[#145C4B] flex items-center justify-center mx-auto mb-4">
-          <span className="text-4xl">{inviteInfo?.groupEmoji || '🧾'}</span>
+          <GroupIcon icon={inviteInfo?.groupEmoji || inviteInfo?.groupIcon} size={36} />
         </div>
 
         <h1 className="text-xl font-bold text-gray-900 mb-1">
@@ -135,7 +102,7 @@ export default function JoinGroupPage() {
           </p>
         )}
 
-        {inviteInfo?.memberCount && (
+        {inviteInfo?.memberCount !== undefined && (
           <div className="flex items-center justify-center gap-1 text-gray-400 text-sm mb-4">
             <Users size={14} />
             <span>{inviteInfo.memberCount} member{inviteInfo.memberCount !== 1 ? 's' : ''}</span>

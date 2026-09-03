@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '../../archive/deprecated-utils/supabaseClient';
+import { auth } from '../../lib/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -16,15 +17,13 @@ export default function ForgotPasswordPage() {
     setMessage('');
     setLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-    } else {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setLoading(false);
       setMessage('Password reset instructions have been sent to your email.');
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'Failed to send reset email');
     }
   }
 
@@ -85,4 +84,3 @@ export default function ForgotPasswordPage() {
     </main>
   );
 }
-

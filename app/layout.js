@@ -30,6 +30,11 @@ export const viewport = {
 export const metadata = {
   title: 'Kaun Dega? — split expenses without the awkward math',
   description: 'Track group expenses, split them fair, and settle up over WhatsApp.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -46,10 +51,9 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
       </head>
-      <body className="font-body min-h-screen bg-gray-200 relative antialiased flex justify-center">
+      <body className="font-body min-h-screen bg-gray-200 relative antialiased flex justify-center text-ink">
         <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );
 }
-
