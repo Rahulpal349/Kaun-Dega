@@ -1,6 +1,6 @@
 # ==========================================
 # Kaun Dega? - Complete .gitignore
-# Supports Node.js, Next.js & Flutter
+# Supports Node.js, Next.js & Flutter (Multiplatform)
 # ==========================================
 
 # ------------------------------------------
@@ -14,7 +14,7 @@
 ehthumbs.db
 Thumbs.db
 
-# IDEs
+# IDEs & Editors
 .idea/
 .vscode/
 *.iml
@@ -25,20 +25,27 @@ Thumbs.db
 *~
 .history/
 .atom/
+.fleet/
 
 # ------------------------------------------
-# Environment & Secrets
+# Environment, Secrets & Keys
 # ------------------------------------------
 .env
 .env*.local
+.env.production
+.env.staging
 *.pem
 *.key
 *.cert
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
 firebase-debug.log*
 firestore-debug.log*
 
 # ------------------------------------------
-# Node / Next.js / Web Dependencies & Builds
+# Node.js / Next.js / Web Builds
 # ------------------------------------------
 node_modules/
 .next/
@@ -46,15 +53,17 @@ out/
 dist/
 build/
 coverage/
+.nyc_output/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .turbo/
 *.tsbuildinfo
+.vercel/
 
 # ------------------------------------------
-# Flutter & Dart
+# Flutter & Dart Core
 # ------------------------------------------
 **/.dart_tool/
 **/.flutter-plugins
@@ -67,13 +76,21 @@ app.*.symbols
 app.*.map.json
 
 # ------------------------------------------
+# Binaries & Package Artifacts
+# ------------------------------------------
+*.apk
+*.aab
+*.ipa
+*.app
+*.dSYM.zip
+*.dSYM
+
+# ------------------------------------------
 # Android Platform (Flutter)
 # ------------------------------------------
 **/android/**/gradle-wrapper.jar
 **/android/.gradle/
 **/android/captures/
-**/android/gradlew
-**/android/gradlew.bat
 **/android/local.properties
 **/android/key.properties
 **/android/**/GeneratedPluginRegistrant.java
@@ -107,3 +124,10 @@ app.*.map.json
 *.perspectivev3
 *.xcuserstate
 project.xcworkspace/xcuserdata/
+
+# ------------------------------------------
+# Windows / Linux Platform (Flutter)
+# ------------------------------------------
+**/windows/flutter/ephemeral/
+**/windows/CMakeLists.txt.user
+**/linux/flutter/ephemeral/
