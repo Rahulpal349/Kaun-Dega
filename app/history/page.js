@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../archive/deprecated-utils/supabaseClient';
-import { api } from '../../archive/deprecated-utils/api';
+import { auth } from '../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { api } from '../../lib/firebaseApi';
+import GroupIcon from '../../components/GroupIcon';
 import { ArrowLeft } from 'lucide-react';
 
 export default function HistoryPage() {
@@ -12,18 +14,20 @@ export default function HistoryPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    (async () => {
-      try {
-        await api.currentUserId();
-        setHistory(await api.getAllHistory());
-      } catch (err) {
-        if (err.message === 'Not logged in') {
-          router.push('/login');
-        } else {
-          setError(err.message);
-        }
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push('/login');
+        return;
       }
-    })();
+      try {
+        const data = await api.getAllHistory();
+        setHistory(data);
+      } catch (err) {
+        setError(err.message || 'Failed to load history');
+      }
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   return (
@@ -54,13 +58,13 @@ export default function HistoryPage() {
             {history.map((expense) => (
               <div key={expense.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 rounded-full bg-[#e6f4ed] flex items-center justify-center text-lg shrink-0">
-                    {expense.group?.emoji || '🧾'}
+                  <div className="w-10 h-10 rounded-full bg-[#e6f4ed] flex items-center justify-center shrink-0">
+                    <GroupIcon icon={expense.group?.icon || expense.group?.emoji} size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-[14px] text-gray-900 truncate">{expense.description}</h3>
                     <p className="text-[12px] text-gray-400 font-medium truncate">
-                      {expense.payer?.name} · {expense.group?.name} · {new Date(expense.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                      {expense.payer?.name} · {expense.group?.name} · {new Date(expense.created_at || new Date()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                     </p>
                   </div>
                 </div>
@@ -75,4 +79,3 @@ export default function HistoryPage() {
     </main>
   );
 }
-

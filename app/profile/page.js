@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../archive/deprecated-utils/supabaseClient';
-import { api } from '../../archive/deprecated-utils/api';
+import { auth } from '../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { api } from '../../lib/firebaseApi';
 import { LogOut, ArrowLeft, Edit2, Save, X, Camera } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -23,10 +24,13 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    (async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
       try {
-        await api.currentUserId();
-        const data = await api.getProfile();
+        const data = await api.getProfile(user.uid);
         setProfile(data);
         setEditForm({
           name: data.name || '',
@@ -35,13 +39,11 @@ export default function ProfilePage() {
           gender: data.gender || ''
         });
       } catch (err) {
-        if (err.message === 'Not logged in') {
-          router.push('/login');
-        } else {
-          setError(err.message);
-        }
+        setError(err.message || 'Failed to load profile');
       }
-    })();
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   async function handleLogout() {
@@ -59,14 +61,14 @@ export default function ProfilePage() {
     try {
       const updated = await api.updateProfile({
         name: editForm.name.trim(),
-        phone: editForm.phone.trim() || null,
-        upi_id: editForm.upi_id.trim() || null,
-        gender: editForm.gender.trim() || null
+        phone: editForm.phone.trim() || '',
+        upi_id: editForm.upi_id.trim() || '',
+        gender: editForm.gender.trim() || ''
       });
       setProfile(updated);
       setIsEditing(false);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to save changes');
     } finally {
       setSaving(false);
     }
@@ -171,7 +173,7 @@ export default function ProfilePage() {
                     {profile.avatar_url ? (
                       <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      profile.name?.charAt(0).toUpperCase()
+                      profile.name?.charAt(0).toUpperCase() || 'U'
                     )}
                     
                     {uploadingImage && (
@@ -285,9 +287,9 @@ export default function ProfilePage() {
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Member Since</label>
                     <p className="text-gray-700 font-medium">
-                      {new Date(profile.created_at).toLocaleDateString(undefined, {
+                      {profile.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, {
                         month: 'long', day: 'numeric', year: 'numeric'
-                      })}
+                      }) : 'Recently'}
                     </p>
                   </div>
                 </div>

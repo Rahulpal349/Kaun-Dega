@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '../../../archive/deprecated-utils/supabaseClient';
-import { api } from '../../../archive/deprecated-utils/api';
+import { auth } from '../../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { api } from '../../../lib/firebaseApi';
+import GroupIcon from '../../../components/GroupIcon';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
-import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check, Users, LogOut, Shield, Copy, X, Crown } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check, Users, LogOut, Copy, X, Crown } from 'lucide-react';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -33,7 +35,6 @@ export default function GroupDetailPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
-  const [generatingInvite, setGeneratingInvite] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
 
   const isAdmin = userRole === 'admin';
@@ -66,26 +67,17 @@ export default function GroupDetailPage() {
       const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
       window.open(url, '_blank');
     } catch (err) {
-      alert(err.message);
+      alert(err.message || 'Failed to generate WhatsApp share text');
     } finally {
       setSharing(false);
     }
   }
 
-
-
-  // New secure invite generation (admin-only)
-  async function handleGenerateInvite() {
-    setGeneratingInvite(true);
-    try {
-      const link = `${window.location.origin}/join/${id}`;
-      setInviteLink(link);
-      setShowInviteModal(true);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setGeneratingInvite(false);
-    }
+  // Invite generation
+  function handleGenerateInvite() {
+    const link = `${window.location.origin}/join/${id}`;
+    setInviteLink(link);
+    setShowInviteModal(true);
   }
 
   function copyInviteLink() {
@@ -108,7 +100,7 @@ export default function GroupDetailPage() {
       await api.deleteGroup(id);
       router.push('/dashboard');
     } catch (err) {
-      alert(err.message);
+      alert(err.message || 'Failed to delete group');
     }
   }
 
@@ -118,7 +110,7 @@ export default function GroupDetailPage() {
       await api.leaveGroup(id);
       router.push('/dashboard');
     } catch (err) {
-      alert(err.message);
+      alert(err.message || 'Failed to leave group');
     }
   }
 
@@ -146,55 +138,69 @@ export default function GroupDetailPage() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [membersData, expensesData, balances, groupsData] = await Promise.all([
+      const [membersData, expensesData, balances, groupData] = await Promise.all([
         api.getMembers(id),
         api.getExpenses(id),
         api.getBalances(id),
-        api.getGroups(),
+        api.getGroup(id),
       ]);
       setMembers(membersData);
       setExpenses(expensesData);
       setBalanceData(balances);
-      const currentGroup = groupsData.find(g => g.id === id);
-      setGroup(currentGroup);
+      setGroup(groupData);
       
-      const myMember = membersData.find(m => m.id === userId);
+      const currentUid = auth.currentUser?.uid;
+      const myMember = membersData.find(m => m.id === currentUid);
       setUserRole(myMember?.role || null);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to load group');
     } finally {
       setLoading(false);
     }
-  }, [id, userId]);
+  }, [id]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const uuid = await api.currentUserId();
-        setUserId(uuid);
-        await loadAll();
-      } catch (err) {
+    let unsubscribeExpenses = null;
+    let unsubscribeSettlements = null;
+    let unsubscribeGroup = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
         router.push('/login');
+        return;
       }
-    })();
-  }, [loadAll, router]);
+      setUserId(user.uid);
+      await loadAll();
 
-  // Realtime subscription — auto-refresh when any member changes data
-  useEffect(() => {
-    const channel = supabase
-      .channel(`group-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${id}` }, () => {
+      // Realtime subscriptions
+      unsubscribeGroup = api.subscribeGroup(id, (updatedGroup) => {
+        if (!updatedGroup) {
+          router.push('/dashboard');
+          return;
+        }
+        setGroup(updatedGroup);
+        const mems = Object.values(updatedGroup.members || {});
+        setMembers(mems);
+        const myMember = mems.find(m => m.id === user.uid);
+        setUserRole(myMember?.role || null);
+      });
+
+      unsubscribeExpenses = api.subscribeExpenses(id, () => {
         loadAll();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements', filter: `group_id=eq.${id}` }, () => {
+      });
+
+      unsubscribeSettlements = api.subscribeSettlements(id, () => {
         loadAll();
-      })
-      .subscribe();
+      });
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribeAuth();
+      if (unsubscribeGroup) unsubscribeGroup();
+      if (unsubscribeExpenses) unsubscribeExpenses();
+      if (unsubscribeSettlements) unsubscribeSettlements();
     };
-  }, [id, loadAll]);
+  }, [id, loadAll, router]);
 
   if (loading) {
     return <main className="min-h-screen bg-green-50 flex items-center justify-center text-gray-400">Loading...</main>;
@@ -220,7 +226,12 @@ export default function GroupDetailPage() {
                 <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Admin</span>
               )}
             </div>
-            {group && <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{group.emoji} {members.length} members</p>}
+            {group && (
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
+                <GroupIcon icon={group.icon || group.emoji} size={13} className="text-[#145C4B]" />
+                <span>{members.length} members</span>
+              </p>
+            )}
           </div>
         </div>
         <div className="relative">
@@ -242,7 +253,7 @@ export default function GroupDetailPage() {
                   {members.map(m => (
                     <div key={m.id} className="flex items-center gap-2 py-1">
                       <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
-                        {m.name?.charAt(0)?.toUpperCase()}
+                        {m.name?.charAt(0)?.toUpperCase() || 'M'}
                       </div>
                       <span className="text-sm text-gray-700 flex-1 truncate">{m.name}</span>
                       {m.role === 'admin' && <Crown size={12} className="text-amber-500" />}
@@ -342,7 +353,7 @@ export default function GroupDetailPage() {
                 {[...expenses].sort((a, b) => {
                   if (expenseSort === 'highest') return Number(b.amount) - Number(a.amount);
                   if (expenseSort === 'lowest') return Number(a.amount) - Number(b.amount);
-                  return new Date(b.created_at) - new Date(a.created_at);
+                  return new Date(b.created_at || 0) - new Date(a.created_at || 0);
                 }).map((e) => {
                   const date = new Date(e.created_at || new Date());
                   const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -376,7 +387,7 @@ export default function GroupDetailPage() {
                             {editingPayerExpenseId === e.id ? (
                               <select
                                 className="text-[13px] bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#145C4B]/30"
-                                defaultValue={e.paid_by}
+                                defaultValue={e.paid_by || e.paidBy}
                                 onChange={(ev) => handleChangePayer(e.id, ev.target.value)}
                               >
                                 {members.map(m => (
@@ -406,12 +417,14 @@ export default function GroupDetailPage() {
                               Edit ✎
                             </button>
                           </div>
-                          {e.expense_shares?.map(share => {
-                            const member = members.find(m => m.id === share.user_id);
+                          {(e.expense_shares || e.shares || []).map(share => {
+                            const uId = share.user_id || share.userId;
+                            const member = members.find(m => m.id === uId);
+                            const shareAmt = share.share_amount || share.amount;
                             return (
-                              <div key={share.user_id} className="flex justify-between items-center mb-1">
+                              <div key={uId} className="flex justify-between items-center mb-1">
                                 <span className="text-gray-600">{member?.name || 'Unknown'} owes</span>
-                                <span className="text-gray-800 font-medium">{Number(share.share_amount).toFixed(2)} INR</span>
+                                <span className="text-gray-800 font-medium">{Number(shareAmt).toFixed(2)} INR</span>
                               </div>
                             );
                           })}
@@ -551,7 +564,7 @@ export default function GroupDetailPage() {
                   <X size={18} className="text-gray-400" />
                 </button>
               </div>
-              <p className="text-gray-500 text-sm mb-4">Share this link with friends to invite them to <strong>{group?.name}</strong>. The link expires in 7 days.</p>
+              <p className="text-gray-500 text-sm mb-4">Share this link with friends to invite them to <strong>{group?.name}</strong>.</p>
               
               <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2 mb-4 border border-gray-100">
                 <p className="text-xs text-gray-600 flex-1 truncate font-mono">{inviteLink}</p>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { api } from '../archive/deprecated-utils/api';
+import { api } from '../lib/firebaseApi';
 import { ChevronDown, ChevronUp, X, Copy, Check, IndianRupee, ArrowRight } from 'lucide-react';
 
 export default function BalanceBoard({ groupId, balances, moves, currentUserId, totalExpenses, onSettled }) {

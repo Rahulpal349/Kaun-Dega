@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '../../lib/firebase';
 import { signInWithEmailAndPassword, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { api } from '../../lib/firebaseApi';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
@@ -45,10 +46,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      await api.ensureUserProfile(result.user);
       setLoading(false);
       
-      // Check if user came from an invite link
       const pendingCode = localStorage.getItem('pending_invite_code');
       if (pendingCode) {
         localStorage.removeItem('pending_invite_code');
@@ -58,7 +59,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       setLoading(false);
-      setError(err.message);
+      setError(err.message || 'Login failed');
     }
   }
 
@@ -68,7 +69,8 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      await api.ensureUserProfile(result.user);
       setLoading(false);
       
       const pendingCode = localStorage.getItem('pending_invite_code');
@@ -80,7 +82,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       setLoading(false);
-      setError(err.message);
+      setError(err.message || 'Google sign in failed');
     }
   }
 
@@ -177,4 +179,3 @@ export default function LoginPage() {
     </main>
   );
 }
-

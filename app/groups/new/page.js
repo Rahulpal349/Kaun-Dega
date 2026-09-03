@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '../../../archive/deprecated-utils/api';
-import { X, Check } from 'lucide-react';
+import { api } from '../../../lib/firebaseApi';
+import { X, Check, Utensils, Plane, Home, Sparkles, Receipt } from 'lucide-react';
 
 const THEMES = [
-  { id: 'food', emoji: '🍜', label: 'Food & Drinks' },
-  { id: 'trip', emoji: '✈️', label: 'Trip / Travel' },
-  { id: 'home', emoji: '🏠', label: 'Household' },
-  { id: 'party', emoji: '🎉', label: 'Party' },
-  { id: 'other', emoji: '🧾', label: 'Other' },
+  { id: 'food', icon: 'food', label: 'Food & Drinks', Icon: Utensils },
+  { id: 'trip', icon: 'trip', label: 'Trip / Travel', Icon: Plane },
+  { id: 'home', icon: 'home', label: 'Household', Icon: Home },
+  { id: 'party', icon: 'party', label: 'Party', Icon: Sparkles },
+  { id: 'other', icon: 'other', label: 'Other', Icon: Receipt },
 ];
 
 export default function NewGroupPage() {
@@ -53,11 +53,10 @@ export default function NewGroupPage() {
     setSaving(true);
     try {
       const memberEmails = participants;
-      // We send the theme's emoji as the group emoji for now to remain compatible with backend
-      const group = await api.createGroup({ name: name.trim(), emoji: theme.emoji, memberEmails });
+      const group = await api.createGroup({ name: name.trim(), emoji: theme.icon, icon: theme.icon, memberEmails });
       router.push(`/groups/${group.id}`);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to create group');
     } finally {
       setSaving(false);
     }
@@ -148,6 +147,7 @@ export default function NewGroupPage() {
               <div className="flex flex-wrap gap-3">
                 {THEMES.map((t) => {
                   const isSelected = theme.id === t.id;
+                  const ThemeIcon = t.Icon;
                   return (
                     <button
                       key={t.id}
@@ -159,7 +159,7 @@ export default function NewGroupPage() {
                           : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-green-50'
                       }`}
                     >
-                      <span>{t.emoji}</span>
+                      <ThemeIcon size={16} className={isSelected ? 'text-white' : 'text-[#145C4B]'} />
                       <span>{t.label}</span>
                       {isSelected && <Check size={14} className="ml-1" />}
                     </button>
@@ -186,4 +186,3 @@ export default function NewGroupPage() {
     </main>
   );
 }
-
