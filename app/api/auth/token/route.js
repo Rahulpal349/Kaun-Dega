@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 import fs from 'fs';
 import path from 'path';
 
+// Fix for Next.js CommonJS/ESM interop with firebase-admin
+const firebaseAdmin = admin.default || admin;
+
 // Initialize Firebase Admin (only once)
-if (!admin.apps.length) {
+if (!firebaseAdmin.apps.length) {
   try {
     let serviceAccount = null;
     const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -24,8 +27,8 @@ if (!admin.apps.length) {
     }
 
     if (serviceAccount) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+      firebaseAdmin.initializeApp({
+        credential: firebaseAdmin.credential.cert(serviceAccount)
       });
     } else {
       console.warn("FIREBASE_SERVICE_ACCOUNT env variable is not set and serviceAccountKey.json was not found. Custom token minting will fail.");
@@ -37,12 +40,8 @@ if (!admin.apps.length) {
 
 // Utility to match the existing UUID generation logic in api.js
 async function firebaseUidToUuid(uid) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(uid);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  const hash = crypto.createHash('sha256').update(uid).digest('hex');
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
 }
 
 export async function POST(request) {
@@ -54,12 +53,12 @@ export async function POST(request) {
 
     const firebaseToken = authHeader.split('Bearer ')[1];
 
-    if (!admin.apps.length) {
+    if (!firebaseAdmin.apps.length) {
       return NextResponse.json({ error: 'Firebase Admin not initialized. Please configure FIREBASE_SERVICE_ACCOUNT.' }, { status: 500 });
     }
 
     // Verify Firebase token
-    const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(firebaseToken);
     
     // Hash the UID to match the Supabase profiles.id
     const userUuid = await firebaseUidToUuid(decodedToken.uid);

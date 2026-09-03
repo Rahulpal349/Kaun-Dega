@@ -49,7 +49,9 @@ async function currentUserId() {
           });
           
           if (!res.ok) {
-            throw new Error('Failed to exchange Firebase token for Supabase token');
+            const errText = await res.text();
+            console.error("Token exchange error:", res.status, errText);
+            throw new Error(`Failed to exchange Firebase token for Supabase token: ${res.status} ${errText}`);
           }
 
           const { token, uuid } = await res.json();
