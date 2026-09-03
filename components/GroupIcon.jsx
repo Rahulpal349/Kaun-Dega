@@ -37,6 +37,16 @@ export const ICON_MAP = {
 };
 
 export default function GroupIcon({ icon, size = 20, className = 'text-[#145C4B]' }) {
+  if (typeof icon === 'string' && icon.startsWith('http')) {
+    return (
+      <img 
+        src={icon} 
+        alt="Group Icon" 
+        style={{ width: size, height: size }} 
+        className={`rounded-full object-cover ${className}`} 
+      />
+    );
+  }
   const IconComponent = (icon && ICON_MAP[icon.toLowerCase ? icon.toLowerCase() : icon]) || Receipt;
   return <IconComponent size={size} className={className} />;
 }

@@ -39,7 +39,6 @@ export default function NewGroupPage() {
     e.preventDefault();
     setError('');
     
-    // Allow pressing enter in the input to just add the participant without submitting form
     if (document.activeElement.tagName === 'INPUT' && document.activeElement.placeholder.includes('Rahul')) {
       handleAddParticipant();
       return;
@@ -51,8 +50,9 @@ export default function NewGroupPage() {
     }
     setSaving(true);
     try {
+      const iconUrl = type.icon;
       const memberEmails = participants;
-      const group = await api.createGroup({ name: name.trim(), emoji: type.icon, groupType: type.id, icon: type.icon, memberEmails });
+      const group = await api.createGroup({ name: name.trim(), emoji: type.icon, groupType: type.id, icon: iconUrl, memberEmails });
       router.push(`/groups/${group.id}`);
     } catch (err) {
       setError(err.message || 'Failed to create group');
@@ -80,8 +80,11 @@ export default function NewGroupPage() {
           <form onSubmit={handleSubmit} className="p-8 space-y-8 min-h-[400px]">
             {/* Group Identity */}
             <div className="flex gap-4">
-              <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50 text-gray-400 shrink-0 cursor-pointer hover:bg-gray-100 hover:border-gray-400 transition-colors">
-                <Camera size={24} />
+              <div className="w-16 h-16 border border-gray-200 rounded-xl flex items-center justify-center bg-[#145C4B]/5 shrink-0 transition-colors">
+                {(() => {
+                  const TypeIcon = type.Icon;
+                  return <TypeIcon size={28} className="text-[#145C4B]" />;
+                })()}
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">
