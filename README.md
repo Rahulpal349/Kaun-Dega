@@ -63,9 +63,20 @@ With real-time sync, smart debt simplification, and instant WhatsApp summary sha
 
 ## 🏁 Getting Started
 
-1. Open **Kaun Dega?** in your browser.
-2. Sign in using your **Email** or **Google Account**.
-3. Tap the **+** button to create your first group ledger and invite friends.
+### 📱 Flutter Mobile & Desktop App
+```bash
+cd flutter_app
+flutter pub get
+flutter run
+```
+
+Supported platforms: **Android**, **iOS**, **macOS**, and **Web**.
+
+### 🌐 Web Application (Next.js)
+```bash
+npm install
+npm run dev
+```
 
 ---
 
