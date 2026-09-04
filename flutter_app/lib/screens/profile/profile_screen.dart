@@ -103,6 +103,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _confirmDeleteAccount() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Account', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.negative)),
+        content: const Text(
+          'Are you sure you want to delete your account? All your local data and session state will be permanently removed. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final appState = Provider.of<AppState>(context, listen: false);
+              await appState.deleteAccount();
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.negative,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Delete Account'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
@@ -291,8 +327,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // Sign Out Button
-              if (!_isEditing)
+              // Action Buttons
+              if (!_isEditing) ...[
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -307,11 +343,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: _confirmDeleteAccount,
+                  icon: const Icon(LucideIcons.trash2, size: 16, color: AppColors.textMuted),
+                  label: const Text('Delete Account & User Data', style: TextStyle(color: AppColors.textMuted, fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+              ],
 
-              const SizedBox(height: 32),
-              Text(
-                'Kaun Dega? v1.0.0',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Kaun Dega? v1.0.0',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
+                  ),
+                  const Text('  •  ', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  GestureDetector(
+                    onTap: () {
+                      showLicensePage(context: context);
+                    },
+                    child: const Text(
+                      'Privacy & Licenses',
+                      style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

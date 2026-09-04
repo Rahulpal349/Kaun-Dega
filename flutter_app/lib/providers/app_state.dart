@@ -240,6 +240,19 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteAccount() async {
+    if (_currentUser == null) return;
+    _groupsSubscription?.cancel();
+    _currentUser = null;
+    _groups = [];
+    _activeGroup = null;
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
+    await _storage.clearUserSession();
+    notifyListeners();
+  }
+
   void _startGroupsRealtimeSubscription() {
     _groupsSubscription?.cancel();
     if (_currentUser == null) return;
