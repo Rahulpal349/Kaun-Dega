@@ -221,6 +221,9 @@ class NotificationService {
                 '';
 
             if (!isRead) {
+              // Immediately mark read in Firestore so reloading the app won't re-trigger it
+              change.doc.reference.update({'read': true}).catchError((_) {});
+
               showNotification(
                 id: change.doc.id.hashCode,
                 title: title,
@@ -250,7 +253,8 @@ class NotificationService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification',
+      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       color: const Color(0xFF145C4B),
     );
 
