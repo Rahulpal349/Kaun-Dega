@@ -1013,6 +1013,28 @@ class StorageService {
 
     try {
       await _firestore.collection('expenses').doc(expenseId).set(expense.toJson());
+
+      // Trigger notifications for group members
+      final groupSnap = await _firestore.collection('groups').doc(groupId).get();
+      if (groupSnap.exists && groupSnap.data() != null) {
+        final groupData = groupSnap.data()!;
+        final memberEmails = List<String>.from(groupData['memberEmails'] ?? []);
+        final groupName = groupData['name'] as String? ?? 'Ledger';
+        final members = groupData['members'] as Map<String, dynamic>? ?? {};
+        final payerEmail = (members[paidBy]?['email'] as String? ?? '').toLowerCase().trim();
+
+        for (final email in memberEmails) {
+          final cleanEmail = email.toLowerCase().trim();
+          if (cleanEmail.isNotEmpty && cleanEmail != payerEmail) {
+            sendNotificationToUser(
+              targetEmail: cleanEmail,
+              title: 'New Expense in $groupName 💸',
+              body: '${payer.name} added "$description" (₹${amount.toStringAsFixed(2)})',
+              groupId: groupId,
+            );
+          }
+        }
+      }
     } catch (e) {
       if (kDebugMode) print('Error adding expense to Firestore: $e');
     }
@@ -1102,6 +1124,29 @@ class StorageService {
 
     try {
       await _firestore.collection('settlements').doc(settlementId).set(settlement.toJson());
+
+      // Notify group members about the settlement
+      final groupSnap = await _firestore.collection('groups').doc(groupId).get();
+      if (groupSnap.exists && groupSnap.data() != null) {
+        final groupData = groupSnap.data()!;
+        final memberEmails = List<String>.from(groupData['memberEmails'] ?? []);
+        final groupName = groupData['name'] as String? ?? 'Ledger';
+        final members = groupData['members'] as Map<String, dynamic>? ?? {};
+        final fromName = (members[fromUser]?['name'] as String?) ?? 'Member';
+        final toName = (members[toUser]?['name'] as String?) ?? 'Member';
+
+        for (final email in memberEmails) {
+          final cleanEmail = email.toLowerCase().trim();
+          if (cleanEmail.isNotEmpty) {
+            sendNotificationToUser(
+              targetEmail: cleanEmail,
+              title: 'Settlement Recorded 🤝',
+              body: '$fromName paid ₹${amount.toStringAsFixed(2)} to $toName in "$groupName"',
+              groupId: groupId,
+            );
+          }
+        }
+      }
     } catch (e) {
       if (kDebugMode) print('Error recording settlement in Firestore: $e');
     }
