@@ -293,6 +293,28 @@ class AppState extends ChangeNotifier {
     return group;
   }
 
+  Future<void> updateActiveGroupName(String newName) async {
+    if (_activeGroup == null || _currentUser == null || newName.trim().isEmpty) return;
+    final cleanName = newName.trim();
+    final groupId = _activeGroup!.id;
+
+    _activeGroup = GroupModel(
+      id: _activeGroup!.id,
+      name: cleanName,
+      emoji: _activeGroup!.emoji,
+      icon: _activeGroup!.icon,
+      createdBy: _activeGroup!.createdBy,
+      createdAt: _activeGroup!.createdAt,
+      memberIds: _activeGroup!.memberIds,
+      members: _activeGroup!.members,
+      myRole: _activeGroup!.myRole,
+    );
+    notifyListeners();
+
+    await _storage.updateGroupName(groupId, cleanName, _currentUser!.id);
+    await refreshDashboard();
+  }
+
   Future<void> deleteGroup(String groupId) async {
     if (_currentUser == null) return;
     await _storage.deleteGroup(groupId, _currentUser!.id);

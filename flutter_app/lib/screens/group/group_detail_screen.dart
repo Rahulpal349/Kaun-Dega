@@ -179,6 +179,64 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     );
   }
 
+  void _showEditGroupNameDialog() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final group = appState.activeGroup;
+    final controller = TextEditingController(text: group?.name ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Edit Group Name', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter a new name for this group ledger.',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Goa Trip 2026',
+                prefixIcon: Icon(LucideIcons.edit3, size: 18),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty && newName != group?.name) {
+                Navigator.pop(ctx);
+                await appState.updateActiveGroupName(newName);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Group name updated successfully!'), behavior: SnackBarBehavior.floating),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showGroupOptionsMenu() {
     final appState = Provider.of<AppState>(context, listen: false);
     final group = appState.activeGroup;
@@ -201,6 +259,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 decoration: BoxDecoration(color: AppColors.cardBorder, borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(LucideIcons.edit3, color: AppColors.primary),
+                title: const Text('Edit Group Name', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showEditGroupNameDialog();
+                },
+              ),
               ListTile(
                 leading: const Icon(LucideIcons.userPlus, color: AppColors.primary),
                 title: const Text('Add Offline Member', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -336,8 +402,16 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      InkWell(
+                        onTap: _showEditGroupNameDialog,
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Icon(LucideIcons.edit3, size: 14, color: AppColors.textMuted),
+                        ),
+                      ),
                       if (isAdmin) ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(

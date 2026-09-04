@@ -43,11 +43,13 @@ export default function GroupDetailPage() {
   const isAdmin = userRole === 'admin';
 
   async function handleEditGroupName() {
-    if (!isAdmin) return;
-    const newName = window.prompt("Enter new group name:", group?.name);
+    const newName = window.prompt("Enter new group name:", group?.name || '');
     if (!newName || !newName.trim() || newName.trim() === group?.name) return;
     try {
-      await api.updateGroupName(id, newName.trim());
+      const cleanName = newName.trim();
+      await api.updateGroupName(id, cleanName);
+      setGroup((prev) => (prev ? { ...prev, name: cleanName } : prev));
+      await loadAll();
     } catch (err) {
       alert("Failed to update group name: " + err.message);
     }
@@ -249,11 +251,13 @@ export default function GroupDetailPage() {
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-lg tracking-tight flex items-center gap-2">
                 {group ? group.name : 'Group'}
-                {isAdmin && (
-                  <button onClick={handleEditGroupName} className="p-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors">
-                    <Edit3 size={14} />
-                  </button>
-                )}
+                <button 
+                  onClick={handleEditGroupName} 
+                  className="p-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                  title="Edit Group Name"
+                >
+                  <Edit3 size={14} />
+                </button>
               </h1>
               {isAdmin && (
                 <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Admin</span>
@@ -308,6 +312,14 @@ export default function GroupDetailPage() {
                 </div>
 
                 {/* Actions */}
+                <button
+                  onClick={() => { setShowMenu(false); handleEditGroupName(); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Edit3 size={16} className="text-[#145C4B]" />
+                  Edit Group Name
+                </button>
+
                 {isAdmin && (
                   <button
                     onClick={() => { setShowMenu(false); handleGenerateInvite(); }}

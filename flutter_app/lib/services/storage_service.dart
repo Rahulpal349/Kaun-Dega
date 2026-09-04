@@ -638,6 +638,42 @@ class StorageService {
     return newGroup;
   }
 
+  Future<void> updateGroupName(String groupId, String newName, String currentUserId) async {
+    final cleanName = newName.trim();
+    if (cleanName.isEmpty) return;
+
+    if (_isFirebaseInitialized) {
+      try {
+        await _firestore.collection('groups').doc(groupId).update({'name': cleanName});
+      } catch (e) {
+        if (kDebugMode) print('Error updating group name in Firestore: $e');
+      }
+    }
+
+    try {
+      final allGroups = await getGroups(currentUserId);
+      final index = allGroups.indexWhere((g) => g.id == groupId);
+      if (index != -1) {
+        final g = allGroups[index];
+        final updatedGroup = GroupModel(
+          id: g.id,
+          name: cleanName,
+          emoji: g.emoji,
+          icon: g.icon,
+          createdBy: g.createdBy,
+          createdAt: g.createdAt,
+          memberIds: g.memberIds,
+          members: g.members,
+          myRole: g.myRole,
+        );
+        allGroups[index] = updatedGroup;
+        await saveGroups(allGroups);
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error updating group name in local cache: $e');
+    }
+  }
+
   Future<GroupModel?> getGroupById(String groupId, String currentUserId) async {
     try {
       final snap = await _firestore.collection('groups').doc(groupId).get();
