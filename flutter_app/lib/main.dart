@@ -8,6 +8,8 @@ import 'screens/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'services/notification_service.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -37,6 +39,7 @@ class KaunDegaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AppState()),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         title: 'Kaun Dega?',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,

@@ -6,6 +6,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../main.dart';
+import '../screens/group/group_detail_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -35,6 +37,40 @@ class NotificationService {
 
   bool _initialized = false;
 
+  static void handleNotificationPayload(String? payload) {
+    if (payload == null || payload.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        Map<String, dynamic> data = {};
+        if (payload.trim().startsWith('{')) {
+          data = jsonDecode(payload) as Map<String, dynamic>;
+        } else {
+          data = {'groupId': payload};
+        }
+
+        final groupId = data['groupId']?.toString() ??
+            data['group_id']?.toString() ??
+            data['id']?.toString() ??
+            '';
+
+        if (groupId.isNotEmpty) {
+          if (kDebugMode) {
+            print('Navigating to GroupDetailScreen for groupId: $groupId');
+          }
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => GroupDetailScreen(groupId: groupId),
+            ),
+          );
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error handling notification payload: $e');
+        }
+      }
+    });
+  }
+
   Future<void> initialize() async {
     if (_initialized) return;
 
@@ -61,6 +97,7 @@ class NotificationService {
           if (kDebugMode) {
             print('Notification tapped: ${response.payload}');
           }
+          handleNotificationPayload(response.payload);
         },
       );
 
@@ -81,6 +118,24 @@ class NotificationService {
             body: notification.body ?? '',
             payload: jsonEncode(message.data),
           );
+        }
+      });
+
+      // Handle FCM notification tap when app is in background
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        if (kDebugMode) {
+          print('FCM message opened app: ${message.data}');
+        }
+        handleNotificationPayload(jsonEncode(message.data));
+      });
+
+      // Handle FCM notification tap when app is launched from terminated state
+      _firebaseMessaging.getInitialMessage().then((RemoteMessage? message) {
+        if (message != null) {
+          if (kDebugMode) {
+            print('FCM initial message: ${message.data}');
+          }
+          handleNotificationPayload(jsonEncode(message.data));
         }
       });
 
@@ -161,12 +216,16 @@ class NotificationService {
             final title = data['title'] as String? ?? 'Kaun Dega?';
             final body = data['body'] as String? ?? 'You have a new update';
             final isRead = data['read'] == true;
+            final groupId = data['groupId']?.toString() ??
+                data['group_id']?.toString() ??
+                '';
 
             if (!isRead) {
               showNotification(
                 id: change.doc.id.hashCode,
                 title: title,
                 body: body,
+                payload: jsonEncode({'groupId': groupId}),
               );
             }
           }
@@ -209,3 +268,4 @@ class NotificationService {
     await _localNotifications.show(id, title, body, details, payload: payload);
   }
 }
+
