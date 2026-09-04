@@ -11,6 +11,7 @@ import '../group/group_detail_screen.dart';
 import '../history/history_screen.dart';
 import '../profile/profile_screen.dart';
 import '../auth/login_screen.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -192,6 +193,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final groups = appState.groups;
     final consolidatedBal = appState.consolidatedBalance;
     final totalSpent = appState.totalSpent;
+
+    if (appState.isLoading && groups.isEmpty) {
+      return const SafeArea(child: DashboardSkeleton());
+    }
 
     return RefreshIndicator(
       onRefresh: () => appState.refreshDashboard(),

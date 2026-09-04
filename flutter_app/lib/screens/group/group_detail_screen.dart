@@ -11,6 +11,7 @@ import '../../services/balance_service.dart';
 import 'add_expense_screen.dart';
 import 'group_report_screen.dart';
 import 'settle_modal.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class GroupDetailScreen extends StatefulWidget {
   final String groupId;
@@ -362,9 +363,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final isAdmin = group?.myRole == 'admin';
 
     if (appState.isActiveGroupLoading && group == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-      );
+      return const GroupDetailSkeleton();
     }
 
     // Sort expenses
