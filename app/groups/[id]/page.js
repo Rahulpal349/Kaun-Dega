@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { auth } from '../../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -14,6 +14,7 @@ import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2
 export default function GroupDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const menuRef = useRef(null);
 
   const [userId, setUserId] = useState(null);
   const [members, setMembers] = useState([]);
@@ -215,6 +216,20 @@ export default function GroupDetailPage() {
     };
   }, [id, loadAll, router]);
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    }
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
   if (loading) {
     return <GroupDetailSkeleton />;
   }
@@ -252,7 +267,7 @@ export default function GroupDetailPage() {
             )}
           </div>
         </div>
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
           <button 
             onClick={() => setShowMenu(!showMenu)} 
             className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400"
@@ -262,10 +277,8 @@ export default function GroupDetailPage() {
 
           {/* Dropdown Menu */}
           {showMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
-                {/* Members */}
+            <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
+              {/* Members */}
                 <div className="px-4 py-2 border-b border-gray-100">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Members</p>
                   {members.map(m => (
@@ -341,7 +354,6 @@ export default function GroupDetailPage() {
                   )}
                 </div>
               </div>
-            </>
           )}
         </div>
       </header>
