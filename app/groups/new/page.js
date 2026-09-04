@@ -4,23 +4,36 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/firebaseApi';
-import { X, Check, Plane, Home, Heart, List, Mail, User, Plus, Info, CheckCircle2, UserCheck, Loader2 } from 'lucide-react';
+import { X, Check, Plane, Home, Heart, List, Mail, User, Plus, Info, CheckCircle2, UserCheck, Loader2, Utensils, Sparkles, Briefcase, ShoppingBag, Film, Building, Car, Dumbbell, GraduationCap, Coffee, Gift, Tag } from 'lucide-react';
 
 const GROUP_TYPES = [
-  { id: 'trip', icon: 'trip', label: 'Trip', Icon: Plane },
-  { id: 'home', icon: 'home', label: 'Home', Icon: Home },
-  { id: 'couple', icon: 'couple', label: 'Couple', Icon: Heart },
-  { id: 'other', icon: 'other', label: 'Other', Icon: List },
+  { id: 'food', icon: 'food', label: 'Food & Drinks', Icon: Utensils },
+  { id: 'trip', icon: 'trip', label: 'Trip & Travel', Icon: Plane },
+  { id: 'home', icon: 'home', label: 'Household', Icon: Home },
+  { id: 'party', icon: 'party', label: 'Party & Outing', Icon: Sparkles },
+  { id: 'office', icon: 'office', label: 'Work & Office', Icon: Briefcase },
+  { id: 'shopping', icon: 'shopping', label: 'Shopping', Icon: ShoppingBag },
+  { id: 'movies', icon: 'movies', label: 'Movies & Show', Icon: Film },
+  { id: 'rent', icon: 'rent', label: 'Rent & Bills', Icon: Building },
+  { id: 'fuel', icon: 'fuel', label: 'Fuel & Transport', Icon: Car },
+  { id: 'fitness', icon: 'fitness', label: 'Fitness & Sports', Icon: Dumbbell },
+  { id: 'education', icon: 'education', label: 'Study & Courses', Icon: GraduationCap },
+  { id: 'coffee', icon: 'coffee', label: 'Coffee & Snacks', Icon: Coffee },
+  { id: 'gifts', icon: 'gifts', label: 'Gifts', Icon: Gift },
+  { id: 'other', icon: 'other', label: 'Other', Icon: Tag },
 ];
 
 export default function NewGroupPage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [type, setType] = useState(GROUP_TYPES[0]);
+  const [customTypes, setCustomTypes] = useState([]);
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customInput, setCustomInput] = useState('');
   const [participants, setParticipants] = useState([]);
   const [currentParticipant, setCurrentParticipant] = useState('');
-  const [emailCheckResult, setEmailCheckResult] = useState(null); // { checking: boolean, exists: boolean, name?: string }
-  const [userMap, setUserMap] = useState({}); // { [email]: { isRegistered: boolean, name?: string } }
+  const [emailCheckResult, setEmailCheckResult] = useState(null);
+  const [userMap, setUserMap] = useState({});
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -154,12 +167,12 @@ export default function NewGroupPage() {
             {/* Group Type */}
             <div>
               <label className="block text-sm font-bold uppercase tracking-wider text-gray-400 mb-3">
-                Type
+                Category Theme
               </label>
               <div className="flex flex-wrap gap-3">
-                {GROUP_TYPES.map((t) => {
+                {[...GROUP_TYPES, ...customTypes].map((t) => {
                   const isSelected = type.id === t.id;
-                  const TypeIcon = t.Icon;
+                  const TypeIcon = t.Icon || Tag;
                   return (
                     <button
                       key={t.id}
@@ -177,8 +190,57 @@ export default function NewGroupPage() {
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  onClick={() => setShowCustomModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full border border-dashed border-primary bg-emerald-50 text-primary text-sm font-semibold hover:bg-emerald-100 transition-all"
+                >
+                  <Plus size={16} />
+                  <span>Custom Category</span>
+                </button>
               </div>
             </div>
+
+            {/* Custom Category Modal */}
+            {showCustomModal && (
+              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+                <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Add Custom Category</h3>
+                  <p className="text-xs text-gray-500 mb-4">Enter a custom theme label for your group ledger.</p>
+                  <input
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    placeholder="e.g. Subscriptions, Gaming, Gifts"
+                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomModal(false)}
+                      className="px-4 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded-xl"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customInput.trim()) {
+                          const newObj = { id: customInput.trim(), icon: customInput.trim(), label: customInput.trim(), Icon: Tag };
+                          setCustomTypes([...customTypes, newObj]);
+                          setType(newObj);
+                          setCustomInput('');
+                          setShowCustomModal(false);
+                        }
+                      }}
+                      className="px-4 py-2 text-xs font-semibold bg-primary text-white rounded-xl hover:bg-emerald-800"
+                    >
+                      Add Category
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Members Section */}
             <div>

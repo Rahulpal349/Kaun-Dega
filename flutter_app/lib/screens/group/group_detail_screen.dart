@@ -39,8 +39,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final appState = Provider.of<AppState>(context, listen: false);
     final group = appState.activeGroup;
     final report = appState.activeBalanceReport;
+    final inviteCode = widget.groupId;
 
-    final text = BalanceService.buildWhatsappText(group?.name ?? 'Kaun Dega?', report.moves);
+    final text = BalanceService.buildWhatsappText(
+      group?.name ?? 'Kaun Dega?',
+      report.moves,
+      inviteCode: inviteCode,
+    );
     ShareService.shareToWhatsapp(text);
   }
 
@@ -255,9 +260,31 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Manage Members & Users',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Manage Members & Users',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showAddOfflineMemberDialog();
+                    },
+                    icon: const Icon(LucideIcons.userPlus, size: 14),
+                    label: const Text('Add User', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               const Text(
@@ -378,6 +405,23 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                       ],
                     );
                   },
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _showAddOfflineMemberDialog();
+                  },
+                  icon: const Icon(LucideIcons.userPlus, size: 16, color: AppColors.primary),
+                  label: const Text('Add Member / User', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
                 ),
               ),
             ],
@@ -984,143 +1028,183 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                           color: AppColors.surfaceMuted,
                           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Payer row with changer
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'PAID BY',
-                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.textMuted, letterSpacing: 0.5),
-                                ),
-                                PopupMenuButton<String>(
-                                  onSelected: (newPayerId) async {
-                                    await Provider.of<AppState>(context, listen: false)
-                                        .updateExpensePayer(e.id, newPayerId);
-                                  },
+                        child: () {
+                          final appState = context.read<AppState>();
+                          final currentUserId = appState.currentUser?.id ?? '';
+                          final currentUserName = (appState.currentUser?.name ?? '').toLowerCase().trim();
+                          final isGroupAdmin = group?.myRole == 'admin' || (appState.currentUser != null && group?.createdBy == currentUserId);
+                          final isExpensePayer = (e.paidBy == currentUserId) ||
+                              (e.payer.id == currentUserId) ||
+                              (currentUserName.isNotEmpty && e.payer.name.toLowerCase().trim() == currentUserName);
+                          final canEditExpense = isGroupAdmin || isExpensePayer;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Payer row
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'PAID BY',
+                                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.textMuted, letterSpacing: 0.5),
+                                  ),
+                                  if (canEditExpense)
+                                    PopupMenuButton<String>(
+                                      onSelected: (newPayerId) async {
+                                        await Provider.of<AppState>(context, listen: false)
+                                            .updateExpensePayer(e.id, newPayerId);
+                                      },
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            '${e.payer.name} ✎',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.primary,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      itemBuilder: (pCtx) {
+                                        final members = group?.memberList ?? [];
+                                        return members.map<PopupMenuEntry<String>>((m) {
+                                          return PopupMenuItem<String>(
+                                            value: m.id,
+                                            child: Text(m.name, style: const TextStyle(fontSize: 13)),
+                                          );
+                                        }).toList();
+                                      },
+                                    )
+                                  else
+                                    Text(
+                                      e.payer.name,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Split breakdown
+                              const Text(
+                                'SPLIT BREAKDOWN',
+                                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.textMuted, letterSpacing: 0.5),
+                              ),
+                              const SizedBox(height: 6),
+                              ...e.shares.map((share) {
+                                final member = group?.members[share.userId];
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 3),
                                   child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        '${e.payer.name} ✎',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.primary,
-                                          decoration: TextDecoration.underline,
+                                        '${member?.name ?? 'Member'} owes',
+                                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                      ),
+                                      Text(
+                                        '₹${share.amount.toStringAsFixed(2)}',
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+
+                              if (e.note.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text('Note: "${e.note}"', style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontStyle: FontStyle.italic)),
+                              ],
+
+                              const SizedBox(height: 14),
+
+                              // Action buttons (Edit & Delete or Lock Notice)
+                              if (canEditExpense)
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => AddExpenseScreen(groupId: widget.groupId, existingExpense: e),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(LucideIcons.edit2, size: 14),
+                                        label: const Text('Edit'),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          side: const BorderSide(color: AppColors.cardBorder),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () async {
+                                          final appState = Provider.of<AppState>(context, listen: false);
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (dCtx) => AlertDialog(
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                              title: const Text('Delete Expense?'),
+                                              content: Text('Delete "${e.description}"? This cannot be undone.'),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Cancel')),
+                                                ElevatedButton(
+                                                  onPressed: () => Navigator.pop(dCtx, true),
+                                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.negative),
+                                                  child: const Text('Delete'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+
+                                          if (confirm == true) {
+                                            await appState.deleteExpense(e.id);
+                                          }
+                                        },
+                                        icon: const Icon(LucideIcons.trash2, size: 14, color: AppColors.negative),
+                                        label: const Text('Delete', style: TextStyle(color: AppColors.negative)),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          side: const BorderSide(color: AppColors.negativeBg),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              else
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceMuted,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.cardBorder),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(LucideIcons.lock, size: 14, color: AppColors.textMuted),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Only ${e.payer.name} or group admin can edit/delete this expense.',
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w500),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  itemBuilder: (pCtx) {
-                                    final members = group?.memberList ?? [];
-                                    return members.map<PopupMenuEntry<String>>((m) {
-                                      return PopupMenuItem<String>(
-                                        value: m.id,
-                                        child: Text(m.name, style: const TextStyle(fontSize: 13)),
-                                      );
-                                    }).toList();
-                                  },
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Split breakdown
-                            const Text(
-                              'SPLIT BREAKDOWN',
-                              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.textMuted, letterSpacing: 0.5),
-                            ),
-                            const SizedBox(height: 6),
-                            ...e.shares.map((share) {
-                              final member = group?.members[share.userId];
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 3),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '${member?.name ?? 'Member'} owes',
-                                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                                    ),
-                                    Text(
-                                      '₹${share.amount.toStringAsFixed(2)}',
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-
-                            if (e.note.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text('Note: "${e.note}"', style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontStyle: FontStyle.italic)),
                             ],
-
-                            const SizedBox(height: 14),
-
-                            // Action buttons (Edit & Delete)
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => AddExpenseScreen(groupId: widget.groupId, existingExpense: e),
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(LucideIcons.edit2, size: 14),
-                                    label: const Text('Edit'),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 10),
-                                      side: const BorderSide(color: AppColors.cardBorder),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () async {
-                                      final appState = Provider.of<AppState>(context, listen: false);
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (dCtx) => AlertDialog(
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                          title: const Text('Delete Expense?'),
-                                          content: Text('Delete "${e.description}"? This cannot be undone.'),
-                                          actions: [
-                                            TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Cancel')),
-                                            ElevatedButton(
-                                              onPressed: () => Navigator.pop(dCtx, true),
-                                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.negative),
-                                              child: const Text('Delete'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-
-                                      if (confirm == true) {
-                                        await appState.deleteExpense(e.id);
-                                      }
-                                    },
-                                    icon: const Icon(LucideIcons.trash2, size: 14, color: AppColors.negative),
-                                    label: const Text('Delete', style: TextStyle(color: AppColors.negative)),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 10),
-                                      side: const BorderSide(color: AppColors.negativeBg),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                          );
+                        }(),
                       ),
                     ],
                   ],

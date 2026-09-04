@@ -401,6 +401,11 @@ export default function GroupDetailPage() {
                   const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                   const isExpanded = expandedExpenseId === e.id;
                   
+                  const payerId = e.paid_by || e.paidBy || e.payer?.id;
+                  const isPayer = Boolean(userId && payerId && payerId === userId);
+                  const canEditExpense = isAdmin || isPayer;
+                  const payerName = e.payer?.name || members.find(m => m.id === payerId)?.name || 'the payer';
+
                   return (
                     <div key={e.id} className="border-b border-gray-100 flex flex-col bg-white">
                       <div 
@@ -426,38 +431,46 @@ export default function GroupDetailPage() {
                               <Edit3 size={14} className="text-gray-400" />
                               <span className="font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Paid by</span>
                             </div>
-                            {editingPayerExpenseId === e.id ? (
-                              <select
-                                className="text-[13px] bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#145C4B]/30"
-                                defaultValue={e.paid_by || e.paidBy}
-                                onChange={(ev) => handleChangePayer(e.id, ev.target.value)}
-                              >
-                                {members.map(m => (
-                                  <option key={m.id} value={m.id}>{m.name}</option>
-                                ))}
-                              </select>
+                            {canEditExpense ? (
+                              editingPayerExpenseId === e.id ? (
+                                <select
+                                  className="text-[13px] bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#145C4B]/30"
+                                  defaultValue={e.paid_by || e.paidBy}
+                                  onChange={(ev) => handleChangePayer(e.id, ev.target.value)}
+                                >
+                                  {members.map(m => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <button
+                                  onClick={() => setEditingPayerExpenseId(e.id)}
+                                  className="text-[13px] text-[#145C4B] font-semibold underline underline-offset-2 decoration-dashed"
+                                >
+                                  {e.payer?.name || 'Someone'} ✎
+                                </button>
+                              )
                             ) : (
-                              <button
-                                onClick={() => setEditingPayerExpenseId(e.id)}
-                                className="text-[13px] text-[#145C4B] font-semibold underline underline-offset-2 decoration-dashed"
-                              >
-                                {e.payer?.name || 'Someone'} ✎
-                              </button>
+                              <span className="text-[13px] text-gray-700 font-medium">
+                                {e.payer?.name || 'Someone'}
+                              </span>
                             )}
                           </div>
 
                           {/* Split Breakdown */}
                           <div className="flex items-center justify-between mb-2">
                             <p className="font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Split Details</p>
-                            <button
-                              onClick={() => {
-                                setEditingExpense(e);
-                                setShowExpenseForm(true);
-                              }}
-                              className="text-[13px] text-[#145C4B] font-semibold underline underline-offset-2 decoration-dashed"
-                            >
-                              Edit ✎
-                            </button>
+                            {canEditExpense && (
+                              <button
+                                onClick={() => {
+                                  setEditingExpense(e);
+                                  setShowExpenseForm(true);
+                                }}
+                                className="text-[13px] text-[#145C4B] font-semibold underline underline-offset-2 decoration-dashed"
+                              >
+                                Edit ✎
+                              </button>
+                            )}
                           </div>
                           {(e.expense_shares || e.shares || []).map(share => {
                             const uId = share.user_id || share.userId;
@@ -471,14 +484,21 @@ export default function GroupDetailPage() {
                             );
                           })}
 
-                          {/* Delete Expense */}
-                          <button
-                            onClick={() => handleDeleteExpense(e.id)}
-                            className="mt-3 w-full flex items-center justify-center gap-2 text-red-500 text-[12px] font-semibold py-2 rounded-lg border border-red-200 hover:bg-red-50 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                            Delete Expense
-                          </button>
+                          {/* Delete Expense or Permission Notice */}
+                          {canEditExpense ? (
+                            <button
+                              onClick={() => handleDeleteExpense(e.id)}
+                              className="mt-3 w-full flex items-center justify-center gap-2 text-red-500 text-[12px] font-semibold py-2 rounded-lg border border-red-200 hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                              Delete Expense
+                            </button>
+                          ) : (
+                            <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200/60 rounded-xl flex items-center gap-2 text-amber-800 text-[11px] font-medium">
+                              <span>🔒</span>
+                              <span>Only {payerName} or group admin can edit/delete this expense.</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

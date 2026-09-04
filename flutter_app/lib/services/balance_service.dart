@@ -137,23 +137,31 @@ class BalanceService {
   }
 
   /// Builds WhatsApp share formatted summary text
-  static String buildWhatsappText(String groupName, List<SettlementMove> moves) {
+  static String buildWhatsappText(String groupName, List<SettlementMove> moves, {String inviteCode = ''}) {
     final name = groupName.isNotEmpty ? groupName : 'Kaun Dega?';
-
-    if (moves.isEmpty) {
-      return '*$name* — Sab clear hai! 🎉\nNo one needs to pay anything.';
-    }
+    final inviteUrl = inviteCode.isNotEmpty ? 'https://kaun-dega.vercel.app/join/$inviteCode' : '';
 
     final buffer = StringBuffer();
-    buffer.writeln('*$name* — 🧾 Hisaab Kitab:');
-    buffer.writeln();
-    for (final m in moves) {
-      buffer.writeln('• *${m.fromName}* to pay *${m.toName}* ₹${m.amount.toStringAsFixed(2)}');
-      if (m.toUpiId != null && m.toUpiId!.isNotEmpty) {
-        buffer.writeln('  📲 UPI: `${m.toUpiId}`');
+    if (moves.isEmpty) {
+      buffer.writeln('*$name* — Sab clear hai! 🎉');
+      buffer.writeln('No one needs to pay anything.');
+    } else {
+      buffer.writeln('*$name* — 🧾 Hisaab Kitab:');
+      buffer.writeln();
+      for (final m in moves) {
+        buffer.writeln('• *${m.fromName}* to pay *${m.toName}* ₹${m.amount.toStringAsFixed(2)}');
+        if (m.toUpiId != null && m.toUpiId!.isNotEmpty) {
+          buffer.writeln('  📲 UPI: `${m.toUpiId}`');
+        }
       }
     }
+
     buffer.writeln();
+    if (inviteUrl.isNotEmpty) {
+      buffer.writeln('🔗 *Join Group Link:* $inviteUrl');
+      buffer.writeln('🔑 *Invite Code:* $inviteCode');
+      buffer.writeln();
+    }
     buffer.writeln('⚡ Split and settled via *Kaun Dega?*');
 
     return buffer.toString();

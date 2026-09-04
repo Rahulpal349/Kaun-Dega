@@ -33,13 +33,79 @@ class _NewGroupScreenState extends State<NewGroupScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  final List<GroupThemeOption> _customCategories = [];
+
   static const List<GroupThemeOption> _themeOptions = [
     GroupThemeOption(id: 'food', label: 'Food & Drinks', icon: LucideIcons.utensils),
-    GroupThemeOption(id: 'trip', label: 'Trip / Travel', icon: LucideIcons.plane),
+    GroupThemeOption(id: 'trip', label: 'Trip & Travel', icon: LucideIcons.plane),
     GroupThemeOption(id: 'home', label: 'Household', icon: LucideIcons.home),
     GroupThemeOption(id: 'party', label: 'Party & Outing', icon: LucideIcons.sparkles),
-    GroupThemeOption(id: 'other', label: 'Other', icon: LucideIcons.receipt),
+    GroupThemeOption(id: 'office', label: 'Work & Office', icon: LucideIcons.briefcase),
+    GroupThemeOption(id: 'shopping', label: 'Shopping', icon: LucideIcons.shoppingBag),
+    GroupThemeOption(id: 'movies', label: 'Movies & Show', icon: LucideIcons.clapperboard),
+    GroupThemeOption(id: 'rent', label: 'Rent & Bills', icon: LucideIcons.building),
+    GroupThemeOption(id: 'fuel', label: 'Fuel & Transport', icon: LucideIcons.car),
+    GroupThemeOption(id: 'fitness', label: 'Fitness & Sports', icon: LucideIcons.dumbbell),
+    GroupThemeOption(id: 'education', label: 'Study & Courses', icon: LucideIcons.graduationCap),
+    GroupThemeOption(id: 'coffee', label: 'Coffee & Snacks', icon: LucideIcons.coffee),
+    GroupThemeOption(id: 'gifts', label: 'Gifts', icon: LucideIcons.gift),
+    GroupThemeOption(id: 'health', label: 'Medical & Health', icon: LucideIcons.heartPulse),
+    GroupThemeOption(id: 'other', label: 'Other', icon: LucideIcons.tag),
   ];
+
+  void _showAddCustomCategoryDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Add Custom Category', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter a custom category name for your group.',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Subscriptions, Gaming, Wedding',
+                prefixIcon: Icon(LucideIcons.tag, size: 18),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                Navigator.pop(ctx);
+                final customOpt = GroupThemeOption(id: text, label: text, icon: LucideIcons.tag);
+                setState(() {
+                  _customCategories.add(customOpt);
+                  _selectedTheme = customOpt.id;
+                });
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text('Add Category'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -176,47 +242,76 @@ class _NewGroupScreenState extends State<NewGroupScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 10,
-                      children: _themeOptions.map((opt) {
-                        final isSelected = _selectedTheme == opt.id;
-                        return InkWell(
-                          onTap: () => setState(() => _selectedTheme = opt.id),
-                          borderRadius: BorderRadius.circular(16),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppColors.primary : AppColors.surfaceMuted,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                      children: [
+                        ...[..._themeOptions, ..._customCategories].map((opt) {
+                          final isSelected = _selectedTheme == opt.id;
+                          return InkWell(
+                            onTap: () => setState(() => _selectedTheme = opt.id),
+                            borderRadius: BorderRadius.circular(16),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppColors.primary : AppColors.surfaceMuted,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    opt.icon,
+                                    size: 16,
+                                    color: isSelected ? Colors.white : AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    opt.label,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  if (isSelected) ...[
+                                    const SizedBox(width: 6),
+                                    const Icon(LucideIcons.check, size: 14, color: Colors.white),
+                                  ],
+                                ],
                               ),
                             ),
-                            child: Row(
+                          );
+                        }),
+                        InkWell(
+                          onTap: _showAddCustomCategoryDialog,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.positiveBg,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.primary, width: 1.5),
+                            ),
+                            child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  opt.icon,
-                                  size: 16,
-                                  color: isSelected ? Colors.white : AppColors.primary,
-                                ),
-                                const SizedBox(width: 8),
+                                Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
+                                SizedBox(width: 6),
                                 Text(
-                                  opt.label,
+                                  'Custom Category',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.primary,
                                   ),
                                 ),
-                                if (isSelected) ...[
-                                  const SizedBox(width: 6),
-                                  const Icon(LucideIcons.check, size: 14, color: Colors.white),
-                                ],
                               ],
                             ),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 28),
 

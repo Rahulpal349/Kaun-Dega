@@ -448,7 +448,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 18),
 
                   // Active Ledgers Section Header
                   Row(
@@ -467,10 +467,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           TextButton.icon(
                             onPressed: _showJoinGroupDialog,
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             icon: const Icon(LucideIcons.link, size: 14, color: AppColors.primary),
                             label: const Text('Join Code', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12.5)),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 8),
                           Text(
                             '${groups.length} ${groups.length == 1 ? 'group' : 'groups'}',
                             style: const TextStyle(
@@ -484,7 +489,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
 
                   if (groups.isEmpty)
                     Container(
@@ -538,6 +543,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     )
                   else
                     ListView.separated(
+                      padding: EdgeInsets.zero,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: groups.length,
