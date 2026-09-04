@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -17,7 +19,25 @@ class StorageService {
   static const String _hasSeenOnboardingKey = 'kd_has_seen_onboarding';
 
   final Uuid _uuid = const Uuid();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  bool get _isFirebaseInitialized {
+    try {
+      return Firebase.apps.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _ensureFirebaseAuth() async {
+    if (!_isFirebaseInitialized) return;
+    try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+      }
+    } catch (_) {}
+  }
+
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -64,7 +84,7 @@ class StorageService {
   }
 
   Future<UserModel?> _syncUserProfileFromFirestore(String uid) async {
-    if (uid.isEmpty) return null;
+    if (!_isFirebaseInitialized || uid.isEmpty) return null;
     try {
       final snap = await _firestore.collection('users').doc(uid).get();
       if (snap.exists && snap.data() != null) {
@@ -84,17 +104,19 @@ class StorageService {
     final emailLower = email.toLowerCase().trim();
     if (emailLower.isEmpty) return null;
 
-    try {
-      final snap = await _firestore
-          .collection('users')
-          .where('email_lower', isEqualTo: emailLower)
-          .limit(1)
-          .get();
-      if (snap.docs.isNotEmpty) {
-        final d = snap.docs.first;
-        return UserModel.fromJson({'id': d.id, ...d.data()});
-      }
-    } catch (_) {}
+    if (_isFirebaseInitialized) {
+      try {
+        final snap = await _firestore
+            .collection('users')
+            .where('email_lower', isEqualTo: emailLower)
+            .limit(1)
+            .get();
+        if (snap.docs.isNotEmpty) {
+          final d = snap.docs.first;
+          return UserModel.fromJson({'id': d.id, ...d.data()});
+        }
+      } catch (_) {}
+    }
 
     final prefs = await _prefs;
     final jsonStr = prefs.getString('kd_user_profile_email_$emailLower');
@@ -108,10 +130,16 @@ class StorageService {
 
   Future<UserModel?> ensureUserProfile(UserModel user, {Map<String, dynamic>? extraData}) async {
     if (user.id.isEmpty) return null;
+    if (!_isFirebaseInitialized) {
+      await saveUserProfile(user);
+      return user;
+    }
+    await _ensureFirebaseAuth();
+
     final emailLower = user.email.toLowerCase().trim();
-    final userRef = _firestore.collection('users').doc(user.id);
 
     try {
+      final userRef = _firestore.collection('users').doc(user.id);
       final snap = await userRef.get();
       UserModel profile;
       if (!snap.exists) {
@@ -423,7 +451,8 @@ class StorageService {
     final userEmailLower = currentUserEmail?.toLowerCase().trim() ?? '';
     final groupsMap = <String, GroupModel>{};
 
-    if (currentUserId.isNotEmpty) {
+    if (_isFirebaseInitialized && currentUserId.isNotEmpty) {
+      await _ensureFirebaseAuth();
       try {
         // Query Firestore by memberIds
         final q1 = await _firestore
@@ -494,6 +523,7 @@ class StorageService {
     required UserModel currentUser,
     required List<String> extraParticipants,
   }) async {
+    await _ensureFirebaseAuth();
     final groupId = _firestore.collection('groups').doc().id;
     final myEmailLower = currentUser.email.toLowerCase().trim();
 

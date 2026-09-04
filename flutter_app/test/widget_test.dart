@@ -11,7 +11,8 @@ void main() {
 
   testWidgets('App renders without crashing', (WidgetTester tester) async {
     await tester.pumpWidget(const KaunDegaApp());
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 1500));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(KaunDegaApp), findsOneWidget);
   });
 }
