@@ -35,9 +35,15 @@ class ShareService {
     await Clipboard.setData(ClipboardData(text: text));
   }
 
+  /// Returns full web join link
+  static String getInviteUrl(String inviteCode) {
+    return 'https://kaun-dega.vercel.app/join/$inviteCode';
+  }
+
   /// Share invite link
   static Future<void> shareInvite({required String groupName, required String inviteCode}) async {
-    final text = '👋 Join my expense group "*$groupName*" on *Kaun Dega?* to easily split bills!\n\nInvite Code: $inviteCode\n\nDownload Kaun Dega app to get started.';
+    final url = getInviteUrl(inviteCode);
+    final text = '👋 Join my expense group "*$groupName*" on *Kaun Dega?* to easily split bills!\n\n🔗 Join Link: $url\n\n🔑 Invite Code: $inviteCode';
     await shareToWhatsapp(text);
   }
 }

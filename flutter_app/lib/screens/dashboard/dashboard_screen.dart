@@ -154,6 +154,75 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _showJoinGroupDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Join a Group', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter or paste an invite code or link to join an existing ledger.',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'e.g. g_12345 or link',
+                prefixIcon: Icon(LucideIcons.link, size: 18),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              String input = controller.text.trim();
+              if (input.isNotEmpty) {
+                if (input.contains('/join/')) {
+                  input = input.split('/join/').last.split('?').first.split('#').first.trim();
+                }
+                Navigator.pop(ctx);
+                final appState = Provider.of<AppState>(context, listen: false);
+                final joinedGroup = await appState.joinGroupByCode(input);
+                if (mounted) {
+                  if (joinedGroup != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Joined "${joinedGroup.name}"!'), behavior: SnackBarBehavior.floating),
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => GroupDetailScreen(groupId: joinedGroup.id)),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Invalid invite code or group not found.'), behavior: SnackBarBehavior.floating),
+                    );
+                  }
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text('Join'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -394,13 +463,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           letterSpacing: -0.3,
                         ),
                       ),
-                      Text(
-                        '${groups.length} ${groups.length == 1 ? 'group' : 'groups'}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textMuted,
-                        ),
+                      Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: _showJoinGroupDialog,
+                            icon: const Icon(LucideIcons.link, size: 14, color: AppColors.primary),
+                            label: const Text('Join Code', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12.5)),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${groups.length} ${groups.length == 1 ? 'group' : 'groups'}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

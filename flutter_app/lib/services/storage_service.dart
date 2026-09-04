@@ -901,6 +901,47 @@ class StorageService {
     }
   }
 
+  Future<void> updateMemberName(String groupId, String memberId, String newName) async {
+    try {
+      final groupRef = _firestore.collection('groups').doc(groupId);
+      final snap = await groupRef.get();
+      if (snap.exists && snap.data() != null) {
+        final group = snap.data()!;
+        final members = Map<String, dynamic>.from(group['members'] ?? {});
+        if (members.containsKey(memberId)) {
+          final memberData = Map<String, dynamic>.from(members[memberId] as Map);
+          memberData['name'] = newName;
+          members[memberId] = memberData;
+          await groupRef.update({'members': members});
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error updating member name in Firestore: $e');
+    }
+
+    final prefs = await _prefs;
+    final jsonStr = prefs.getString(_groupsKey);
+    if (jsonStr == null) return;
+    try {
+      final List raw = jsonDecode(jsonStr);
+      final List<Map<String, dynamic>> updated = [];
+      for (final item in raw) {
+        final g = Map<String, dynamic>.from(item);
+        if (g['id'] == groupId) {
+          final members = Map<String, dynamic>.from(g['members'] ?? {});
+          if (members.containsKey(memberId)) {
+            final memberData = Map<String, dynamic>.from(members[memberId] as Map);
+            memberData['name'] = newName;
+            members[memberId] = memberData;
+            g['members'] = members;
+          }
+        }
+        updated.add(g);
+      }
+      await prefs.setString(_groupsKey, jsonEncode(updated));
+    } catch (_) {}
+  }
+
   Future<void> removeMemberFromGroup(String groupId, String memberId) async {
     try {
       final groupRef = _firestore.collection('groups').doc(groupId);

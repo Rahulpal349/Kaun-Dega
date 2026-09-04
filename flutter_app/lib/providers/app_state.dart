@@ -402,6 +402,13 @@ class AppState extends ChangeNotifier {
     await refreshDashboard();
   }
 
+  Future<void> updateMemberNameInActiveGroup(String memberId, String newName) async {
+    if (_activeGroup == null) return;
+    await _storage.updateMemberName(_activeGroup!.id, memberId, newName);
+    await loadGroupDetails(_activeGroup!.id);
+    await refreshDashboard();
+  }
+
   // --- Expense Operations ---
   Future<void> addExpense({
     required String groupId,

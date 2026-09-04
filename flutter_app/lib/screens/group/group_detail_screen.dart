@@ -98,6 +98,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final appState = Provider.of<AppState>(context, listen: false);
     final group = appState.activeGroup;
     final inviteCode = widget.groupId;
+    final inviteUrl = ShareService.getInviteUrl(inviteCode);
 
     showModalBottomSheet(
       context: context,
@@ -122,7 +123,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Share this code or link with friends to invite them to "${group?.name}".',
+                'Share this join link or code with friends to invite them to "${group?.name}".',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
@@ -134,23 +135,70 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.cardBorder),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        inviteCode,
-                        style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
+                    const Text('INVITE LINK', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.textMuted, letterSpacing: 0.8)),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            inviteUrl,
+                            style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w600, fontSize: 12.5, color: AppColors.primary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(LucideIcons.copy, size: 18, color: AppColors.primary),
+                          tooltip: 'Copy Link',
+                          onPressed: () {
+                            ShareService.copyToClipboard(inviteUrl);
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Invite link copied to clipboard!'), behavior: SnackBarBehavior.floating),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(LucideIcons.copy, size: 18, color: AppColors.primary),
-                      onPressed: () {
-                        ShareService.copyToClipboard(inviteCode);
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invite code copied!'), behavior: SnackBarBehavior.floating),
-                        );
-                      },
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceMuted,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('INVITE CODE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.textMuted, letterSpacing: 0.8)),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            inviteCode,
+                            style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 13.5),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(LucideIcons.copy, size: 18, color: AppColors.primary),
+                          tooltip: 'Copy Code',
+                          onPressed: () {
+                            ShareService.copyToClipboard(inviteCode);
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Invite code copied!'), behavior: SnackBarBehavior.floating),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -164,7 +212,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     ShareService.shareInvite(groupName: group?.name ?? 'Ledger', inviteCode: inviteCode);
                   },
                   icon: const Icon(LucideIcons.share2, size: 18),
-                  label: const Text('Share on WhatsApp'),
+                  label: const Text('Share Link & Code on WhatsApp'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF25D366),
                     foregroundColor: Colors.white,
@@ -176,6 +224,220 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showManageMembersModal() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final group = appState.activeGroup;
+    final members = group?.memberList ?? [];
+    final currentUserId = appState.currentUser?.id ?? '';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(color: AppColors.cardBorder, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Manage Members & Users',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Only group creator / admin can edit user names or remove members.',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 20),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: members.length,
+                  separatorBuilder: (_, __) => const Divider(color: AppColors.cardBorder, height: 16),
+                  itemBuilder: (context, idx) {
+                    final m = members[idx];
+                    final isMe = m.id == currentUserId;
+                    final isAdminMember = m.role == 'admin' || m.id == group?.createdBy;
+
+                    return Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: AppColors.positiveBg,
+                          child: Text(
+                            m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
+                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      m.name,
+                                      style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (isAdminMember) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.amberBg,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Text(
+                                        'ADMIN',
+                                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: AppColors.amber),
+                                      ),
+                                    ),
+                                  ],
+                                  if (m.isShadow) ...[
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceMuted,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Text(
+                                        'OFFLINE',
+                                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (m.email.isNotEmpty)
+                                Text(m.email, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(LucideIcons.edit2, size: 16, color: AppColors.primary),
+                          tooltip: 'Edit Member Name',
+                          onPressed: () {
+                            _showEditMemberNameDialog(m.id, m.name);
+                          },
+                        ),
+                        if (!isMe)
+                          IconButton(
+                            icon: const Icon(LucideIcons.userMinus, size: 16, color: AppColors.negative),
+                            tooltip: 'Remove Member',
+                            onPressed: () async {
+                            final nav = Navigator.of(ctx);
+                            final messenger = ScaffoldMessenger.of(context);
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (dCtx) => AlertDialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                title: Text('Remove ${m.name}?'),
+                                content: const Text('Are you sure you want to remove this member from the group?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Cancel')),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(dCtx, true),
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.negative),
+                                    child: const Text('Remove'),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm == true) {
+                              nav.pop();
+                              await appState.removeMemberFromActiveGroup(m.id);
+                              messenger.showSnackBar(
+                                SnackBar(content: Text('${m.name} removed from group.'), behavior: SnackBarBehavior.floating),
+                              );
+                            }
+                          },
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditMemberNameDialog(String memberId, String currentName) {
+    final controller = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Edit Member Name', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter a new display name for this member in this ledger.',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Rahul, Aman',
+                prefixIcon: Icon(LucideIcons.userCheck, size: 18),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty && newName != currentName) {
+                Navigator.pop(ctx);
+                await Provider.of<AppState>(context, listen: false).updateMemberNameInActiveGroup(memberId, newName);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Member name updated!'), behavior: SnackBarBehavior.floating),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
@@ -241,7 +503,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   void _showGroupOptionsMenu() {
     final appState = Provider.of<AppState>(context, listen: false);
     final group = appState.activeGroup;
-    final isAdmin = group?.myRole == 'admin';
+    final isAdmin = group?.myRole == 'admin' || (appState.currentUser != null && (group?.createdBy == appState.currentUser?.id));
 
     showModalBottomSheet(
       context: context,
@@ -260,14 +522,24 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 decoration: BoxDecoration(color: AppColors.cardBorder, borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(LucideIcons.edit3, color: AppColors.primary),
-                title: const Text('Edit Group Name', style: TextStyle(fontWeight: FontWeight.w600)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _showEditGroupNameDialog();
-                },
-              ),
+              if (isAdmin) ...[
+                ListTile(
+                  leading: const Icon(LucideIcons.edit3, color: AppColors.primary),
+                  title: const Text('Edit Group Name', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showEditGroupNameDialog();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(LucideIcons.users, color: AppColors.primary),
+                  title: const Text('Manage Members & Edit Users', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showManageMembersModal();
+                  },
+                ),
+              ],
               ListTile(
                 leading: const Icon(LucideIcons.userPlus, color: AppColors.primary),
                 title: const Text('Add Offline Member', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -360,8 +632,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final expenses = appState.activeExpenses;
     final balanceReport = appState.activeBalanceReport;
     final totalExpenses = expenses.fold<double>(0.0, (sum, e) => sum + e.amount);
-    final isAdmin = group?.myRole == 'admin';
-
+    final isAdmin = group?.myRole == 'admin' || (appState.currentUser != null && group?.createdBy == appState.currentUser?.id);
     if (appState.isActiveGroupLoading && group == null) {
       return const GroupDetailSkeleton();
     }
@@ -401,14 +672,15 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      InkWell(
-                        onTap: _showEditGroupNameDialog,
-                        borderRadius: BorderRadius.circular(12),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                          child: Icon(LucideIcons.edit3, size: 14, color: AppColors.textMuted),
+                      if (isAdmin)
+                        InkWell(
+                          onTap: _showEditGroupNameDialog,
+                          borderRadius: BorderRadius.circular(12),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            child: Icon(LucideIcons.edit3, size: 14, color: AppColors.textMuted),
+                          ),
                         ),
-                      ),
                       if (isAdmin) ...[
                         const SizedBox(width: 4),
                         Container(
