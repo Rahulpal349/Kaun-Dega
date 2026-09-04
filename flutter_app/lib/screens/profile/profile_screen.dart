@@ -310,7 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 32),
               Text(
-                'Kaun Dega? v1.0.0 (Flutter Release)',
+                'Kaun Dega? v1.0.0',
                 style: TextStyle(fontSize: 12, color: AppColors.textMuted.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
               ),
             ],
