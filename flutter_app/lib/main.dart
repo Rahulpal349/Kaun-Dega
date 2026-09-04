@@ -5,8 +5,13 @@ import 'config/theme.dart';
 import 'providers/app_state.dart';
 import 'screens/splash_screen.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'services/notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await NotificationService().initialize();
 
   // Set system UI overlay style for modern transparent status bars
   SystemChrome.setSystemUIOverlayStyle(

@@ -68,15 +68,20 @@ class StorageService {
   }
 
   // --- Groups ---
-  Future<List<GroupModel>> getGroups(String currentUserId) async {
+  Future<List<GroupModel>> getGroups(String currentUserId, {String? currentUserEmail}) async {
     final prefs = await _prefs;
     final jsonStr = prefs.getString(_groupsKey);
     if (jsonStr == null) return [];
     try {
       final List raw = jsonDecode(jsonStr);
+      final emailLower = currentUserEmail?.toLowerCase().trim();
       final groups = raw
           .map((e) => GroupModel.fromJson(Map<String, dynamic>.from(e), currentUserId: currentUserId))
-          .where((g) => g.memberIds.contains(currentUserId))
+          .where((g) =>
+              g.memberIds.contains(currentUserId) ||
+              (emailLower != null &&
+                  emailLower.isNotEmpty &&
+                  g.members.values.any((m) => m.email.toLowerCase().trim() == emailLower)))
           .toList();
       groups.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return groups;

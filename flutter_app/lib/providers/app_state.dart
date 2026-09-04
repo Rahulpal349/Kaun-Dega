@@ -7,6 +7,7 @@ import '../models/settlement_model.dart';
 import '../models/balance_model.dart';
 import '../services/storage_service.dart';
 import '../services/balance_service.dart';
+import '../services/notification_service.dart';
 
 class AppState extends ChangeNotifier {
   final StorageService _storage = StorageService();
@@ -68,6 +69,12 @@ class AppState extends ChangeNotifier {
       _hasSeenOnboarding = await _storage.hasSeenOnboarding();
       _currentUser = await _storage.getUserProfile();
       if (_currentUser != null) {
+        NotificationService().requestPermissions().then((_) {
+          NotificationService().saveTokenForUser(
+            userId: _currentUser!.id,
+            userEmail: _currentUser!.email,
+          );
+        });
         await refreshDashboard();
       }
     } catch (e) {
@@ -105,30 +112,55 @@ class AppState extends ChangeNotifier {
       }
 
       final email = account.email;
-      final name = account.displayName?.trim().isNotEmpty == true
-          ? account.displayName!
-          : (email.isNotEmpty ? email.split('@')[0] : 'Google User');
-      final upiId = '${email.split('@')[0]}@okhdfcbank';
+      final existingUser = await _storage.getUserProfile();
+
+      // Deterministic user ID for the Google account
+      final userId = account.id.isNotEmpty
+          ? 'usr_${account.id}'
+          : (email.isNotEmpty
+              ? 'usr_g_${email.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}'
+              : 'usr_${DateTime.now().millisecondsSinceEpoch}');
+
+      // Preserve custom edited user profile details if previously updated
+      final bool matchesExisting = existingUser != null &&
+          existingUser.email.toLowerCase().trim() == email.toLowerCase().trim();
+
+      final name = (matchesExisting && existingUser.name.trim().isNotEmpty)
+          ? existingUser.name
+          : (account.displayName?.trim().isNotEmpty == true
+              ? account.displayName!
+              : (email.isNotEmpty ? email.split('@')[0] : 'Google User'));
+
+      final upiId = (matchesExisting && existingUser.upiId.trim().isNotEmpty)
+          ? existingUser.upiId
+          : '${email.split('@')[0]}@okhdfcbank';
 
       final user = UserModel(
-        id: account.id.isNotEmpty ? 'usr_${account.id}' : 'usr_${DateTime.now().millisecondsSinceEpoch}',
+        id: userId,
         name: name,
         email: email,
+        phone: matchesExisting ? existingUser.phone : '',
         upiId: upiId,
-        avatarUrl: account.photoUrl ?? '',
-        createdAt: DateTime.now().toIso8601String(),
+        gender: matchesExisting ? existingUser.gender : '',
+        avatarUrl: account.photoUrl ?? (matchesExisting ? existingUser.avatarUrl : ''),
+        createdAt: matchesExisting ? existingUser.createdAt : DateTime.now().toIso8601String(),
       );
 
       _currentUser = user;
       await _storage.saveUserProfile(user);
+      NotificationService().requestPermissions().then((_) {
+        NotificationService().saveTokenForUser(
+          userId: user.id,
+          userEmail: user.email,
+        );
+      });
       await refreshDashboard();
       return true;
     } catch (e) {
       _error = e.toString();
-      rethrow;
-    } finally {
       _isLoading = false;
       notifyListeners();
+      return false;
     }
   }
 
@@ -193,7 +225,7 @@ class AppState extends ChangeNotifier {
     if (_currentUser == null) return;
 
     try {
-      _groups = await _storage.getGroups(_currentUser!.id);
+      _groups = await _storage.getGroups(_currentUser!.id, currentUserEmail: _currentUser!.email);
 
       double totalBal = 0.0;
       double totalCharged = 0.0;

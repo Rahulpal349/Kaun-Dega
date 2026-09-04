@@ -309,13 +309,21 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               final appState = Provider.of<AppState>(context, listen: false);
+              final existingUser = await StorageService().getUserProfile();
+              const email = 'irondey006@gmail.com';
               final user = UserModel(
                 id: 'usr_g_irondey',
-                name: 'Iron Dey',
-                email: 'irondey006@gmail.com',
-                upiId: 'irondey006@okhdfcbank',
-                avatarUrl: '',
-                createdAt: DateTime.now().toIso8601String(),
+                name: (existingUser != null && existingUser.email == email && existingUser.name.trim().isNotEmpty)
+                    ? existingUser.name
+                    : 'Iron Dey',
+                email: email,
+                upiId: (existingUser != null && existingUser.email == email && existingUser.upiId.trim().isNotEmpty)
+                    ? existingUser.upiId
+                    : 'irondey006@okhdfcbank',
+                phone: (existingUser?.email == email) ? (existingUser?.phone ?? '') : '',
+                gender: (existingUser?.email == email) ? (existingUser?.gender ?? '') : '',
+                avatarUrl: existingUser?.avatarUrl ?? '',
+                createdAt: existingUser?.createdAt ?? DateTime.now().toIso8601String(),
               );
               await StorageService().saveUserProfile(user);
               await appState.init();
