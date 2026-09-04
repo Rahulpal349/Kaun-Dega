@@ -12,6 +12,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function HistoryPage() {
   const router = useRouter();
   const [history, setHistory] = useState(null);
+  const [selectedGroupId, setSelectedGroupId] = useState('all');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -35,11 +36,28 @@ export default function HistoryPage() {
     <main className="min-h-screen bg-green-50 flex flex-col pb-24">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-green-50/80 backdrop-blur-md border-b border-green-100/50">
-        <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 h-16 flex items-center gap-3">
-          <button onClick={() => router.push('/dashboard')} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="font-display font-bold text-xl text-gray-900 tracking-tight">Activity</h1>
+        <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 h-16 flex items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/dashboard')} className="p-2 -ml-2 hover:bg-gray-200/50 rounded-full transition-colors text-gray-500">
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="font-display font-bold text-xl text-gray-900 tracking-tight">Activity</h1>
+          </div>
+          
+          {history && history.length > 0 && (
+            <select
+              value={selectedGroupId}
+              onChange={(e) => setSelectedGroupId(e.target.value)}
+              className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#145C4B] shadow-sm font-medium max-w-[150px] sm:max-w-xs truncate"
+            >
+              <option value="all">All Groups</option>
+              {Array.from(new Map(history.map(e => [e.groupId, { id: e.groupId, name: e.group?.name }])).values())
+                .filter(g => g?.id)
+                .map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+            </select>
+          )}
         </div>
       </header>
 
@@ -56,8 +74,11 @@ export default function HistoryPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {history.map((expense) => (
-              <div key={expense.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+            {(selectedGroupId === 'all' ? history : history.filter(e => e.groupId === selectedGroupId)).length === 0 ? (
+              <div className="text-center py-10 text-gray-400 font-medium">No expenses in this group.</div>
+            ) : (
+              (selectedGroupId === 'all' ? history : history.filter(e => e.groupId === selectedGroupId)).map((expense) => (
+                <div key={expense.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="w-10 h-10 rounded-full bg-[#e6f4ed] flex items-center justify-center shrink-0">
                     <GroupIcon icon={expense.group?.icon || expense.group?.emoji} size={18} />
@@ -73,7 +94,7 @@ export default function HistoryPage() {
                   ₹{Number(expense.amount).toFixed(2)}
                 </span>
               </div>
-            ))}
+            )))}
           </div>
         )}
       </div>

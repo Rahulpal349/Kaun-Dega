@@ -13,8 +13,8 @@ export default function LandingHeader() {
         </h1>
       </Link>
 
-      {/* Center Links (Hidden on mobile) */}
-      <nav className="hidden lg:flex items-center gap-8">
+      {/* Center Links (Hidden on mobile and small desktops) */}
+      <nav className="hidden xl:flex items-center gap-8">
         <Link href="#features" className="text-ink/80 hover:text-primary font-semibold text-sm transition-colors">
           Features
         </Link>

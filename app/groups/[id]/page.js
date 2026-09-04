@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { auth } from '../../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -14,6 +14,7 @@ import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2
 export default function GroupDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const menuRef = useRef(null);
 
   const [userId, setUserId] = useState(null);
   const [members, setMembers] = useState([]);
@@ -37,8 +38,20 @@ export default function GroupDetailPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
-
+  const [dismissedEmptyState, setDismissedEmptyState] = useState(false);
+  
   const isAdmin = userRole === 'admin';
+
+  async function handleEditGroupName() {
+    if (!isAdmin) return;
+    const newName = window.prompt("Enter new group name:", group?.name);
+    if (!newName || !newName.trim() || newName.trim() === group?.name) return;
+    try {
+      await api.updateGroupName(id, newName.trim());
+    } catch (err) {
+      alert("Failed to update group name: " + err.message);
+    }
+  }
 
   async function handleChangePayer(expenseId, newPayerId) {
     try {
@@ -203,6 +216,20 @@ export default function GroupDetailPage() {
     };
   }, [id, loadAll, router]);
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    }
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
   if (loading) {
     return <GroupDetailSkeleton />;
   }
@@ -220,8 +247,13 @@ export default function GroupDetailPage() {
           </button>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-lg tracking-tight">
+              <h1 className="font-bold text-lg tracking-tight flex items-center gap-2">
                 {group ? group.name : 'Group'}
+                {isAdmin && (
+                  <button onClick={handleEditGroupName} className="p-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors">
+                    <Edit3 size={14} />
+                  </button>
+                )}
               </h1>
               {isAdmin && (
                 <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Admin</span>
@@ -235,7 +267,7 @@ export default function GroupDetailPage() {
             )}
           </div>
         </div>
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
           <button 
             onClick={() => setShowMenu(!showMenu)} 
             className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400"
@@ -245,10 +277,8 @@ export default function GroupDetailPage() {
 
           {/* Dropdown Menu */}
           {showMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
-                {/* Members */}
+            <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
+              {/* Members */}
                 <div className="px-4 py-2 border-b border-gray-100">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Members</p>
                   {members.map(m => (
@@ -324,7 +354,6 @@ export default function GroupDetailPage() {
                   )}
                 </div>
               </div>
-            </>
           )}
         </div>
       </header>
@@ -594,6 +623,43 @@ export default function GroupDetailPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Empty Group State Modal */}
+      {group && members.length === 1 && expenses.length === 0 && !dismissedEmptyState && (
+        <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4" onClick={() => setDismissedEmptyState(true)}>
+          <div 
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl z-[80] overflow-hidden p-6 animate-pop-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users size={32} className="text-[#145C4B]" />
+              </div>
+              <h3 className="font-bold text-xl text-gray-900 mb-2">You are the only person in this group.</h3>
+              <p className="text-gray-500 mb-6">Do you need to add anyone else to <strong>{group.name}</strong>?</p>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setDismissedEmptyState(true);
+                    handleGenerateInvite();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#145C4B] text-white font-bold tracking-wide shadow-md hover:bg-[#145C4B]/90 transition-colors"
+                >
+                  <Plus size={20} />
+                  Add group members
+                </button>
+                <button
+                  onClick={() => setDismissedEmptyState(true)}
+                  className="w-full py-4 rounded-xl font-bold tracking-wide text-[#145C4B] hover:bg-green-50 transition-colors"
+                >
+                  Start adding expenses
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );
