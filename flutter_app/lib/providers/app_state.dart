@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
@@ -225,7 +226,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  StreamSubscription<List<GroupModel>>? _groupsSubscription;
+
   Future<void> logout() async {
+    _groupsSubscription?.cancel();
     _currentUser = null;
     _groups = [];
     _activeGroup = null;
@@ -236,6 +240,51 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _startGroupsRealtimeSubscription() {
+    _groupsSubscription?.cancel();
+    if (_currentUser == null) return;
+
+    _groupsSubscription = _storage
+        .streamGroups(
+          currentUserId: _currentUser!.id,
+          userEmail: _currentUser!.email,
+        )
+        .listen((updatedGroups) async {
+      _groups = updatedGroups;
+      await _recomputeDashboardBalances();
+      notifyListeners();
+    });
+  }
+
+  Future<void> _recomputeDashboardBalances() async {
+    if (_currentUser == null) return;
+    double totalBal = 0.0;
+    double totalCharged = 0.0;
+
+    for (final g in _groups) {
+      final expenses = await _storage.getExpenses(g.id);
+      final settlements = await _storage.getSettlements(g.id);
+      final report = BalanceService.computeBalances(
+        members: g.memberList,
+        expenses: expenses,
+        settlements: settlements,
+      );
+
+      final myBal = report.balances.cast<UserBalance?>().firstWhere(
+        (b) => b?.id == _currentUser!.id,
+        orElse: () => null,
+      );
+
+      if (myBal != null) {
+        totalBal += myBal.amount;
+        totalCharged += myBal.charged;
+      }
+    }
+
+    _consolidatedBalance = double.parse(totalBal.toStringAsFixed(2));
+    _totalSpent = double.parse(totalCharged.toStringAsFixed(2));
+  }
+
   // --- Dashboard & Groups ---
   Future<void> refreshDashboard() async {
     if (_currentUser == null) return;
@@ -243,32 +292,8 @@ class AppState extends ChangeNotifier {
     try {
       await _storage.claimShadowMemberships(_currentUser!);
       _groups = await _storage.getGroups(_currentUser!.id, currentUserEmail: _currentUser!.email);
-
-      double totalBal = 0.0;
-      double totalCharged = 0.0;
-
-      for (final g in _groups) {
-        final expenses = await _storage.getExpenses(g.id);
-        final settlements = await _storage.getSettlements(g.id);
-        final report = BalanceService.computeBalances(
-          members: g.memberList,
-          expenses: expenses,
-          settlements: settlements,
-        );
-
-        final myBal = report.balances.cast<UserBalance?>().firstWhere(
-          (b) => b?.id == _currentUser!.id,
-          orElse: () => null,
-        );
-
-        if (myBal != null) {
-          totalBal += myBal.amount;
-          totalCharged += myBal.charged;
-        }
-      }
-
-      _consolidatedBalance = double.parse(totalBal.toStringAsFixed(2));
-      _totalSpent = double.parse(totalCharged.toStringAsFixed(2));
+      await _recomputeDashboardBalances();
+      _startGroupsRealtimeSubscription();
     } catch (e) {
       _error = e.toString();
     }

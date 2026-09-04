@@ -8,6 +8,7 @@ class GroupModel {
   final String createdBy;
   final String createdAt;
   final List<String> memberIds;
+  final List<String> memberEmails;
   final Map<String, UserModel> members;
   final String myRole;
 
@@ -19,6 +20,7 @@ class GroupModel {
     required this.createdBy,
     String? createdAt,
     this.memberIds = const [],
+    this.memberEmails = const [],
     this.members = const {},
     this.myRole = 'member',
   }) : createdAt = createdAt ?? DateTime.now().toIso8601String();
@@ -43,6 +45,11 @@ class GroupModel {
       mIds = parsedMembers.keys.toList();
     }
 
+    List<String> mEmails = [];
+    if (json['memberEmails'] is List) {
+      mEmails = (json['memberEmails'] as List).map((e) => e.toString()).toList();
+    }
+
     String userRole = 'member';
     if (currentUserId.isNotEmpty && parsedMembers.containsKey(currentUserId)) {
       userRole = parsedMembers[currentUserId]!.role;
@@ -58,6 +65,7 @@ class GroupModel {
       createdBy: json['created_by'] ?? json['createdBy'] ?? '',
       createdAt: json['created_at'] ?? json['createdAt'] ?? '',
       memberIds: mIds,
+      memberEmails: mEmails,
       members: parsedMembers,
       myRole: json['myRole'] ?? userRole,
     );
@@ -75,6 +83,7 @@ class GroupModel {
       'created_by': createdBy,
       'created_at': createdAt,
       'memberIds': memberIds,
+      'memberEmails': memberEmails,
       'members': memberJson,
     };
   }

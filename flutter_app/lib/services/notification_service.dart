@@ -147,7 +147,6 @@ class NotificationService {
     if (emailLower.isEmpty && userId.isEmpty) return;
 
     final firestore = FirebaseFirestore.instance;
-    final nowIso = DateTime.now().subtract(const Duration(seconds: 30)).toIso8601String();
 
     _notifSubscription = firestore
         .collection('notifications')
@@ -160,9 +159,9 @@ class NotificationService {
           if (data != null) {
             final title = data['title'] as String? ?? 'Kaun Dega?';
             final body = data['body'] as String? ?? 'You have a new update';
-            final createdAt = data['created_at'] as String? ?? '';
+            final isRead = data['read'] == true;
 
-            if (createdAt.isEmpty || createdAt.compareTo(nowIso) >= 0) {
+            if (!isRead) {
               showNotification(
                 id: change.doc.id.hashCode,
                 title: title,
@@ -172,6 +171,8 @@ class NotificationService {
           }
         }
       }
+    }, onError: (e) {
+      if (kDebugMode) print('Notification listener error: $e');
     });
   }
 

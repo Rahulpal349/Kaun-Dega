@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -509,6 +510,71 @@ class StorageService {
     } catch (_) {
       return [];
     }
+  }
+
+  Stream<List<GroupModel>> streamGroups({
+    required String currentUserId,
+    required String userEmail,
+  }) {
+    final emailLower = userEmail.toLowerCase().trim();
+    if (!_isFirebaseInitialized || (currentUserId.isEmpty && emailLower.isEmpty)) {
+      return Stream.value([]);
+    }
+
+    final groupsMap = <String, GroupModel>{};
+    final controller = StreamController<List<GroupModel>>.broadcast();
+
+    void emitLatest() async {
+      final list = groupsMap.values.toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (!controller.isClosed) {
+        controller.add(list);
+      }
+      await saveGroups(list);
+    }
+
+    StreamSubscription? sub1;
+    if (currentUserId.isNotEmpty) {
+      sub1 = _firestore
+          .collection('groups')
+          .where('memberIds', arrayContains: currentUserId)
+          .snapshots()
+          .listen((snap) {
+        for (final doc in snap.docs) {
+          final g = GroupModel.fromJson({'id': doc.id, ...doc.data()}, currentUserId: currentUserId);
+          groupsMap[doc.id] = g;
+        }
+        final currentIds = snap.docs.map((d) => d.id).toSet();
+        groupsMap.removeWhere((id, g) => !currentIds.contains(id) && !g.memberEmails.contains(emailLower));
+        emitLatest();
+      }, onError: (e) {
+        if (kDebugMode) print('streamGroups sub1 error: $e');
+      });
+    }
+
+    StreamSubscription? sub2;
+    if (emailLower.isNotEmpty) {
+      sub2 = _firestore
+          .collection('groups')
+          .where('memberEmails', arrayContains: emailLower)
+          .snapshots()
+          .listen((snap) {
+        for (final doc in snap.docs) {
+          final g = GroupModel.fromJson({'id': doc.id, ...doc.data()}, currentUserId: currentUserId);
+          groupsMap[doc.id] = g;
+        }
+        emitLatest();
+      }, onError: (e) {
+        if (kDebugMode) print('streamGroups sub2 error: $e');
+      });
+    }
+
+    controller.onCancel = () {
+      sub1?.cancel();
+      sub2?.cancel();
+    };
+
+    return controller.stream;
   }
 
   Future<void> saveGroups(List<GroupModel> groups) async {
