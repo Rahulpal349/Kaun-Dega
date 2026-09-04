@@ -767,7 +767,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final balanceReport = appState.activeBalanceReport;
     final totalExpenses = expenses.fold<double>(0.0, (sum, e) => sum + e.amount);
     final isAdmin = group?.myRole == 'admin' || (appState.currentUser != null && group?.createdBy == appState.currentUser?.id);
-    if (appState.isActiveGroupLoading && group == null) {
+    if (appState.isActiveGroupLoading || group == null) {
       return const GroupDetailSkeleton();
     }
 
@@ -787,7 +787,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         title: Row(
           children: [
             GroupIconWidget(
-              icon: group?.icon ?? 'other',
+              icon: group.icon,
               size: 16,
               padding: 6,
             ),
@@ -800,7 +800,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     children: [
                       Flexible(
                         child: Text(
-                          group?.name ?? 'Ledger',
+                          group.name,
                           style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -832,7 +832,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     ],
                   ),
                   Text(
-                    '${group?.memberIds.length ?? 0} members',
+                    '${group.memberIds.length} members',
                     style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted, fontWeight: FontWeight.w500),
                   ),
                 ],

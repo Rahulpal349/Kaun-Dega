@@ -253,7 +253,7 @@ class NotificationService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification',
       largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       color: const Color(0xFF145C4B),
     );

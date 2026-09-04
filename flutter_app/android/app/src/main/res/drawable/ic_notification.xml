@@ -3,7 +3,12 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+  <!-- Kaun Dega Logo L-Bracket Frame -->
   <path
       android:fillColor="#FFFFFF"
-      android:pathData="M21,18v1c0,1.1 -0.9,2 -2,2H5c-1.11,0 -2,-0.9 -2,-2V5c0,-1.1 0.89,-2 2,-2h14c1.1,0 2,0.9 2,2v1h-9c-1.11,0 -2,0.9 -2,2v8c0,1.1 0.89,2 2,2h9zM12,6h9v10h-9V6zm4,6.5c0.83,0 1.5,-0.67 1.5,-1.5s-0.67,-1.5 -1.5,-1.5 -1.5,0.67 -1.5,1.5 0.67,1.5 1.5,1.5z"/>
+      android:pathData="M4.5,4.5 v15 h15 v-4.5 h-10.5 v-10.5 z"/>
+  <!-- Kaun Dega Top Right Accent Dot -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M15,4.5 h4.5 v4.5 h-4.5 z"/>
 </vector>
