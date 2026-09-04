@@ -140,7 +140,7 @@ export default function GroupDetailPage() {
 
   async function handleAddShadowMember() {
     setShowMenu(false);
-    const input = window.prompt("Enter the name of the new member (e.g. Rahul):");
+    const input = window.prompt("Enter member name or Email ID (e.g. Rahul or friend@gmail.com):");
     if (!input || !input.trim()) return;
     try {
       await api.addShadowMember(id, input.trim());
