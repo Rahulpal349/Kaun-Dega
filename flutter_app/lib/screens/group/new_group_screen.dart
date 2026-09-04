@@ -239,80 +239,99 @@ class _NewGroupScreenState extends State<NewGroupScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 10,
-                      children: [
-                        ...[..._themeOptions, ..._customCategories].map((opt) {
-                          final isSelected = _selectedTheme == opt.id;
-                          return InkWell(
-                            onTap: () => setState(() => _selectedTheme = opt.id),
-                            borderRadius: BorderRadius.circular(16),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.primary : AppColors.surfaceMuted,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected ? AppColors.primary : AppColors.cardBorder,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    opt.icon,
-                                    size: 16,
-                                    color: isSelected ? Colors.white : AppColors.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    opt.label,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: isSelected ? Colors.white : AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  if (isSelected) ...[
-                                    const SizedBox(width: 6),
-                                    const Icon(LucideIcons.check, size: 14, color: Colors.white),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          );
-                        }),
-                        InkWell(
-                          onTap: _showAddCustomCategoryDialog,
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.positiveBg,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.primary, width: 1.5),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Custom Category',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                    () {
+                      final allOptions = [..._themeOptions, ..._customCategories];
+                      final totalCount = allOptions.length + 1; // +1 for Custom Category button
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 3.4,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
                         ),
-                      ],
-                    ),
+                        itemCount: totalCount,
+                        itemBuilder: (context, index) {
+                          if (index < allOptions.length) {
+                            final opt = allOptions[index];
+                            final isSelected = _selectedTheme == opt.id;
+                            return InkWell(
+                              onTap: () => setState(() => _selectedTheme = opt.id),
+                              borderRadius: BorderRadius.circular(16),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.primary : AppColors.surfaceMuted,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      opt.icon,
+                                      size: 16,
+                                      color: isSelected ? Colors.white : AppColors.primary,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        opt.label,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isSelected) ...[
+                                      const SizedBox(width: 4),
+                                      const Icon(LucideIcons.check, size: 14, color: Colors.white),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            );
+                          } else {
+                            return InkWell(
+                              onTap: _showAddCustomCategoryDialog,
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.positiveBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.primary, width: 1.5),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
+                                    SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Custom Category',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.primary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    }(),
                     const SizedBox(height: 28),
 
                     // Add Participants

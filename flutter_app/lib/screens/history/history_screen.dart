@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../providers/app_state.dart';
 import '../../widgets/group_icon.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -38,7 +39,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           onRefresh: () => appState.loadAllActivity(),
           color: AppColors.primary,
           child: appState.isActivityLoading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              ? const ActivitySkeleton()
               : expenses.isEmpty
                   ? Center(
                       child: Padding(

@@ -265,3 +265,44 @@ class GroupDetailSkeleton extends StatelessWidget {
     );
   }
 }
+
+/// Activity Timeline Skeleton
+class ActivitySkeleton extends StatelessWidget {
+  const ActivitySkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      itemCount: 5,
+      itemBuilder: (_, __) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: const Row(
+          children: [
+            SkeletonBox(width: 44, height: 44, borderRadius: BorderRadius.all(Radius.circular(14))),
+            SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBox(width: 120, height: 15, borderRadius: BorderRadius.all(Radius.circular(6))),
+                  SizedBox(height: 6),
+                  SkeletonBox(width: 160, height: 12, borderRadius: BorderRadius.all(Radius.circular(4))),
+                ],
+              ),
+            ),
+            SizedBox(width: 10),
+            SkeletonBox(width: 65, height: 18, borderRadius: BorderRadius.all(Radius.circular(6))),
+          ],
+        ),
+      ),
+    );
+  }
+}

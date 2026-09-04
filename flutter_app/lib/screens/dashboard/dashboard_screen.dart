@@ -223,16 +223,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildTabBody(int index) {
+    switch (index) {
+      case 0:
+        return _buildLedgersTab();
+      case 1:
+        return const HistoryScreen();
+      case 2:
+        return const ProfileScreen();
+      default:
+        return _buildLedgersTab();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentTabIndex,
-        children: [
-          _buildLedgersTab(),
-          const HistoryScreen(),
-          const ProfileScreen(),
-        ],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            alignment: Alignment.topCenter,
+            children: <Widget>[
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          );
+        },
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.015, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey<int>(_currentTabIndex),
+          child: _buildTabBody(_currentTabIndex),
+        ),
       ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentTabIndex,

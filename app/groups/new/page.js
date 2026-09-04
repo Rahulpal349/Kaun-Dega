@@ -169,7 +169,7 @@ export default function NewGroupPage() {
               <label className="block text-sm font-bold uppercase tracking-wider text-gray-400 mb-3">
                 Category Theme
               </label>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 {[...GROUP_TYPES, ...customTypes].map((t) => {
                   const isSelected = type.id === t.id;
                   const TypeIcon = t.Icon || Tag;
@@ -178,25 +178,27 @@ export default function NewGroupPage() {
                       key={t.id}
                       type="button"
                       onClick={() => setType(t)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
+                      className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm font-semibold transition-all w-full text-left ${
                         isSelected
                           ? 'border-primary bg-primary text-white shadow-sm'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-green-50'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-green-50'
                       }`}
                     >
-                      <TypeIcon size={16} className={isSelected ? 'text-white' : 'text-[#145C4B]'} />
-                      <span>{t.label}</span>
-                      {isSelected && <Check size={14} className="ml-1" />}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <TypeIcon size={16} className={isSelected ? 'text-white shrink-0' : 'text-[#145C4B] shrink-0'} />
+                        <span className="truncate">{t.label}</span>
+                      </div>
+                      {isSelected && <Check size={14} className="shrink-0 ml-1" />}
                     </button>
                   );
                 })}
                 <button
                   type="button"
                   onClick={() => setShowCustomModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full border border-dashed border-primary bg-emerald-50 text-primary text-sm font-semibold hover:bg-emerald-100 transition-all"
+                  className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-dashed border-primary bg-emerald-50 text-primary text-sm font-bold hover:bg-emerald-100 transition-all w-full"
                 >
-                  <Plus size={16} />
-                  <span>Custom Category</span>
+                  <Plus size={16} className="shrink-0" />
+                  <span className="truncate">Custom Category</span>
                 </button>
               </div>
             </div>

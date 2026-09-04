@@ -769,92 +769,146 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Custom Segmented Switch (Expenses / Balance / Analytics)
+            // Custom Segmented Switch (Expenses / Balance)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Container(
+                height: 48,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: AppColors.cardBorder),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedTab = 0),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _selectedTab == 0 ? AppColors.positiveBg : Colors.transparent,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                LucideIcons.receipt,
-                                size: 16,
-                                color: _selectedTab == 0 ? AppColors.primary : AppColors.textMuted,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Expenses',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: _selectedTab == 0 ? AppColors.primary : AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final pillWidth = (constraints.maxWidth) / 2;
+                    return Stack(
+                      children: [
+                        // Sliding Green Pill Indicator
+                        AnimatedPositioned(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.fastOutSlowIn,
+                          left: _selectedTab == 0 ? 0 : pillWidth,
+                          top: 0,
+                          bottom: 0,
+                          width: pillWidth,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.positiveBg,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedTab = 1),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _selectedTab == 1 ? AppColors.positiveBg : Colors.transparent,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                LucideIcons.scale,
-                                size: 16,
-                                color: _selectedTab == 1 ? AppColors.primary : AppColors.textMuted,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Balance',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: _selectedTab == 1 ? AppColors.primary : AppColors.textSecondary,
+
+                        // Tab Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedTab = 0),
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      AnimatedScale(
+                                        scale: _selectedTab == 0 ? 1.1 : 1.0,
+                                        duration: const Duration(milliseconds: 200),
+                                        curve: Curves.easeOutBack,
+                                        child: Icon(
+                                          LucideIcons.receipt,
+                                          size: 16,
+                                          color: _selectedTab == 0 ? AppColors.primary : AppColors.textMuted,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      AnimatedDefaultTextStyle(
+                                        duration: const Duration(milliseconds: 200),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: _selectedTab == 0 ? AppColors.primary : AppColors.textSecondary,
+                                        ),
+                                        child: const Text('Expenses'),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedTab = 1),
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      AnimatedScale(
+                                        scale: _selectedTab == 1 ? 1.1 : 1.0,
+                                        duration: const Duration(milliseconds: 200),
+                                        curve: Curves.easeOutBack,
+                                        child: Icon(
+                                          LucideIcons.scale,
+                                          size: 16,
+                                          color: _selectedTab == 1 ? AppColors.primary : AppColors.textMuted,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      AnimatedDefaultTextStyle(
+                                        duration: const Duration(milliseconds: 200),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: _selectedTab == 1 ? AppColors.primary : AppColors.textSecondary,
+                                        ),
+                                        child: const Text('Balance'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
 
             // Tab Content Area
             Expanded(
-              child: _selectedTab == 0
-                  ? _buildExpensesList(sortedExpenses, group)
-                  : _buildBalanceView(balanceReport, totalExpenses),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                layoutBuilder: (currentChild, previousChildren) {
+                  return Stack(
+                    alignment: Alignment.topCenter,
+                    children: <Widget>[
+                      ...previousChildren,
+                      if (currentChild != null) currentChild,
+                    ],
+                  );
+                },
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  );
+                },
+                child: KeyedSubtree(
+                  key: ValueKey<int>(_selectedTab),
+                  child: _selectedTab == 0
+                      ? _buildExpensesList(sortedExpenses, group)
+                      : _buildBalanceView(balanceReport, totalExpenses),
+                ),
+              ),
             ),
           ],
         ),
