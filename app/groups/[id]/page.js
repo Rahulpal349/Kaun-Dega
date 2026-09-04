@@ -236,8 +236,9 @@ export default function GroupDetailPage() {
     return <GroupDetailSkeleton />;
   }
 
-  // Determine total expenses
-  const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  // Filter financial expenses (exclude 0-amount system activity logs)
+  const financialExpenses = expenses.filter(e => Number(e.amount) > 0);
+  const totalExpenses = financialExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
   return (
     <main className="min-h-screen bg-green-50 flex flex-col font-body" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
@@ -376,7 +377,7 @@ export default function GroupDetailPage() {
 
         {activeTab === 'expenses' && (
           <div className="flex flex-col">
-            {expenses.length === 0 ? (
+            {financialExpenses.length === 0 ? (
               <div className="p-8 text-center text-gray-400">No expenses logged yet.</div>
             ) : (
               <div className="flex flex-col">
@@ -392,7 +393,7 @@ export default function GroupDetailPage() {
                     <option value="lowest">Lowest Amount</option>
                   </select>
                 </div>
-                {[...expenses].sort((a, b) => {
+                {[...financialExpenses].sort((a, b) => {
                   if (expenseSort === 'highest') return Number(b.amount) - Number(a.amount);
                   if (expenseSort === 'lowest') return Number(a.amount) - Number(b.amount);
                   return new Date(b.created_at || 0) - new Date(a.created_at || 0);

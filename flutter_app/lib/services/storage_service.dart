@@ -1141,8 +1141,48 @@ class StorageService {
   }
 
   Future<void> updateExpense(ExpenseModel updatedExpense) async {
+    final updateActivityId = _uuid.v4();
+    final updateNote = 'Expense updated to ₹${updatedExpense.amount.toStringAsFixed(2)}';
+    
     try {
       await _firestore.collection('expenses').doc(updatedExpense.id).update(updatedExpense.toJson());
+
+      // 1. Create activity entry in Firestore for Activity Timeline
+      final activityDoc = {
+        'id': updateActivityId,
+        'groupId': updatedExpense.groupId,
+        'description': 'Expense updated: "${updatedExpense.description}"',
+        'amount': 0.0,
+        'paid_by': updatedExpense.paidBy,
+        'paidBy': updatedExpense.paidBy,
+        'split_type': updatedExpense.splitType,
+        'shares': [],
+        'payer': updatedExpense.payer.toJson(),
+        'created_at': DateTime.now().toIso8601String(),
+        'note': updateNote,
+        'type': 'expense_update',
+      };
+      await _firestore.collection('expenses').doc(updateActivityId).set(activityDoc);
+
+      // 2. Notify all group members
+      final groupSnap = await _firestore.collection('groups').doc(updatedExpense.groupId).get();
+      if (groupSnap.exists && groupSnap.data() != null) {
+        final groupData = groupSnap.data()!;
+        final memberEmails = List<String>.from(groupData['memberEmails'] ?? []);
+        final groupName = groupData['name'] as String? ?? 'Ledger';
+
+        for (final email in memberEmails) {
+          final cleanEmail = email.toLowerCase().trim();
+          if (cleanEmail.isNotEmpty) {
+            sendNotificationToUser(
+              targetEmail: cleanEmail,
+              title: 'Expense Updated 📝',
+              body: '"${updatedExpense.description}" was updated (₹${updatedExpense.amount.toStringAsFixed(2)}) in "$groupName"',
+              groupId: updatedExpense.groupId,
+            );
+          }
+        }
+      }
     } catch (e) {
       if (kDebugMode) print('Error updating expense in Firestore: $e');
     }
@@ -1151,13 +1191,59 @@ class StorageService {
     final idx = currentExpenses.indexWhere((e) => e.id == updatedExpense.id);
     if (idx != -1) {
       currentExpenses[idx] = updatedExpense;
-      await saveExpenses(updatedExpense.groupId, currentExpenses);
     }
+
+    // 3. Add activity entry to local expense cache so it appears immediately in timeline
+    final updateActivity = ExpenseModel(
+      id: updateActivityId,
+      groupId: updatedExpense.groupId,
+      description: 'Expense updated: "${updatedExpense.description}"',
+      amount: 0.0,
+      paidBy: updatedExpense.paidBy,
+      payer: updatedExpense.payer,
+      createdAt: DateTime.now().toIso8601String(),
+      note: updateNote,
+    );
+    currentExpenses.insert(0, updateActivity);
+    await saveExpenses(updatedExpense.groupId, currentExpenses);
   }
 
   Future<void> deleteExpense(String groupId, String expenseId) async {
     try {
+      final expSnap = await _firestore.collection('expenses').doc(expenseId).get();
+      String desc = 'Expense';
+      String paidBy = '';
+      Map<String, dynamic> payerMap = {'id': '', 'name': 'Member'};
+      if (expSnap.exists) {
+        final data = expSnap.data();
+        if (data != null) {
+          desc = data['description'] as String? ?? 'Expense';
+          paidBy = (data['paidBy'] ?? data['paid_by'] ?? '') as String;
+          if (data['payer'] is Map) {
+            payerMap = Map<String, dynamic>.from(data['payer']);
+          }
+        }
+      }
+
       await _firestore.collection('expenses').doc(expenseId).delete();
+
+      // Log deletion activity entry into Firestore
+      final deleteActivityId = _uuid.v4();
+      final deleteDoc = {
+        'id': deleteActivityId,
+        'groupId': groupId,
+        'description': 'Expense deleted: "$desc"',
+        'amount': 0.0,
+        'paid_by': paidBy,
+        'paidBy': paidBy,
+        'split_type': 'equal',
+        'shares': [],
+        'payer': payerMap,
+        'created_at': DateTime.now().toIso8601String(),
+        'note': 'Expense "$desc" removed from ledger',
+        'type': 'expense_delete',
+      };
+      await _firestore.collection('expenses').doc(deleteActivityId).set(deleteDoc);
     } catch (e) {
       if (kDebugMode) print('Error deleting expense from Firestore: $e');
     }

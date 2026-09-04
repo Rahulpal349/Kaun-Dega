@@ -763,7 +763,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
     final group = appState.activeGroup;
-    final expenses = appState.activeExpenses;
+    final expenses = appState.activeExpenses.where((e) => e.amount > 0).toList();
     final balanceReport = appState.activeBalanceReport;
     final totalExpenses = expenses.fold<double>(0.0, (sum, e) => sum + e.amount);
     final isAdmin = group?.myRole == 'admin' || (appState.currentUser != null && group?.createdBy == appState.currentUser?.id);
