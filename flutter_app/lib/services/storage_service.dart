@@ -716,6 +716,50 @@ class StorageService {
           'emoji': newIcon,
           'groupType': newIcon,
         });
+
+        // Get group details and admin name to log activity & send notifications
+        final groupSnap = await _firestore.collection('groups').doc(groupId).get();
+        if (groupSnap.exists && groupSnap.data() != null) {
+          final groupData = groupSnap.data()!;
+          final members = groupData['members'] as Map<String, dynamic>? ?? {};
+          final adminName = (members[currentUserId]?['name'] as String?) ?? 'Admin';
+          final memberEmails = List<String>.from(groupData['memberEmails'] ?? []);
+          final currentAdminEmail = (members[currentUserId]?['email'] as String? ?? '').toLowerCase().trim();
+
+          // 1. Log Group Update Activity Entry into Firestore expenses collection
+          final activityId = _firestore.collection('expenses').doc().id;
+          final activityDoc = {
+            'id': activityId,
+            'groupId': groupId,
+            'description': 'Group updated to "$cleanName"',
+            'amount': 0.0,
+            'paid_by': currentUserId,
+            'paidBy': currentUserId,
+            'split_type': 'equal',
+            'shares': [],
+            'payer': {
+              'id': currentUserId,
+              'name': adminName,
+            },
+            'created_at': DateTime.now().toIso8601String(),
+            'note': 'Group name/theme updated by $adminName',
+            'type': 'group_update',
+          };
+          await _firestore.collection('expenses').doc(activityId).set(activityDoc);
+
+          // 2. Notify all other members of the group
+          for (final email in memberEmails) {
+            final cleanEmail = email.toLowerCase().trim();
+            if (cleanEmail.isNotEmpty && cleanEmail != currentAdminEmail) {
+              sendNotificationToUser(
+                targetEmail: cleanEmail,
+                title: 'Group Updated ✏️',
+                body: '$adminName updated group name to "$cleanName"',
+                groupId: groupId,
+              );
+            }
+          }
+        }
       } catch (e) {
         if (kDebugMode) print('Error updating group details in Firestore: $e');
       }

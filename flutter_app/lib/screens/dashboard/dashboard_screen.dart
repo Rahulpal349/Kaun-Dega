@@ -376,104 +376,289 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Consolidated Balance Hero Card
+                  // Consolidated Balance Hero Card (Ultra-Premium Glassmorphism)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(22),
+                    clipBehavior: Clip.antiAlias,
                     decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF145C4B), Color(0xFF0E382F)],
+                        colors: [Color(0xFF145C4B), Color(0xFF0D3F33), Color(0xFF082720)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        width: 1.2,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.25),
-                          blurRadius: 24,
-                          offset: const Offset(0, 10),
+                          color: const Color(0xFF145C4B).withValues(alpha: 0.3),
+                          blurRadius: 30,
+                          offset: const Offset(0, 12),
                         ),
                       ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'NET BALANCE',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.2,
-                                color: Colors.white.withValues(alpha: 0.7),
-                              ),
+                        // Ambient Glow Decorative Circles
+                        Positioned(
+                          top: -30,
+                          right: -30,
+                          child: Container(
+                            width: 130,
+                            height: 130,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primaryAccent.withValues(alpha: 0.18),
+                                  blurRadius: 40,
+                                  spreadRadius: 20,
+                                ),
+                              ],
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: -40,
+                          left: -20,
+                          child: Container(
+                            width: 140,
+                            height: 140,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                  blurRadius: 50,
+                                  spreadRadius: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Card Content
+                        Padding(
+                          padding: const EdgeInsets.all(22),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Top Row: Header & Status Badge
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Icon(
-                                    consolidatedBal > 0
-                                        ? LucideIcons.arrowDownLeft
-                                        : consolidatedBal < 0
-                                            ? LucideIcons.arrowUpRight
-                                            : LucideIcons.check,
-                                    size: 13,
-                                    color: Colors.white,
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: consolidatedBal > 0
+                                              ? const Color(0xFF34D399)
+                                              : consolidatedBal < 0
+                                                  ? const Color(0xFFF87171)
+                                                  : Colors.white70,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: (consolidatedBal > 0
+                                                  ? const Color(0xFF34D399)
+                                                  : consolidatedBal < 0
+                                                      ? const Color(0xFFF87171)
+                                                      : Colors.white).withValues(alpha: 0.6),
+                                              blurRadius: 8,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'NET BALANCE',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1.4,
+                                          color: Colors.white.withValues(alpha: 0.75),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    consolidatedBal > 0
-                                        ? 'You get'
-                                        : consolidatedBal < 0
-                                            ? 'You owe'
-                                            : 'Settled',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: consolidatedBal > 0
+                                          ? const Color(0xFF059669).withValues(alpha: 0.35)
+                                          : consolidatedBal < 0
+                                              ? const Color(0xFFDC2626).withValues(alpha: 0.35)
+                                              : Colors.white.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: consolidatedBal > 0
+                                            ? const Color(0xFF34D399).withValues(alpha: 0.5)
+                                            : consolidatedBal < 0
+                                                ? const Color(0xFFF87171).withValues(alpha: 0.5)
+                                                : Colors.white.withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          consolidatedBal > 0
+                                              ? LucideIcons.arrowDownLeft
+                                              : consolidatedBal < 0
+                                                  ? LucideIcons.arrowUpRight
+                                                  : LucideIcons.checkCheck,
+                                          size: 13,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          consolidatedBal > 0
+                                              ? 'You get back'
+                                              : consolidatedBal < 0
+                                                  ? 'You owe'
+                                                  : 'All Settled',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          '${consolidatedBal >= 0 ? '+' : ''}₹${consolidatedBal.abs().toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(LucideIcons.receipt, size: 14, color: AppColors.primaryAccent),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Total Shared Spending: ₹${totalSpent.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+
+                              const SizedBox(height: 14),
+
+                              // Large Amount Display
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    '${consolidatedBal >= 0 ? '+' : ''}₹',
+                                    style: TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white.withValues(alpha: 0.9),
+                                    ),
+                                  ),
+                                  Text(
+                                    consolidatedBal.abs().toStringAsFixed(2),
+                                    style: const TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      letterSpacing: -1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 18),
+
+                              // Glassmorphism Footer Bar
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.22),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primaryAccent.withValues(alpha: 0.2),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            LucideIcons.receipt,
+                                            size: 13,
+                                            color: AppColors.primaryAccent,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'TOTAL SPENDING',
+                                              style: TextStyle(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: Colors.white.withValues(alpha: 0.5),
+                                                letterSpacing: 0.6,
+                                              ),
+                                            ),
+                                            Text(
+                                              '₹${totalSpent.toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      height: 24,
+                                      width: 1,
+                                      color: Colors.white.withValues(alpha: 0.12),
+                                    ),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.12),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            LucideIcons.layoutGrid,
+                                            size: 13,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'LEDGERS',
+                                              style: TextStyle(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: Colors.white.withValues(alpha: 0.5),
+                                                letterSpacing: 0.6,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${groups.length} Active',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
