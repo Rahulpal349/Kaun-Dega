@@ -18,33 +18,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<OnboardingSlideData> _slides = const [
     OnboardingSlideData(
-      badgeText: 'EFFORTLESS EXPENSES',
+      badgeText: 'SMART BILL SPLITTING',
       badgeIcon: LucideIcons.receipt,
-      badgeColor: Color(0xFF10B981),
+      badgeColor: AppColors.primary,
       title: 'Split Bills Fairly,\nWithout the Drama',
       subtitle:
-          'From weekend trips to flat groceries — split expenses equally or with custom amounts in just a few taps.',
-      pillTags: ['⚡ Instant Split', '👥 Multi-Group', '🧾 Auto Totals'],
+          'From weekend trips to monthly rent — split expenses equally, by percentage, or custom amounts in seconds.',
+      pillTags: ['Instant Calculation', 'Multi-Member Groups', 'Auto Ledger'],
       previewType: OnboardingPreviewType.expenseCard,
     ),
     OnboardingSlideData(
-      badgeText: 'SMART ALGORITHM',
+      badgeText: 'DEBT MINIMIZATION ENGINE',
       badgeIcon: LucideIcons.gitFork,
-      badgeColor: Color(0xFF38BDF8),
-      title: 'Smart Debt Minimization\nAlgorithm',
+      badgeColor: Color(0xFF0284C7),
+      title: 'Minimize Group Debts\nAutomatically',
       subtitle:
-          'Skip 10 messy circular transfers. Our smart graph engine reduces group debts to the absolute minimum payments.',
-      pillTags: ['📉 60% Fewer Transfers', '🧠 Graph Simplification', '✨ Zero Confusion'],
+          'Skip complex circular payments. Our smart algorithm reduces group transactions to the minimum possible transfers.',
+      pillTags: ['60% Fewer Payments', 'Smart Simplification', 'Zero Confusion'],
       previewType: OnboardingPreviewType.debtMinimization,
     ),
     OnboardingSlideData(
       badgeText: '1-TAP SETTLEMENTS',
       badgeIcon: LucideIcons.smartphone,
-      badgeColor: Color(0xFF25D366),
-      title: 'Instant UPI Payments\n& WhatsApp Sync',
+      badgeColor: Color(0xFF10B981),
+      title: 'Direct UPI Payments\n& WhatsApp Sync',
       subtitle:
-          'Launch GPay, PhonePe, or Paytm with pre-filled amounts, and share friendly WhatsApp reminders with a single tap.',
-      pillTags: ['📲 Direct UPI Deep-link', '💬 WhatsApp Receipts', '🔒 100% Secure'],
+          'Pay instantly via Google Pay, PhonePe, or Paytm with pre-filled amounts and share friendly WhatsApp receipts.',
+      pillTags: ['Direct UPI Deep-link', 'WhatsApp Receipts', 'Instant Updates'],
       previewType: OnboardingPreviewType.settlePayment,
     ),
   ];
@@ -90,22 +90,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final isLastPage = _currentPage == _slides.length - 1;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A2922),
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Ambient background glow orbs
+          // Background subtle ambient gradient mesh
           Positioned(
-            top: -120,
-            right: -100,
+            top: -60,
+            right: -60,
             child: Container(
-              width: 380,
-              height: 380,
+              width: 280,
+              height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primaryAccent.withValues(alpha: 0.18),
-                    AppColors.primary.withValues(alpha: 0.05),
+                    AppColors.primary.withValues(alpha: 0.08),
+                    AppColors.positiveBg.withValues(alpha: 0.4),
                     Colors.transparent,
                   ],
                 ),
@@ -113,16 +113,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
           Positioned(
-            bottom: 60,
-            left: -120,
+            bottom: 100,
+            left: -80,
             child: Container(
-              width: 360,
-              height: 360,
+              width: 300,
+              height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primaryLight.withValues(alpha: 0.22),
+                    AppColors.primaryLight.withValues(alpha: 0.06),
                     Colors.transparent,
                   ],
                 ),
@@ -133,38 +133,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           SafeArea(
             child: Column(
               children: [
-                // Top Navigation Bar
+                // Top Header Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // App Identity Badge
+                      // Brand Logo & Title
                       Row(
                         children: [
                           Container(
-                            width: 34,
-                            height: 34,
+                            width: 38,
+                            height: 38,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppColors.primary,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
+                                  color: AppColors.primary.withValues(alpha: 0.2),
                                   blurRadius: 10,
+                                  offset: const Offset(0, 3),
                                 ),
                               ],
                             ),
                             padding: const EdgeInsets.all(2),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(17),
+                              borderRadius: BorderRadius.circular(19),
                               child: Image.asset(
                                 'assets/images/logo.png',
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  color: AppColors.primary,
-                                  child: const Center(
-                                    child: Text('KD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                errorBuilder: (_, __, ___) => const Center(
+                                  child: Text(
+                                    'KD',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -174,10 +179,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           const Text(
                             'Kaun Dega?',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
+                              color: AppColors.textPrimary,
+                              fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
+                              letterSpacing: -0.4,
                             ),
                           ),
                         ],
@@ -188,12 +193,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         TextButton(
                           onPressed: _finishOnboarding,
                           style: TextButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.1),
-                            foregroundColor: Colors.white.withValues(alpha: 0.9),
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.textSecondary,
+                            elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                              side: const BorderSide(color: AppColors.cardBorder),
                             ),
                           ),
                           child: const Row(
@@ -207,7 +213,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 ),
                               ),
                               SizedBox(width: 4),
-                              Icon(LucideIcons.chevronRight, size: 14),
+                              Icon(LucideIcons.chevronRight, size: 14, color: AppColors.neutral),
                             ],
                           ),
                         )
@@ -217,7 +223,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
 
-                // Slide Carousel
+                // Main Page View
                 Expanded(
                   child: PageView.builder(
                     controller: _pageController,
@@ -234,24 +240,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
 
-                // Bottom Action & Indicator Area
+                // Bottom Navigation & Actions Area
                 Container(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        const Color(0xFF0A2922).withValues(alpha: 0.8),
-                        const Color(0xFF0A2922),
-                      ],
-                    ),
-                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Indicators Row
+                      // Dots Indicator
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
@@ -259,41 +254,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           (index) => AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             margin: const EdgeInsets.symmetric(horizontal: 4),
-                            height: 6,
-                            width: _currentPage == index ? 28 : 8,
+                            height: 7,
+                            width: _currentPage == index ? 26 : 8,
                             decoration: BoxDecoration(
                               color: _currentPage == index
-                                  ? AppColors.primaryAccent
-                                  : Colors.white.withValues(alpha: 0.25),
+                                  ? AppColors.primary
+                                  : AppColors.primary.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(4),
-                              boxShadow: _currentPage == index
-                                  ? [
-                                      BoxShadow(
-                                        color: AppColors.primaryAccent.withValues(alpha: 0.5),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 24),
 
-                      // Next / Get Started Action Button
+                      // Primary CTA Button
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
+                        height: 54,
                         child: ElevatedButton(
                           onPressed: _onNextPressed,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryAccent,
-                            foregroundColor: const Color(0xFF05231C),
-                            elevation: 8,
-                            shadowColor: AppColors.primaryAccent.withValues(alpha: 0.4),
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 2,
+                            shadowColor: AppColors.primary.withValues(alpha: 0.3),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           child: AnimatedSwitcher(
@@ -306,13 +292,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                       Text(
                                         'Get Started',
                                         style: TextStyle(
-                                          fontSize: 16.5,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.2,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.1,
                                         ),
                                       ),
                                       SizedBox(width: 8),
-                                      Icon(LucideIcons.arrowRight, size: 20),
+                                      Icon(LucideIcons.arrowRight, size: 18),
                                     ],
                                   )
                                 : const Row(
@@ -322,13 +308,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                       Text(
                                         'Next',
                                         style: TextStyle(
-                                          fontSize: 16.5,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.2,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.1,
                                         ),
                                       ),
                                       SizedBox(width: 8),
-                                      Icon(LucideIcons.chevronRight, size: 20),
+                                      Icon(LucideIcons.chevronRight, size: 18),
                                     ],
                                   ),
                           ),
@@ -352,9 +338,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          // Visual Preview Card
+          // Visual Mockup Preview Card
           _buildPreviewCard(slide.previewType),
           const SizedBox(height: 28),
 
@@ -362,25 +348,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: slide.badgeColor.withValues(alpha: 0.15),
+              color: slide.badgeColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: slide.badgeColor.withValues(alpha: 0.35),
+                color: slide.badgeColor.withValues(alpha: 0.25),
                 width: 1,
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(slide.badgeIcon, size: 14, color: slide.badgeColor),
+                Icon(slide.badgeIcon, size: 13, color: slide.badgeColor),
                 const SizedBox(width: 6),
                 Text(
                   slide.badgeText,
                   style: TextStyle(
                     color: slide.badgeColor,
-                    fontSize: 11.5,
+                    fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 0.6,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
@@ -388,34 +374,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Main Headline
+          // Title
           Text(
             slide.title,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 25,
+              color: AppColors.textPrimary,
+              fontSize: 24,
               fontWeight: FontWeight.w800,
               height: 1.25,
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Subtitle
           Text(
             slide.subtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.72),
+            style: const TextStyle(
+              color: AppColors.textSecondary,
               fontSize: 14,
               fontWeight: FontWeight.w400,
               height: 1.45,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // Pill Tags Row
+          // Feature Chips
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -424,16 +410,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12),
+                    color: AppColors.cardBorder,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Text(
                   tag,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -453,17 +446,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       constraints: const BoxConstraints(minHeight: 230),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF133B31).withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(26),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.15),
-          width: 1.2,
+          color: AppColors.cardBorder,
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 25,
-            offset: const Offset(0, 10),
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -482,7 +475,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  // Slide 1 Mockup: Realistic Expense Preview
+  // Slide 1 Mockup: Clean Expense Split Card
   Widget _buildExpenseCardContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,30 +486,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryAccent.withValues(alpha: 0.15),
+                    color: AppColors.positiveBg,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Text('🏖️', style: TextStyle(fontSize: 22)),
+                  child: const Center(
+                    child: Text('🏖️', style: TextStyle(fontSize: 22)),
+                  ),
                 ),
                 const SizedBox(width: 12),
-                Column(
+                const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Goa Beach Shack Dinner',
+                    Text(
+                      'Goa Trip Dinner',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15.5,
+                        color: AppColors.textPrimary,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       'Paid by You • 4 members',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.65),
+                        color: AppColors.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -528,13 +524,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primaryAccent.withValues(alpha: 0.2),
+                color: AppColors.positiveBg,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
-                'Equal',
+                'Equal Split',
                 style: TextStyle(
-                  color: AppColors.primaryAccent,
+                  color: AppColors.primary,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -543,34 +539,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
         ),
         const SizedBox(height: 18),
+
+        // Expense Summary Box
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: AppColors.surfaceMuted,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            border: Border.all(color: AppColors.cardBorder),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'TOTAL EXPENSE',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: AppColors.textMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  const Text(
+                  SizedBox(height: 2),
+                  Text(
                     '₹4,800.00',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 19,
+                      color: AppColors.textPrimary,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -579,26 +577,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Container(
                 height: 32,
                 width: 1,
-                color: Colors.white.withValues(alpha: 0.15),
+                color: AppColors.cardBorder,
               ),
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'YOUR SHARE',
+                    'YOU ARE OWED',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: AppColors.textMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    '₹1,200.00',
+                  SizedBox(height: 2),
+                  Text(
+                    '+₹3,600.00',
                     style: TextStyle(
-                      color: AppColors.primaryAccent,
-                      fontSize: 19,
+                      color: AppColors.positive,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -608,13 +606,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ),
         const SizedBox(height: 14),
+
+        // Member Avatar Breakdown Chips
         Row(
           children: [
-            _buildAvatarChip('Rahul', '₹1,200', const Color(0xFF38BDF8)),
+            _buildAvatarChip('Rahul', '₹1,200', const Color(0xFF0284C7)),
             const SizedBox(width: 8),
-            _buildAvatarChip('Aman', '₹1,200', const Color(0xFFFBBF24)),
+            _buildAvatarChip('Aman', '₹1,200', const Color(0xFFD97706)),
             const SizedBox(width: 8),
-            _buildAvatarChip('Priya', '₹1,200', const Color(0xFFF472B6)),
+            _buildAvatarChip('Priya', '₹1,200', const Color(0xFFE11D48)),
           ],
         ),
       ],
@@ -626,14 +626,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: AppColors.surfaceMuted,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.cardBorder),
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 11,
-              backgroundColor: avatarColor.withValues(alpha: 0.25),
+              backgroundColor: avatarColor.withValues(alpha: 0.15),
               child: Text(
                 name[0],
                 style: TextStyle(
@@ -653,15 +654,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
                     share,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
                     ),
@@ -680,99 +681,103 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Traditional vs Simplified Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Before: 6 Messy Transfers',
+              'Traditional Way (6 Transfers)',
               style: TextStyle(
-                color: Color(0xFFF87171),
-                fontSize: 13,
+                color: AppColors.negative,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.15),
+                color: AppColors.negativeBg,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Text(
-                'Complex ❌',
-                style: TextStyle(color: Color(0xFFF87171), fontSize: 10.5, fontWeight: FontWeight.bold),
+                'Messy ❌',
+                style: TextStyle(color: AppColors.negative, fontSize: 10, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
+
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.04),
+            color: AppColors.surfaceMuted,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            border: Border.all(color: AppColors.cardBorder),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildMiniTransferNode('Aman', 'Rahul', '₹800'),
-              const Icon(LucideIcons.repeat, size: 14, color: Colors.white38),
+              const Icon(LucideIcons.repeat, size: 14, color: AppColors.neutral),
               _buildMiniTransferNode('Rahul', 'Priya', '₹800'),
             ],
           ),
         ),
         const SizedBox(height: 16),
+
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'After: Kaun Dega Optimization',
+              'Kaun Dega Smart Settlement',
               style: TextStyle(
-                color: AppColors.primaryAccent,
-                fontSize: 13,
+                color: AppColors.primary,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.primaryAccent.withValues(alpha: 0.15),
+                color: AppColors.positiveBg,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Text(
                 'Direct ⚡',
-                style: TextStyle(color: AppColors.primaryAccent, fontSize: 10.5, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
+
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.primaryAccent.withValues(alpha: 0.12),
+            color: AppColors.positiveBg.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.primaryAccent.withValues(alpha: 0.3)),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
           ),
           child: Row(
             children: [
               const CircleAvatar(
                 radius: 14,
-                backgroundColor: Color(0xFFFBBF24),
-                child: Text('A', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
+                backgroundColor: AppColors.primary,
+                child: Text('A', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Aman pays Priya directly',
-                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w700),
                     ),
                     Text(
-                      'Rahul is settled automatically',
-                      style: TextStyle(color: AppColors.primaryAccent, fontSize: 11, fontWeight: FontWeight.w500),
+                      'Rahul settled automatically',
+                      style: TextStyle(color: AppColors.positive, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -780,13 +785,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryAccent,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
                   '₹800',
                   style: TextStyle(
-                    color: Color(0xFF042019),
+                    color: Colors.white,
                     fontWeight: FontWeight.w800,
                     fontSize: 13,
                   ),
@@ -802,9 +807,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildMiniTransferNode(String from, String to, String amt) {
     return Text(
       '$from ➔ $to ($amt)',
-      style: TextStyle(
-        color: Colors.white.withValues(alpha: 0.5),
-        fontSize: 11.5,
+      style: const TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: 11,
         fontWeight: FontWeight.w500,
       ),
     );
@@ -822,17 +827,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: [
                 const CircleAvatar(
                   radius: 16,
-                  backgroundColor: Color(0xFF38BDF8),
+                  backgroundColor: Color(0xFF0284C7),
                   child: Text('R', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 10),
-                Column(
+                const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Settle to Rahul Pal',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
@@ -840,7 +845,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Text(
                       'UPI: rahul@okhdfcbank',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: AppColors.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -851,7 +856,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const Text(
               '₹1,200',
               style: TextStyle(
-                color: AppColors.primaryAccent,
+                color: AppColors.positive,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
@@ -859,12 +864,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
         ),
         const SizedBox(height: 16),
+
+        // UPI Apps Row
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: AppColors.surfaceMuted,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            border: Border.all(color: AppColors.cardBorder),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -877,23 +884,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ),
         const SizedBox(height: 14),
+
+        // WhatsApp Share Action Pill
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF25D366).withValues(alpha: 0.18),
+            color: const Color(0xFF25D366).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.35)),
+            border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.3)),
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(LucideIcons.messageCircle, size: 16, color: Color(0xFF25D366)),
+              Icon(LucideIcons.messageCircle, size: 16, color: Color(0xFF16A34A)),
               SizedBox(width: 8),
               Text(
                 'Share Settlement on WhatsApp',
                 style: TextStyle(
-                  color: Color(0xFF25D366),
+                  color: Color(0xFF16A34A),
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                 ),
@@ -909,12 +918,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Column(
       children: [
         Container(
-          width: 38,
-          height: 38,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withValues(alpha: 0.4)),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Center(
             child: Text(
@@ -922,7 +931,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w800,
-                fontSize: 16,
+                fontSize: 15,
               ),
             ),
           ),
@@ -930,10 +939,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 4),
         Text(
           name,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
+          style: const TextStyle(
+            color: AppColors.textSecondary,
             fontSize: 10,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
