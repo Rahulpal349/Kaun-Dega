@@ -49,17 +49,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     await minDelay;
     if (!mounted) return;
 
-    if (!appState.hasSeenOnboarding) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-      );
-    } else if (appState.isAuthenticated) {
+    if (appState.isAuthenticated) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
-    } else {
+    } else if (appState.hasSeenOnboarding) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
       );
     }
   }

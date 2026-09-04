@@ -69,6 +69,7 @@ class AppState extends ChangeNotifier {
       _hasSeenOnboarding = await _storage.hasSeenOnboarding();
       _currentUser = await _storage.getUserProfile();
       if (_currentUser != null) {
+        _currentUser = await _storage.ensureUserProfile(_currentUser!);
         NotificationService().requestPermissions().then((_) {
           NotificationService().saveTokenForUser(
             userId: _currentUser!.id,
@@ -112,7 +113,8 @@ class AppState extends ChangeNotifier {
       }
 
       final email = account.email;
-      final existingUser = await _storage.getUserProfile();
+      final existingUser = await _storage.getUserProfileForEmail(email) ??
+          await _storage.getUserProfile();
 
       // Deterministic user ID for the Google account
       final userId = account.id.isNotEmpty
@@ -122,32 +124,36 @@ class AppState extends ChangeNotifier {
               : 'usr_${DateTime.now().millisecondsSinceEpoch}');
 
       // Preserve custom edited user profile details if previously updated
-      final bool matchesExisting = existingUser != null &&
-          existingUser.email.toLowerCase().trim() == email.toLowerCase().trim();
+      final bool hasExisting = existingUser != null;
 
-      final name = (matchesExisting && existingUser.name.trim().isNotEmpty)
+      final name = (hasExisting && existingUser.name.trim().isNotEmpty)
           ? existingUser.name
           : (account.displayName?.trim().isNotEmpty == true
               ? account.displayName!
               : (email.isNotEmpty ? email.split('@')[0] : 'Google User'));
 
-      final upiId = (matchesExisting && existingUser.upiId.trim().isNotEmpty)
+      final upiId = (hasExisting && existingUser.upiId.trim().isNotEmpty)
           ? existingUser.upiId
-          : '${email.split('@')[0]}@okhdfcbank';
+          : (email.isNotEmpty ? '${email.split('@')[0]}@okhdfcbank' : '');
 
       final user = UserModel(
         id: userId,
         name: name,
         email: email,
-        phone: matchesExisting ? existingUser.phone : '',
+        phone: hasExisting ? existingUser.phone : '',
         upiId: upiId,
-        gender: matchesExisting ? existingUser.gender : '',
-        avatarUrl: account.photoUrl ?? (matchesExisting ? existingUser.avatarUrl : ''),
-        createdAt: matchesExisting ? existingUser.createdAt : DateTime.now().toIso8601String(),
+        gender: hasExisting ? existingUser.gender : '',
+        avatarUrl: (account.photoUrl?.isNotEmpty == true)
+            ? account.photoUrl!
+            : (hasExisting ? existingUser.avatarUrl : ''),
+        createdAt: (hasExisting && existingUser.createdAt.isNotEmpty)
+            ? existingUser.createdAt
+            : DateTime.now().toIso8601String(),
       );
 
-      _currentUser = user;
-      await _storage.saveUserProfile(user);
+      _currentUser = await _storage.ensureUserProfile(user);
+      _hasSeenOnboarding = true;
+      await _storage.setHasSeenOnboarding(true);
       NotificationService().requestPermissions().then((_) {
         NotificationService().saveTokenForUser(
           userId: user.id,
@@ -169,14 +175,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final emailLower = email.toLowerCase().trim();
+      final existingUser = await _storage.getUserProfileForEmail(emailLower);
+
       final user = UserModel(
-        id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
-        name: name.isNotEmpty ? name : email.split('@')[0],
+        id: existingUser?.id ?? 'usr_${DateTime.now().millisecondsSinceEpoch}',
+        name: name.isNotEmpty
+            ? name
+            : (existingUser?.name.isNotEmpty == true ? existingUser!.name : email.split('@')[0]),
         email: email,
-        upiId: '${email.split('@')[0]}@upi',
+        phone: existingUser?.phone ?? '',
+        upiId: existingUser?.upiId.isNotEmpty == true ? existingUser!.upiId : '${email.split('@')[0]}@upi',
+        gender: existingUser?.gender ?? '',
+        avatarUrl: existingUser?.avatarUrl ?? '',
+        createdAt: existingUser?.createdAt ?? DateTime.now().toIso8601String(),
       );
-      _currentUser = user;
-      await _storage.saveUserProfile(user);
+      _currentUser = await _storage.ensureUserProfile(user);
+      _hasSeenOnboarding = true;
+      await _storage.setHasSeenOnboarding(true);
       await refreshDashboard();
     } catch (e) {
       _error = e.toString();
@@ -225,6 +241,7 @@ class AppState extends ChangeNotifier {
     if (_currentUser == null) return;
 
     try {
+      await _storage.claimShadowMemberships(_currentUser!);
       _groups = await _storage.getGroups(_currentUser!.id, currentUserEmail: _currentUser!.email);
 
       double totalBal = 0.0;
@@ -434,7 +451,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _allExpenses = await _storage.getAllExpensesAcrossGroups(_currentUser!.id);
+      _allExpenses = await _storage.getAllExpensesAcrossGroups(_currentUser!.id, currentUserEmail: _currentUser!.email);
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -446,12 +463,6 @@ class AppState extends ChangeNotifier {
   // --- Join via Code ---
   Future<GroupModel?> joinGroupByCode(String code) async {
     if (_currentUser == null) return null;
-    // Look up group or join demo
-    final groups = await _storage.getGroups(_currentUser!.id);
-    try {
-      return groups.firstWhere((g) => g.id.toLowerCase().contains(code.toLowerCase()));
-    } catch (_) {
-      return null;
-    }
+    return await _storage.joinGroupByCode(code, _currentUser!);
   }
 }
