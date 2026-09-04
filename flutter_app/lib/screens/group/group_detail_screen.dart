@@ -1361,6 +1361,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   // --- Balance Tab ---
   Widget _buildBalanceView(dynamic balanceReport, double totalExpenses) {
+    final currentUserId = Provider.of<AppState>(context, listen: false).currentUser?.id;
     final moves = balanceReport.moves;
     final balances = balanceReport.balances;
 
@@ -1444,56 +1445,89 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     separatorBuilder: (_, __) => const Divider(color: AppColors.cardBorder, height: 16),
                     itemBuilder: (context, idx) {
                       final move = moves[idx];
+                      final isMeDebtor = currentUserId == move.from;
+                      final isMeCreditor = currentUserId == move.to;
 
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  move.fromName,
-                                  style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                                ),
-                                Text(
-                                  'pays to ${move.toName}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                                ),
-                              ],
+                      final buttonLabel = isMeDebtor
+                          ? 'Pay'
+                          : isMeCreditor
+                              ? 'Mark Received'
+                              : 'Record';
+
+                      final buttonBg = isMeDebtor
+                          ? AppColors.primary
+                          : isMeCreditor
+                              ? AppColors.positiveBg
+                              : AppColors.surfaceMuted;
+
+                      final buttonFg = isMeDebtor
+                          ? Colors.white
+                          : isMeCreditor
+                              ? AppColors.primary
+                              : AppColors.textSecondary;
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isMeDebtor ? 'You' : move.fromName,
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'pays to ${isMeCreditor ? 'You' : move.toName}',
+                                    style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Text(
-                            '₹${move.amount.toStringAsFixed(2)}',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.primary),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-                                ),
-                                builder: (_) => SettleModal(
-                                  groupId: widget.groupId,
-                                  move: move,
-                                  onSettled: () {
-                                    Provider.of<AppState>(context, listen: false).loadGroupDetails(widget.groupId);
-                                  },
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.positiveBg,
-                              foregroundColor: AppColors.primary,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            const SizedBox(width: 8),
+                            Text(
+                              '₹${move.amount.toStringAsFixed(2)}',
+                              style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: AppColors.primary),
                             ),
-                            child: const Text('Settle', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-                          ),
-                        ],
+                            const SizedBox(width: 10),
+                            InkWell(
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                                  ),
+                                  builder: (_) => SettleModal(
+                                    groupId: widget.groupId,
+                                    move: move,
+                                    onSettled: () {
+                                      Provider.of<AppState>(context, listen: false).loadGroupDetails(widget.groupId);
+                                    },
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: buttonBg,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  buttonLabel,
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: buttonFg),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -1556,7 +1590,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                           ),
                         ),
                         Text(
-                          '${isPositive ? '+' : ''}₹${b.amount.toStringAsFixed(2)}',
+                          '₹${NumberFormat('#,##,##0.00', 'en_IN').format(b.amount.abs())}',
                           style: TextStyle(
                             fontSize: 14.5,
                             fontWeight: FontWeight.w800,

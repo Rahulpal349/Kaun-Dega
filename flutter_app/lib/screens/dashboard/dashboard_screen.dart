@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../providers/app_state.dart';
 import '../../models/group_model.dart';
@@ -541,20 +542,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 textBaseline: TextBaseline.alphabetic,
                                 children: [
                                   Text(
-                                    '${consolidatedBal >= 0 ? '+' : ''}₹',
+                                    '₹',
                                     style: TextStyle(
-                                      fontSize: 26,
+                                      fontSize: 24,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white.withValues(alpha: 0.9),
                                     ),
                                   ),
+                                  const SizedBox(width: 6),
                                   Text(
-                                    consolidatedBal.abs().toStringAsFixed(2),
+                                    NumberFormat('#,##,##0.00', 'en_IN').format(consolidatedBal.abs()),
                                     style: const TextStyle(
                                       fontSize: 36,
                                       fontWeight: FontWeight.w900,
                                       color: Colors.white,
-                                      letterSpacing: -1,
+                                      letterSpacing: -0.5,
                                     ),
                                   ),
                                 ],

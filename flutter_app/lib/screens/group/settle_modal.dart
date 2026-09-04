@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/theme.dart';
 import '../../providers/app_state.dart';
 import '../../models/balance_model.dart';
@@ -42,6 +43,28 @@ class _SettleModalState extends State<SettleModal> {
     });
   }
 
+  Future<void> _launchUpiApp() async {
+    if (widget.move.toUpiId == null || widget.move.toUpiId!.isEmpty) return;
+
+    final upiUri = Uri.parse(
+      'upi://pay?pa=${widget.move.toUpiId}'
+      '&pn=${Uri.encodeComponent(widget.move.toName)}'
+      '&am=${widget.move.amount.toStringAsFixed(2)}'
+      '&cu=INR'
+      '&tn=KaunDegaSettlement',
+    );
+
+    try {
+      if (await canLaunchUrl(upiUri)) {
+        await launchUrl(upiUri, mode: LaunchMode.externalApplication);
+      } else {
+        _copyUpi();
+      }
+    } catch (_) {
+      _copyUpi();
+    }
+  }
+
   Future<void> _recordSettlement() async {
     setState(() => _isRecording = true);
     try {
@@ -80,6 +103,15 @@ class _SettleModalState extends State<SettleModal> {
   @override
   Widget build(BuildContext context) {
     final move = widget.move;
+    final currentUserId = Provider.of<AppState>(context, listen: false).currentUser?.id;
+    final isMeDebtor = currentUserId == move.from;
+    final isMeCreditor = currentUserId == move.to;
+
+    final modalTitle = isMeDebtor
+        ? 'Settle up with ${move.toName}'
+        : isMeCreditor
+            ? 'Record Payment from ${move.fromName}'
+            : 'Record Settlement';
 
     return Container(
       padding: EdgeInsets.only(
@@ -109,10 +141,10 @@ class _SettleModalState extends State<SettleModal> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Confirm Settlement',
-                style: TextStyle(
-                  fontSize: 18,
+              Text(
+                modalTitle,
+                style: const TextStyle(
+                  fontSize: 17,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                 ),
@@ -160,7 +192,7 @@ class _SettleModalState extends State<SettleModal> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            move.fromName,
+                            isMeDebtor ? 'You' : move.fromName,
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                             maxLines: 1,
@@ -208,7 +240,7 @@ class _SettleModalState extends State<SettleModal> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            move.toName,
+                            isMeCreditor ? 'You' : move.toName,
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                             maxLines: 1,
@@ -236,8 +268,27 @@ class _SettleModalState extends State<SettleModal> {
           ),
           const SizedBox(height: 16),
 
-          // UPI ID Section if present
-          if (move.toUpiId != null && move.toUpiId!.isNotEmpty) ...[
+          // Show Pay via UPI ONLY if current user is the payer (debtor)
+          if (isMeDebtor && move.toUpiId != null && move.toUpiId!.isNotEmpty) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _launchUpiApp,
+                icon: const Icon(LucideIcons.smartphone, size: 18),
+                label: Text(
+                  'Pay ₹${move.amount.toStringAsFixed(2)} via UPI App',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
@@ -247,14 +298,14 @@ class _SettleModalState extends State<SettleModal> {
               ),
               child: Row(
                 children: [
-                  const Icon(LucideIcons.smartphone, size: 18, color: AppColors.primary),
+                  const Icon(LucideIcons.wallet, size: 18, color: AppColors.primary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'PAY VIA UPI',
+                          'UPI ID',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
@@ -310,10 +361,14 @@ class _SettleModalState extends State<SettleModal> {
             const SizedBox(height: 16),
           ],
 
-          const Text(
-            'Pay offline or via any UPI app (GPay, PhonePe, Paytm), then confirm below to update everyone\'s balance.',
+          Text(
+            isMeDebtor
+                ? 'Pay via any UPI app or cash, then confirm below to record the settlement.'
+                : isMeCreditor
+                    ? 'Confirm that ${move.fromName} paid you ₹${move.amount.toStringAsFixed(2)} in cash or bank transfer.'
+                    : 'Record settlement of ₹${move.amount.toStringAsFixed(2)} between ${move.fromName} and ${move.toName}.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.4),
+            style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.4),
           ),
           const SizedBox(height: 20),
 
@@ -326,7 +381,13 @@ class _SettleModalState extends State<SettleModal> {
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                   : const Icon(LucideIcons.checkCircle, size: 20),
               label: Text(
-                _isRecording ? 'Recording...' : 'Mark as Settled',
+                _isRecording
+                    ? 'Recording...'
+                    : isMeDebtor
+                        ? 'I\'ve Paid — Mark as Settled'
+                        : isMeCreditor
+                            ? 'Confirm — Received Payment'
+                            : 'Record Settlement',
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
               ),
               style: ElevatedButton.styleFrom(
@@ -337,6 +398,28 @@ class _SettleModalState extends State<SettleModal> {
               ),
             ),
           ),
+          if (isMeCreditor) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  final text = 'Hi ${move.fromName}! Friendly reminder to settle your balance of ₹${move.amount.toStringAsFixed(2)} on Kaun Dega.';
+                  ShareService.shareToWhatsapp(text);
+                },
+                icon: const Icon(LucideIcons.messageSquare, size: 18, color: Color(0xFF25D366)),
+                label: Text(
+                  'Remind ${move.fromName} on WhatsApp',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF25D366)),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: Color(0xFF25D366)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

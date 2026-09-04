@@ -25,13 +25,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final TextEditingController _noteController = TextEditingController();
 
   late String _paidBy;
-  String _splitType = 'equal'; // 'equal' | 'custom'
+  String _splitType = 'equal'; // 'equal' | 'custom' | 'percentage' | 'shares'
 
   // Equal split selection map
   final Map<String, bool> _equalMembers = {};
 
-  // Custom split values
+  // Custom split controllers
   final Map<String, TextEditingController> _customAmountControllers = {};
+
+  // Percentage split controllers
+  final Map<String, TextEditingController> _percentageControllers = {};
+
+  // Ratio Shares controllers
+  final Map<String, TextEditingController> _sharesControllers = {};
 
   bool _isSaving = false;
   String? _errorMessage;
@@ -52,6 +58,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
 
     if (group != null) {
+      final defaultPct = (100.0 / group.memberList.length).toStringAsFixed(1);
       for (final m in group.memberList) {
         if (widget.existingExpense != null) {
           final isIncluded = widget.existingExpense!.shares.any((s) => s.userId == m.id);
@@ -64,9 +71,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           _customAmountControllers[m.id] = TextEditingController(
             text: share != null ? share.amount.toStringAsFixed(2) : '',
           );
+          final pct = share != null && widget.existingExpense!.amount > 0
+              ? ((share.amount / widget.existingExpense!.amount) * 100).toStringAsFixed(1)
+              : defaultPct;
+          _percentageControllers[m.id] = TextEditingController(text: pct);
+          _sharesControllers[m.id] = TextEditingController(text: '1');
         } else {
           _equalMembers[m.id] = true;
           _customAmountControllers[m.id] = TextEditingController();
+          _percentageControllers[m.id] = TextEditingController(text: defaultPct);
+          _sharesControllers[m.id] = TextEditingController(text: '1');
         }
       }
     }
@@ -78,6 +92,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _amountController.dispose();
     _noteController.dispose();
     for (final c in _customAmountControllers.values) {
+      c.dispose();
+    }
+    for (final c in _percentageControllers.values) {
+      c.dispose();
+    }
+    for (final c in _sharesControllers.values) {
       c.dispose();
     }
     super.dispose();
@@ -127,6 +147,41 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         final shareAmt = isPayer ? equalShare + remainder : equalShare;
         return ExpenseShare(userId: uId, amount: shareAmt);
       }).toList();
+    } else if (_splitType == 'percentage') {
+      double pctSum = 0.0;
+      for (final m in group.memberList) {
+        final val = double.tryParse(_percentageControllers[m.id]?.text.trim() ?? '') ?? 0.0;
+        if (val > 0) {
+          final calcAmt = double.parse((amt * (val / 100.0)).toStringAsFixed(2));
+          shares.add(ExpenseShare(userId: m.id, amount: calcAmt));
+          pctSum += val;
+        }
+      }
+
+      if ((pctSum - 100.0).abs() > 0.5) {
+        setState(() => _errorMessage = 'Percentages must add up to 100% (currently ${pctSum.toStringAsFixed(1)}%)');
+        return;
+      }
+    } else if (_splitType == 'shares') {
+      double totalRatio = 0.0;
+      final ratioMap = <String, double>{};
+      for (final m in group.memberList) {
+        final val = double.tryParse(_sharesControllers[m.id]?.text.trim() ?? '') ?? 0.0;
+        if (val > 0) {
+          ratioMap[m.id] = val;
+          totalRatio += val;
+        }
+      }
+
+      if (totalRatio <= 0) {
+        setState(() => _errorMessage = 'Please enter valid shares ratio for at least one member');
+        return;
+      }
+
+      for (final entry in ratioMap.entries) {
+        final calcAmt = double.parse((amt * (entry.value / totalRatio)).toStringAsFixed(2));
+        shares.add(ExpenseShare(userId: entry.key, amount: calcAmt));
+      }
     } else {
       double customSum = 0.0;
       for (final m in group.memberList) {
@@ -191,6 +246,30 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  Widget _buildSplitTab(String id, String label) {
+    final isSelected = _splitType == id;
+    return GestureDetector(
+      onTap: () => setState(() => _splitType = id),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -337,53 +416,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: AppColors.cardBorder),
                             ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _splitType = 'equal'),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 150),
-                                      padding: const EdgeInsets.symmetric(vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color: _splitType == 'equal' ? AppColors.primary : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        'Split Equally',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: _splitType == 'equal' ? Colors.white : AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _splitType = 'custom'),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 150),
-                                      padding: const EdgeInsets.symmetric(vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color: _splitType == 'custom' ? AppColors.primary : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        'Custom Shares',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: _splitType == 'custom' ? Colors.white : AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildSplitTab('equal', 'Equal (=)'),
+                                  _buildSplitTab('custom', 'Exact (₹)'),
+                                  _buildSplitTab('percentage', 'Percent (%)'),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 18),
@@ -492,8 +533,70 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                 );
                               },
                             ),
+                          ] else if (_splitType == 'percentage') ...[
+                            // Percentage Split UI
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: members.length,
+                              itemBuilder: (context, idx) {
+                                final m = members[idx];
+                                final controller = _percentageControllers[m.id]!;
+                                final pctVal = double.tryParse(controller.text.trim()) ?? 0.0;
+                                final calcShare = _totalAmount * (pctVal / 100.0);
+
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 16,
+                                        backgroundColor: AppColors.positiveBg,
+                                        child: Text(
+                                          m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
+                                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${m.name} ${m.id == currentUserId ? '(You)' : ''}',
+                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                            ),
+                                            Text(
+                                              '₹${calcShare.toStringAsFixed(2)}',
+                                              style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: TextField(
+                                          controller: controller,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                          textAlign: TextAlign.end,
+                                          onChanged: (_) => setState(() {}),
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                          decoration: InputDecoration(
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                            hintText: '0',
+                                            suffixText: ' %',
+                                            suffixStyle: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.bold),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ] else ...[
-                            // Custom Shares UI
+                            // Custom Exact Shares UI
                             ListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
@@ -575,8 +678,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
               ),
             ),
-
-            // Fixed Bottom Summary Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(

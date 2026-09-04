@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../providers/app_state.dart';
 import '../../models/balance_model.dart';
+import '../../services/share_service.dart';
 
 class GroupReportScreen extends StatefulWidget {
   final String groupId;
@@ -50,6 +51,21 @@ class _GroupReportScreenState extends State<GroupReportScreen> {
           icon: const Icon(LucideIcons.arrowLeft, size: 22),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.fileSpreadsheet, size: 20, color: AppColors.primary),
+            tooltip: 'Export CSV',
+            onPressed: () {
+              ShareService.exportGroupReportCsv(
+                groupName: group?.name ?? 'Group',
+                memberBalances: balanceReport.balances,
+                moves: balanceReport.moves,
+                expenses: expenses,
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -251,7 +267,7 @@ class _GroupReportScreenState extends State<GroupReportScreen> {
                                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                                 ),
                                 Text(
-                                  '${isPositive ? '+' : ''}₹${b.amount.toStringAsFixed(2)}',
+                                  '₹${NumberFormat('#,##,##0.00', 'en_IN').format(b.amount.abs())}',
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,

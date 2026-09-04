@@ -202,7 +202,6 @@ export default function AdjustSplitModal({ members, totalAmount, currentSplitTyp
     { id: 'equal', label: '=', title: 'Equally' },
     { id: 'exact', label: '1.23', title: 'Unequally' },
     { id: 'percentage', label: '%', title: 'Percentages' },
-    { id: 'shares', label: 'Share', title: 'Shares' },
     { id: 'adjustment', label: '+/-', title: 'Adjustment' },
   ];
 
@@ -285,19 +284,6 @@ export default function AdjustSplitModal({ members, totalAmount, currentSplitTyp
                       className="w-16 text-right font-bold text-gray-800 border-b border-dashed border-gray-300 focus:border-[#145C4B] focus:outline-none bg-transparent"
                     />
                     <span className="text-gray-500 ml-1">%</span>
-                  </div>
-                )}
-                {activeTab === 'shares' && (
-                  <div className="flex items-center">
-                    <input
-                      type="number"
-                      step="1"
-                      placeholder="0"
-                      value={shares[m.id] !== undefined ? shares[m.id] : ''}
-                      onChange={(e) => setShares({...shares, [m.id]: e.target.value})}
-                      className="w-16 text-right font-bold text-gray-800 border-b border-dashed border-gray-300 focus:border-[#145C4B] focus:outline-none bg-transparent"
-                    />
-                    <span className="text-gray-500 ml-2">share(s)</span>
                   </div>
                 )}
                 {activeTab === 'adjustment' && (
