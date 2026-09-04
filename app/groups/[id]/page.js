@@ -615,9 +615,11 @@ export default function GroupDetailPage() {
 
       {/* Empty Group State Modal */}
       {group && members.length === 1 && expenses.length === 0 && !dismissedEmptyState && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-[70]" onClick={() => setDismissedEmptyState(true)} />
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white rounded-t-3xl shadow-2xl z-[80] overflow-hidden p-6 animate-slide-up">
+        <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4" onClick={() => setDismissedEmptyState(true)}>
+          <div 
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl z-[80] overflow-hidden p-6 animate-pop-in"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users size={32} className="text-[#145C4B]" />
@@ -645,7 +647,7 @@ export default function GroupDetailPage() {
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </main>
   );
