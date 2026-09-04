@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/firebaseApi';
-import { X, Check, Plane, Home, Heart, List, Mail, User, Plus, Info } from 'lucide-react';
+import { X, Check, Plane, Home, Heart, List, Mail, User, Plus, Info, CheckCircle2, UserCheck, Loader2 } from 'lucide-react';
 
 const GROUP_TYPES = [
   { id: 'trip', icon: 'trip', label: 'Trip', Icon: Plane },
@@ -19,16 +19,54 @@ export default function NewGroupPage() {
   const [type, setType] = useState(GROUP_TYPES[0]);
   const [participants, setParticipants] = useState([]);
   const [currentParticipant, setCurrentParticipant] = useState('');
+  const [emailCheckResult, setEmailCheckResult] = useState(null); // { checking: boolean, exists: boolean, name?: string }
+  const [userMap, setUserMap] = useState({}); // { [email]: { isRegistered: boolean, name?: string } }
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Debounced check as user types an email address
+  useEffect(() => {
+    const text = currentParticipant.trim();
+    if (!text.includes('@') || !text.includes('.')) {
+      setEmailCheckResult(null);
+      return;
+    }
+
+    setEmailCheckResult({ checking: true });
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.checkUserByEmail(text);
+        setEmailCheckResult({ checking: false, exists: res.exists, name: res.name });
+      } catch (_) {
+        setEmailCheckResult(null);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [currentParticipant]);
+
+  async function checkAndCacheEmail(email) {
+    if (!email.includes('@')) return;
+    try {
+      const res = await api.checkUserByEmail(email);
+      setUserMap((prev) => ({
+        ...prev,
+        [email.toLowerCase().trim()]: { isRegistered: res.exists, name: res.name },
+      }));
+    } catch (_) {}
+  }
 
   function handleAddParticipant() {
     if (currentParticipant.trim()) {
       const value = currentParticipant.trim();
       if (!participants.includes(value)) {
         setParticipants([...participants, value]);
+        if (value.includes('@')) {
+          checkAndCacheEmail(value);
+        }
       }
       setCurrentParticipant('');
+      setEmailCheckResult(null);
     }
   }
 
@@ -181,28 +219,63 @@ export default function NewGroupPage() {
                 </button>
               </div>
 
-              {isEmailInput && (
-                <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg mb-3 flex items-center gap-1.5">
-                  <Mail size={14} className="shrink-0" />
-                  Email detected! An invite notification will be sent automatically.
-                </p>
+              {/* Real-time Email Verification Status Pill */}
+              {isEmailInput && emailCheckResult && (
+                <div className="mb-3">
+                  {emailCheckResult.checking ? (
+                    <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                      <Loader2 size={14} className="animate-spin text-primary" />
+                      Checking email registration status...
+                    </div>
+                  ) : emailCheckResult.exists ? (
+                    <div className="text-xs text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-3.5 py-2 rounded-xl flex items-center gap-2 font-semibold shadow-sm animate-fadeIn">
+                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                      <span>
+                        🟢 <strong className="text-emerald-950">Registered User:</strong> {emailCheckResult.name} — Group will instantly appear on their dashboard!
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-blue-800 bg-blue-50 border border-blue-200 px-3.5 py-2 rounded-xl flex items-center gap-2 font-medium">
+                      <Mail size={15} className="text-blue-600 shrink-0" />
+                      <span>
+                        📩 <strong className="text-blue-950">Pending Invite:</strong> Not registered yet. An invitation will be sent, and the group will automatically display when they sign up.
+                      </span>
+                    </div>
+                  )}
+                </div>
               )}
 
+              {/* Added Participants Chips List */}
               {participants.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {participants.map((p, idx) => {
                     const isEmail = p.includes('@');
+                    const emailLower = p.toLowerCase().trim();
+                    const info = userMap[emailLower];
+                    const isRegistered = info?.isRegistered;
+
                     return (
                       <div
                         key={idx}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium transition-all ${
-                          isEmail
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                          isRegistered
+                            ? 'bg-emerald-100/80 border-emerald-300 text-emerald-950 font-bold shadow-xs'
+                            : isEmail
+                            ? 'bg-blue-50 border-blue-200 text-blue-900'
                             : 'bg-gray-100 border-gray-200 text-gray-800'
                         }`}
                       >
-                        {isEmail ? <Mail size={13} className="text-emerald-600" /> : <User size={13} className="text-gray-500" />}
-                        <span>{p}</span>
+                        {isRegistered ? (
+                          <span className="flex items-center gap-1 text-emerald-700 font-extrabold text-xs">
+                            <CheckCircle2 size={14} className="text-emerald-600" />
+                            Registered
+                          </span>
+                        ) : isEmail ? (
+                          <Mail size={13} className="text-blue-600" />
+                        ) : (
+                          <User size={13} className="text-gray-500" />
+                        )}
+                        <span>{info?.name ? `${info.name} (${p})` : p}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveParticipant(idx)}
@@ -219,7 +292,7 @@ export default function NewGroupPage() {
 
               <p className="text-xs text-gray-400 mt-3 flex items-center gap-1">
                 <Info size={12} className="shrink-0" />
-                Adding email addresses automatically links this ledger to your friends' accounts when they log in.
+                Adding registered emails attaches the ledger to their account immediately. Unregistered emails auto-link upon signup.
               </p>
             </div>
 

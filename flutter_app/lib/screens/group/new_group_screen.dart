@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
+import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
+import '../../services/storage_service.dart';
 import 'group_detail_screen.dart';
 
 class GroupThemeOption {
@@ -23,8 +25,10 @@ class NewGroupScreen extends StatefulWidget {
 class _NewGroupScreenState extends State<NewGroupScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _participantController = TextEditingController();
+  final StorageService _storageService = StorageService();
 
   final List<String> _participants = [];
+  final Map<String, UserModel?> _registeredUserMap = {};
   String _selectedTheme = 'food';
   bool _isLoading = false;
   String? _errorMessage;
@@ -44,13 +48,22 @@ class _NewGroupScreenState extends State<NewGroupScreen> {
     super.dispose();
   }
 
-  void _addParticipant() {
+  void _addParticipant() async {
     final text = _participantController.text.trim();
     if (text.isNotEmpty && !_participants.contains(text)) {
       setState(() {
         _participants.add(text);
         _participantController.clear();
       });
+
+      if (text.contains('@')) {
+        final profile = await _storageService.getUserProfileForEmail(text);
+        if (mounted) {
+          setState(() {
+            _registeredUserMap[text.toLowerCase().trim()] = profile;
+          });
+        }
+      }
     }
   }
 
@@ -219,7 +232,7 @@ class _NewGroupScreenState extends State<NewGroupScreen> {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Add friends by name or email (You are automatically included)',
+                      'Add friends by name or email (Registered users will see group on dashboard instantly)',
                       style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 10),
@@ -231,7 +244,7 @@ class _NewGroupScreenState extends State<NewGroupScreen> {
                             controller: _participantController,
                             onSubmitted: (_) => _addParticipant(),
                             decoration: const InputDecoration(
-                              hintText: 'e.g. Rahul, Aman, Priya...',
+                              hintText: 'e.g. Rahul, friend@gmail.com...',
                               prefixIcon: Icon(LucideIcons.userPlus, size: 18, color: AppColors.textMuted),
                             ),
                           ),
@@ -257,35 +270,57 @@ class _NewGroupScreenState extends State<NewGroupScreen> {
                         runSpacing: 8,
                         children: _participants.asMap().entries.map((entry) {
                           final idx = entry.key;
-                          final name = entry.value;
+                          final rawName = entry.value;
+                          final isEmail = rawName.contains('@');
+                          final emailKey = rawName.toLowerCase().trim();
+                          final regUser = _registeredUserMap[emailKey];
+                          final isRegistered = regUser != null;
+
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppColors.positiveBg,
+                              color: isRegistered
+                                  ? AppColors.positiveBg
+                                  : isEmail
+                                      ? AppColors.blueBg.withValues(alpha: 0.5)
+                                      : AppColors.surfaceMuted,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.cardBorder),
+                              border: Border.all(
+                                color: isRegistered
+                                    ? AppColors.positive.withValues(alpha: 0.5)
+                                    : AppColors.cardBorder,
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                CircleAvatar(
-                                  radius: 10,
-                                  backgroundColor: AppColors.primary,
-                                  child: Text(
-                                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                if (isRegistered)
+                                  const Icon(LucideIcons.checkCircle2, size: 14, color: AppColors.positive)
+                                else if (isEmail)
+                                  const Icon(LucideIcons.mail, size: 14, color: AppColors.blue)
+                                else
+                                  CircleAvatar(
+                                    radius: 10,
+                                    backgroundColor: AppColors.primary,
+                                    child: Text(
+                                      rawName.isNotEmpty ? rawName[0].toUpperCase() : '?',
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isRegistered
+                                      ? '🟢 Registered: ${regUser.name}'
+                                      : rawName,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: isRegistered ? FontWeight.w800 : FontWeight.w600,
+                                    color: isRegistered
+                                        ? AppColors.positive
+                                        : AppColors.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
                                 GestureDetector(
                                   onTap: () => _removeParticipant(idx),
                                   child: const Icon(LucideIcons.x, size: 14, color: AppColors.textMuted),
