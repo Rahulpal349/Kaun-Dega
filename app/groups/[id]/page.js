@@ -403,7 +403,7 @@ export default function GroupDetailPage() {
                   
                   const payerId = e.paid_by || e.paidBy || e.payer?.id;
                   const isPayer = Boolean(userId && payerId && payerId === userId);
-                  const canEditExpense = isAdmin || isPayer;
+                  const canEditExpense = isPayer;
                   const payerName = e.payer?.name || members.find(m => m.id === payerId)?.name || 'the payer';
 
                   return (
@@ -496,7 +496,7 @@ export default function GroupDetailPage() {
                           ) : (
                             <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200/60 rounded-xl flex items-center gap-2 text-amber-800 text-[11px] font-medium">
                               <span>🔒</span>
-                              <span>Only {payerName} or group admin can edit/delete this expense.</span>
+                              <span>Only {payerName} can edit or delete this expense.</span>
                             </div>
                           )}
                         </div>

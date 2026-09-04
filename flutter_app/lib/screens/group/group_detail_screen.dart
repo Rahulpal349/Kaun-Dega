@@ -1032,11 +1032,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                           final appState = context.read<AppState>();
                           final currentUserId = appState.currentUser?.id ?? '';
                           final currentUserName = (appState.currentUser?.name ?? '').toLowerCase().trim();
-                          final isGroupAdmin = group?.myRole == 'admin' || (appState.currentUser != null && group?.createdBy == currentUserId);
-                          final isExpensePayer = (e.paidBy == currentUserId) ||
-                              (e.payer.id == currentUserId) ||
+                          final isExpensePayer = (currentUserId.isNotEmpty && (e.paidBy == currentUserId || e.payer.id == currentUserId)) ||
                               (currentUserName.isNotEmpty && e.payer.name.toLowerCase().trim() == currentUserName);
-                          final canEditExpense = isGroupAdmin || isExpensePayer;
+                          final canEditExpense = isExpensePayer;
 
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1195,7 +1193,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          'Only ${e.payer.name} or group admin can edit/delete this expense.',
+                                          'Only ${e.payer.name} can edit or delete this expense.',
                                           style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w500),
                                         ),
                                       ),
