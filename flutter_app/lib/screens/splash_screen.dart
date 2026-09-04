@@ -4,6 +4,7 @@ import '../config/theme.dart';
 import '../providers/app_state.dart';
 import 'auth/login_screen.dart';
 import 'dashboard/dashboard_screen.dart';
+import 'onboarding/onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,11 +39,21 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Future<void> _navigateNext() async {
-    await Future.delayed(const Duration(milliseconds: 1600));
+    final minDelay = Future.delayed(const Duration(milliseconds: 1400));
+    final appState = Provider.of<AppState>(context, listen: false);
+
+    while (appState.isLoading) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (!mounted) return;
+    }
+    await minDelay;
     if (!mounted) return;
 
-    final appState = Provider.of<AppState>(context, listen: false);
-    if (appState.isAuthenticated) {
+    if (!appState.hasSeenOnboarding) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      );
+    } else if (appState.isAuthenticated) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../models/group_model.dart';
 import '../models/expense_model.dart';
@@ -9,6 +10,10 @@ import '../services/balance_service.dart';
 
 class AppState extends ChangeNotifier {
   final StorageService _storage = StorageService();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: '53793768201-2q4alqb6cbqjmj74vtgo3nuga1tqvn67.apps.googleusercontent.com',
+    scopes: ['email', 'profile'],
+  );
 
   UserModel? _currentUser;
   bool _isLoading = true;
@@ -28,12 +33,14 @@ class AppState extends ChangeNotifier {
   // Global Activity Timeline
   List<ExpenseModel> _allExpenses = [];
   bool _isActivityLoading = false;
+  bool _hasSeenOnboarding = false;
 
   // Getters
   UserModel? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get hasSeenOnboarding => _hasSeenOnboarding;
 
   List<GroupModel> get groups => _groups;
   double get consolidatedBalance => _consolidatedBalance;
@@ -58,6 +65,7 @@ class AppState extends ChangeNotifier {
 
     try {
       await _storage.initializeDemoDataIfNeeded();
+      _hasSeenOnboarding = await _storage.hasSeenOnboarding();
       _currentUser = await _storage.getUserProfile();
       if (_currentUser != null) {
         await refreshDashboard();
@@ -70,25 +78,54 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> completeOnboarding() async {
+    _hasSeenOnboarding = true;
+    await _storage.setHasSeenOnboarding(true);
+    notifyListeners();
+  }
+
   // --- Auth & Profile ---
-  Future<void> loginWithGoogle() async {
+  Future<bool> loginWithGoogle() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
-      // Simulate/Authenticate Google sign-in
-      var user = await _storage.getUserProfile();
-      user ??= UserModel(
-        id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
-        name: 'Google User',
-        email: 'user@gmail.com',
-        upiId: 'user@okhdfcbank',
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
+
+      final GoogleSignInAccount? account = await _googleSignIn.signIn();
+
+      if (account == null) {
+        // User cancelled the Google sign in dialog
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final email = account.email;
+      final name = account.displayName?.trim().isNotEmpty == true
+          ? account.displayName!
+          : (email.isNotEmpty ? email.split('@')[0] : 'Google User');
+      final upiId = '${email.split('@')[0]}@okhdfcbank';
+
+      final user = UserModel(
+        id: account.id.isNotEmpty ? 'usr_${account.id}' : 'usr_${DateTime.now().millisecondsSinceEpoch}',
+        name: name,
+        email: email,
+        upiId: upiId,
+        avatarUrl: account.photoUrl ?? '',
+        createdAt: DateTime.now().toIso8601String(),
       );
+
       _currentUser = user;
       await _storage.saveUserProfile(user);
       await refreshDashboard();
+      return true;
     } catch (e) {
       _error = e.toString();
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -144,6 +181,9 @@ class AppState extends ChangeNotifier {
     _currentUser = null;
     _groups = [];
     _activeGroup = null;
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
     await _storage.clearUserSession();
     notifyListeners();
   }

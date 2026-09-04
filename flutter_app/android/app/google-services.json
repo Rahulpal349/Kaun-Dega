@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "53793768201",
+    "firebase_url": "https://kaun-dega-default-rtdb.firebaseio.com",
+    "project_id": "kaun-dega",
+    "storage_bucket": "kaun-dega.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:53793768201:android:2abfede8d434e7c9c7c9d8",
+        "android_client_info": {
+          "package_name": "com.kaundega.kaun_dega"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "53793768201-2q4alqb6cbqjmj74vtgo3nuga1tqvn67.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcmntHzHoqvJWISBTTWkxucCGEydu0tWw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "53793768201-2q4alqb6cbqjmj74vtgo3nuga1tqvn67.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

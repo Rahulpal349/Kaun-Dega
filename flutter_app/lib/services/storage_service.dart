@@ -12,180 +12,37 @@ class StorageService {
   static const String _expensesPrefix = 'kd_expenses_';
   static const String _settlementsPrefix = 'kd_settlements_';
   static const String _isInitializedKey = 'kd_seed_initialized_v2';
+  static const String _hasSeenOnboardingKey = 'kd_has_seen_onboarding';
 
   final Uuid _uuid = const Uuid();
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
-  /// Initialize default demo seeds if fresh install
+  /// Initialize storage cleanly without any fake mock data
   Future<void> initializeDemoDataIfNeeded() async {
     final prefs = await _prefs;
     final isInit = prefs.getBool(_isInitializedKey) ?? false;
     if (isInit) return;
 
-    // Create current user profile
-    final currentUser = UserModel(
-      id: 'usr_me_01',
-      name: 'Manas Dey',
-      email: 'manas@example.com',
-      phone: '+91 98765 43210',
-      upiId: 'manas@okhdfcbank',
-      gender: 'Male',
-      createdAt: DateTime.now().subtract(const Duration(days: 30)).toIso8601String(),
-    );
-    await saveUserProfile(currentUser);
+    if (!prefs.containsKey(_groupsKey)) {
+      await prefs.setString(_groupsKey, '[]');
+    }
 
-    // Member pool
-    final rahul = UserModel(id: 'usr_rahul', name: 'Rahul Pal', email: 'rahul@example.com', upiId: 'rahul@upi');
-    final aman = UserModel(id: 'usr_aman', name: 'Aman Sharma', email: 'aman@example.com', upiId: 'aman@ybl');
-    final priya = UserModel(id: 'usr_priya', name: 'Priya Singh', email: 'priya@example.com', upiId: 'priya@paytm');
-    final rohit = UserModel(id: 'usr_rohit', name: 'Rohit Verma', email: 'rohit@example.com', upiId: 'rohit@okaxis');
-
-    // Group 1: Goa Beach Trip 🏖️
-    final goaGroupId = 'grp_goa_01';
-    final goaGroup = GroupModel(
-      id: goaGroupId,
-      name: 'Goa Beach Trip 🏖️',
-      emoji: 'trip',
-      icon: 'trip',
-      createdBy: currentUser.id,
-      memberIds: [currentUser.id, rahul.id, aman.id, priya.id],
-      members: {
-        currentUser.id: currentUser.copyWith(role: 'admin'),
-        rahul.id: rahul,
-        aman.id: aman,
-        priya.id: priya,
-      },
-      createdAt: DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
-    );
-
-    // Group 2: Flat 402 Roommates 🏠
-    final flatGroupId = 'grp_flat_02';
-    final flatGroup = GroupModel(
-      id: flatGroupId,
-      name: 'Flat 402 Roommates 🏠',
-      emoji: 'home',
-      icon: 'home',
-      createdBy: currentUser.id,
-      memberIds: [currentUser.id, rahul.id, rohit.id],
-      members: {
-        currentUser.id: currentUser.copyWith(role: 'admin'),
-        rahul.id: rahul,
-        rohit.id: rohit,
-      },
-      createdAt: DateTime.now().subtract(const Duration(days: 20)).toIso8601String(),
-    );
-
-    // Group 3: Office Chai & Samosa ☕
-    final chaiGroupId = 'grp_chai_03';
-    final chaiGroup = GroupModel(
-      id: chaiGroupId,
-      name: 'Office Chai Club ☕',
-      emoji: 'food',
-      icon: 'food',
-      createdBy: rahul.id,
-      memberIds: [currentUser.id, rahul.id, aman.id, rohit.id],
-      members: {
-        currentUser.id: currentUser,
-        rahul.id: rahul.copyWith(role: 'admin'),
-        aman.id: aman,
-        rohit.id: rohit,
-      },
-      createdAt: DateTime.now().subtract(const Duration(days: 15)).toIso8601String(),
-    );
-
-    await saveGroups([goaGroup, flatGroup, chaiGroup]);
-
-    // Add sample expenses for Goa Group
-    final goaExpenses = [
-      ExpenseModel(
-        id: 'exp_01',
-        groupId: goaGroupId,
-        description: 'Beach Shack Seafood & Drinks',
-        amount: 3600.0,
-        paidBy: currentUser.id,
-        splitType: 'equal',
-        shares: [
-          ExpenseShare(userId: currentUser.id, amount: 900.0),
-          ExpenseShare(userId: rahul.id, amount: 900.0),
-          ExpenseShare(userId: aman.id, amount: 900.0),
-          ExpenseShare(userId: priya.id, amount: 900.0),
-        ],
-        payer: PayerInfo(id: currentUser.id, name: currentUser.name, upiId: currentUser.upiId),
-        createdAt: DateTime.now().subtract(const Duration(days: 2, hours: 3)).toIso8601String(),
-      ),
-      ExpenseModel(
-        id: 'exp_02',
-        groupId: goaGroupId,
-        description: 'Scooty Rental (2 Bikes)',
-        amount: 2000.0,
-        paidBy: rahul.id,
-        splitType: 'equal',
-        shares: [
-          ExpenseShare(userId: currentUser.id, amount: 500.0),
-          ExpenseShare(userId: rahul.id, amount: 500.0),
-          ExpenseShare(userId: aman.id, amount: 500.0),
-          ExpenseShare(userId: priya.id, amount: 500.0),
-        ],
-        payer: PayerInfo(id: rahul.id, name: rahul.name, upiId: rahul.upiId),
-        createdAt: DateTime.now().subtract(const Duration(days: 3, hours: 5)).toIso8601String(),
-      ),
-      ExpenseModel(
-        id: 'exp_03',
-        groupId: goaGroupId,
-        description: 'Scuba Diving Advance',
-        amount: 6000.0,
-        paidBy: priya.id,
-        splitType: 'equal',
-        shares: [
-          ExpenseShare(userId: currentUser.id, amount: 1500.0),
-          ExpenseShare(userId: rahul.id, amount: 1500.0),
-          ExpenseShare(userId: aman.id, amount: 1500.0),
-          ExpenseShare(userId: priya.id, amount: 1500.0),
-        ],
-        payer: PayerInfo(id: priya.id, name: priya.name, upiId: priya.upiId),
-        createdAt: DateTime.now().subtract(const Duration(days: 4, hours: 1)).toIso8601String(),
-      ),
-    ];
-    await saveExpenses(goaGroupId, goaExpenses);
-
-    // Add sample expenses for Flat Group
-    final flatExpenses = [
-      ExpenseModel(
-        id: 'exp_11',
-        groupId: flatGroupId,
-        description: 'High Speed WiFi Bill',
-        amount: 1200.0,
-        paidBy: currentUser.id,
-        splitType: 'equal',
-        shares: [
-          ExpenseShare(userId: currentUser.id, amount: 400.0),
-          ExpenseShare(userId: rahul.id, amount: 400.0),
-          ExpenseShare(userId: rohit.id, amount: 400.0),
-        ],
-        payer: PayerInfo(id: currentUser.id, name: currentUser.name, upiId: currentUser.upiId),
-        createdAt: DateTime.now().subtract(const Duration(days: 8)).toIso8601String(),
-      ),
-      ExpenseModel(
-        id: 'exp_12',
-        groupId: flatGroupId,
-        description: 'Grocery & Domestic Supplies',
-        amount: 2850.0,
-        paidBy: rohit.id,
-        splitType: 'equal',
-        shares: [
-          ExpenseShare(userId: currentUser.id, amount: 950.0),
-          ExpenseShare(userId: rahul.id, amount: 950.0),
-          ExpenseShare(userId: rohit.id, amount: 950.0),
-        ],
-        payer: PayerInfo(id: rohit.id, name: rohit.name, upiId: rohit.upiId),
-        createdAt: DateTime.now().subtract(const Duration(days: 12)).toIso8601String(),
-      ),
-    ];
-    await saveExpenses(flatGroupId, flatExpenses);
-
-    // Mark seeded
     await prefs.setBool(_isInitializedKey, true);
+  }
+
+  /// Completely wipe all stored user data, groups, and expenses
+  Future<void> clearAllData() async {
+    final prefs = await _prefs;
+    final keys = prefs.getKeys().toList();
+    for (final key in keys) {
+      if (key.startsWith(_expensesPrefix) ||
+          key.startsWith(_settlementsPrefix) ||
+          key == _groupsKey ||
+          key == _userKey) {
+        await prefs.remove(key);
+      }
+    }
   }
 
   // --- User Profile ---
@@ -501,5 +358,16 @@ class StorageService {
 
     all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return all;
+  }
+
+  // --- Onboarding Preference ---
+  Future<bool> hasSeenOnboarding() async {
+    final prefs = await _prefs;
+    return prefs.getBool(_hasSeenOnboardingKey) ?? false;
+  }
+
+  Future<void> setHasSeenOnboarding(bool value) async {
+    final prefs = await _prefs;
+    await prefs.setBool(_hasSeenOnboardingKey, value);
   }
 }

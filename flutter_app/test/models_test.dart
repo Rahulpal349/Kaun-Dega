@@ -3,7 +3,6 @@ import 'package:kaun_dega/models/user_model.dart';
 import 'package:kaun_dega/models/expense_model.dart';
 import 'package:kaun_dega/models/group_model.dart';
 import 'package:kaun_dega/models/settlement_model.dart';
-import 'package:kaun_dega/models/balance_model.dart';
 
 void main() {
   group('UserModel Tests', () {
