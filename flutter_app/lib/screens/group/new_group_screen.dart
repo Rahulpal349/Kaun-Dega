@@ -18,24 +18,7 @@ class GroupThemeOption {
 class NewGroupScreen extends StatefulWidget {
   const NewGroupScreen({super.key});
 
-  @override
-  State<NewGroupScreen> createState() => _NewGroupScreenState();
-}
-
-class _NewGroupScreenState extends State<NewGroupScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _participantController = TextEditingController();
-  final StorageService _storageService = StorageService();
-
-  final List<String> _participants = [];
-  final Map<String, UserModel?> _registeredUserMap = {};
-  String _selectedTheme = 'food';
-  bool _isLoading = false;
-  String? _errorMessage;
-
-  final List<GroupThemeOption> _customCategories = [];
-
-  static const List<GroupThemeOption> _themeOptions = [
+  static const List<GroupThemeOption> themeOptions = [
     GroupThemeOption(id: 'food', label: 'Food & Drinks', icon: LucideIcons.utensils),
     GroupThemeOption(id: 'trip', label: 'Trip & Travel', icon: LucideIcons.plane),
     GroupThemeOption(id: 'home', label: 'Household', icon: LucideIcons.home),
@@ -52,6 +35,23 @@ class _NewGroupScreenState extends State<NewGroupScreen> {
     GroupThemeOption(id: 'health', label: 'Medical & Health', icon: LucideIcons.heartPulse),
     GroupThemeOption(id: 'other', label: 'Other', icon: LucideIcons.tag),
   ];
+
+  @override
+  State<NewGroupScreen> createState() => _NewGroupScreenState();
+}
+
+class _NewGroupScreenState extends State<NewGroupScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _participantController = TextEditingController();
+  final StorageService _storageService = StorageService();
+
+  final List<String> _participants = [];
+  final Map<String, UserModel?> _registeredUserMap = {};
+  String _selectedTheme = 'food';
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  final List<GroupThemeOption> _customCategories = [];
 
   void _showAddCustomCategoryDialog() {
     final controller = TextEditingController();
@@ -240,7 +240,7 @@ class _NewGroupScreenState extends State<NewGroupScreen> {
                     ),
                     const SizedBox(height: 10),
                     () {
-                      final allOptions = [..._themeOptions, ..._customCategories];
+                      final allOptions = [...NewGroupScreen.themeOptions, ..._customCategories];
                       final totalCount = allOptions.length + 1; // +1 for Custom Category button
                       return GridView.builder(
                         shrinkWrap: true,

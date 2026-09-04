@@ -9,6 +9,7 @@ import '../../widgets/group_icon.dart';
 import '../../services/share_service.dart';
 import '../../services/balance_service.dart';
 import 'add_expense_screen.dart';
+import 'new_group_screen.dart';
 import 'group_report_screen.dart';
 import 'settle_modal.dart';
 import '../../widgets/skeleton_loader.dart';
@@ -489,57 +490,146 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   void _showEditGroupNameDialog() {
     final appState = Provider.of<AppState>(context, listen: false);
     final group = appState.activeGroup;
-    final controller = TextEditingController(text: group?.name ?? '');
+    final nameController = TextEditingController(text: group?.name ?? '');
+    String selectedIcon = group?.icon ?? 'food';
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Edit Group Name', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter a new name for this group ledger.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          final allOptions = NewGroupScreen.themeOptions;
+          return Container(
+            padding: EdgeInsets.fromLTRB(
+              20, 20, 20,
+              MediaQuery.of(dialogCtx).viewInsets.bottom + 20,
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'e.g. Goa Trip 2026',
-                prefixIcon: Icon(LucideIcons.edit3, size: 18),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(color: AppColors.cardBorder, borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Edit Group Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 16),
+                  const Text('GROUP NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.textMuted, letterSpacing: 0.8)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Goa Trip 2026',
+                      prefixIcon: Icon(LucideIcons.edit3, size: 18, color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('CATEGORY THEME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.textMuted, letterSpacing: 0.8)),
+                  const SizedBox(height: 10),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 3.4,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: allOptions.length,
+                    itemBuilder: (context, index) {
+                      final opt = allOptions[index];
+                      final isSelected = selectedIcon == opt.id;
+                      return InkWell(
+                        onTap: () => setDialogState(() => selectedIcon = opt.id),
+                        borderRadius: BorderRadius.circular(14),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.primary : AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                opt.icon,
+                                size: 16,
+                                color: isSelected ? Colors.white : AppColors.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  opt.label,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(LucideIcons.check, size: 14, color: Colors.white),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(dialogCtx),
+                          child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final newName = nameController.text.trim();
+                            if (newName.isNotEmpty) {
+                              Navigator.pop(dialogCtx);
+                              await appState.updateActiveGroupDetails(newName, selectedIcon);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Group details updated successfully!'), behavior: SnackBarBehavior.floating),
+                                );
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: const Text('Save Details', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final newName = controller.text.trim();
-              if (newName.isNotEmpty && newName != group?.name) {
-                Navigator.pop(ctx);
-                await appState.updateActiveGroupName(newName);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Group name updated successfully!'), behavior: SnackBarBehavior.floating),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            child: const Text('Save'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

@@ -318,7 +318,7 @@ class AppState extends ChangeNotifier {
     return group;
   }
 
-  Future<void> updateActiveGroupName(String newName) async {
+  Future<void> updateActiveGroupDetails(String newName, String newIcon) async {
     if (_activeGroup == null || _currentUser == null || newName.trim().isEmpty) return;
     final cleanName = newName.trim();
     final groupId = _activeGroup!.id;
@@ -326,8 +326,8 @@ class AppState extends ChangeNotifier {
     _activeGroup = GroupModel(
       id: _activeGroup!.id,
       name: cleanName,
-      emoji: _activeGroup!.emoji,
-      icon: _activeGroup!.icon,
+      emoji: newIcon,
+      icon: newIcon,
       createdBy: _activeGroup!.createdBy,
       createdAt: _activeGroup!.createdAt,
       memberIds: _activeGroup!.memberIds,
@@ -336,8 +336,13 @@ class AppState extends ChangeNotifier {
     );
     notifyListeners();
 
-    await _storage.updateGroupName(groupId, cleanName, _currentUser!.id);
+    await _storage.updateGroupDetails(groupId, cleanName, newIcon, _currentUser!.id);
     await refreshDashboard();
+  }
+
+  Future<void> updateActiveGroupName(String newName) async {
+    final currentIcon = _activeGroup?.icon ?? 'food';
+    await updateActiveGroupDetails(newName, currentIcon);
   }
 
   Future<void> deleteGroup(String groupId) async {

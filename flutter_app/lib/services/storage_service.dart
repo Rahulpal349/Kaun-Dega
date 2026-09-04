@@ -704,15 +704,20 @@ class StorageService {
     return newGroup;
   }
 
-  Future<void> updateGroupName(String groupId, String newName, String currentUserId) async {
+  Future<void> updateGroupDetails(String groupId, String newName, String newIcon, String currentUserId) async {
     final cleanName = newName.trim();
     if (cleanName.isEmpty) return;
 
     if (_isFirebaseInitialized) {
       try {
-        await _firestore.collection('groups').doc(groupId).update({'name': cleanName});
+        await _firestore.collection('groups').doc(groupId).update({
+          'name': cleanName,
+          'icon': newIcon,
+          'emoji': newIcon,
+          'groupType': newIcon,
+        });
       } catch (e) {
-        if (kDebugMode) print('Error updating group name in Firestore: $e');
+        if (kDebugMode) print('Error updating group details in Firestore: $e');
       }
     }
 
@@ -724,8 +729,8 @@ class StorageService {
         final updatedGroup = GroupModel(
           id: g.id,
           name: cleanName,
-          emoji: g.emoji,
-          icon: g.icon,
+          emoji: newIcon,
+          icon: newIcon,
           createdBy: g.createdBy,
           createdAt: g.createdAt,
           memberIds: g.memberIds,
@@ -736,8 +741,12 @@ class StorageService {
         await saveGroups(allGroups);
       }
     } catch (e) {
-      if (kDebugMode) print('Error updating group name in local cache: $e');
+      if (kDebugMode) print('Error updating group details in local cache: $e');
     }
+  }
+
+  Future<void> updateGroupName(String groupId, String newName, String currentUserId) async {
+    await updateGroupDetails(groupId, newName, 'food', currentUserId);
   }
 
   Future<GroupModel?> getGroupById(String groupId, String currentUserId) async {
