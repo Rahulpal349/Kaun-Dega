@@ -13,7 +13,6 @@ import '../services/notification_service.dart';
 class AppState extends ChangeNotifier {
   final StorageService _storage = StorageService();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '53793768201-2q4alqb6cbqjmj74vtgo3nuga1tqvn67.apps.googleusercontent.com',
     scopes: ['email', 'profile'],
   );
 
@@ -162,12 +161,14 @@ class AppState extends ChangeNotifier {
         );
       });
       await refreshDashboard();
+      _isLoading = false;
+      notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
-      return false;
+      rethrow;
     }
   }
 
@@ -300,7 +301,11 @@ class AppState extends ChangeNotifier {
 
   // --- Dashboard & Groups ---
   Future<void> refreshDashboard() async {
-    if (_currentUser == null) return;
+    if (_currentUser == null) {
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
 
     try {
       await _storage.claimShadowMemberships(_currentUser!);
@@ -309,8 +314,10 @@ class AppState extends ChangeNotifier {
       _startGroupsRealtimeSubscription();
     } catch (e) {
       _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<GroupModel> createGroup({

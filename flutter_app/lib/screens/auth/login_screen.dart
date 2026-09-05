@@ -242,7 +242,11 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       final err = e.toString();
       if (!mounted) return;
-      if (err.contains('ApiException: 10') || err.contains('10:')) {
+      if (err.contains('ApiException') ||
+          err.contains('10:') ||
+          err.contains('sign_in_failed') ||
+          err.contains('com.google.android.gms') ||
+          err.contains('DEVELOPER_ERROR')) {
         _showGoogleSetupDialog(context);
       } else {
         setState(() {
@@ -511,7 +515,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          if (_errorMessage != null) ...[
+                          if (_errorMessage != null || Provider.of<AppState>(context).error != null) ...[
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
@@ -519,7 +523,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                _errorMessage!,
+                                _errorMessage ?? Provider.of<AppState>(context).error!,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: AppColors.negative,
