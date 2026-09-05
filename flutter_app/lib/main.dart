@@ -15,16 +15,18 @@ void main() async {
   await Firebase.initializeApp();
   await NotificationService().initialize();
 
-  // Set system UI overlay style for modern transparent status bars
+  // Enable Edge-to-Edge mode and transparent system bars for Android 15 compliance
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
       statusBarBrightness: Brightness.light,
-      systemNavigationBarColor: Colors.white,
+      systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
+
 
   runApp(const KaunDegaApp());
 }
