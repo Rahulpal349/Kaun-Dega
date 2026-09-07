@@ -730,28 +730,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           letterSpacing: -0.3,
                         ),
                       ),
-                      Row(
-                        children: [
-                          TextButton.icon(
-                            onPressed: _showJoinGroupDialog,
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            icon: const Icon(LucideIcons.link, size: 14, color: AppColors.primary),
-                            label: const Text('Join Code', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12.5)),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${groups.length} ${groups.length == 1 ? 'group' : 'groups'}',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        '${groups.length} ${groups.length == 1 ? 'group' : 'groups'}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
