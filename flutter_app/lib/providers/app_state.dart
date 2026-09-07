@@ -12,6 +12,7 @@ import '../services/notification_service.dart';
 class AppState extends ChangeNotifier {
   final StorageService _storage = StorageService();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: '889585560545-79s9p2u3vchijbbcam8r4tvbd26fsa1i.apps.googleusercontent.com',
     scopes: ['email', 'profile'],
   );
 

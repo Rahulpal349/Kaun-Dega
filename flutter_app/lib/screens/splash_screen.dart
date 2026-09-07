@@ -42,8 +42,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final minDelay = Future.delayed(const Duration(milliseconds: 1400));
     final appState = Provider.of<AppState>(context, listen: false);
 
-    while (appState.isLoading) {
+    int elapsedTime = 0;
+    while (appState.isLoading && elapsedTime < 4000) {
       await Future.delayed(const Duration(milliseconds: 100));
+      elapsedTime += 100;
       if (!mounted) return;
     }
     await minDelay;
