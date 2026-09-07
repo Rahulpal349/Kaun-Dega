@@ -1,14 +1,17 @@
+import java.io.File
 import java.io.FileInputStream
 import java.util.Properties
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = listOf(
+    rootProject.file("../key.properties"),
     rootProject.file("key.properties"),
+    file("../../key.properties"),
     file("../key.properties"),
     file("key.properties")
 ).firstOrNull { it.exists() }
 
-if (keystorePropertiesFile != null) {
+if (keystorePropertiesFile != null && keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
@@ -49,11 +52,17 @@ android {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
                 val sFileName = keystoreProperties["storeFile"] as String
-                storeFile = listOf(
-                    rootProject.file(sFileName),
-                    file("../$sFileName"),
-                    file(sFileName)
-                ).firstOrNull { it.exists() } ?: rootProject.file(sFileName)
+                val storePathFile = File(sFileName)
+                storeFile = if (storePathFile.isAbsolute && storePathFile.exists()) {
+                    storePathFile
+                } else {
+                    listOf(
+                        storePathFile,
+                        rootProject.file(sFileName),
+                        file("../$sFileName"),
+                        file(sFileName)
+                    ).firstOrNull { it.exists() } ?: storePathFile
+                }
                 storePassword = keystoreProperties["storePassword"] as String
             }
         }

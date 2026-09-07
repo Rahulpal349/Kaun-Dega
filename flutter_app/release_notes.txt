@@ -1,0 +1,6 @@
+What's New in v1.0.7:
+• 👥 Segmented Group Ledgers & 👤 1-on-1 Khatabook tabs for clean expense tracking.
+• ⚡ Smooth sliding tab switcher animation with instant touch feedback.
+• 🔒 Enhanced 1-on-1 direct entry isolation — personal credit/debit entries stay separate from group ledgers.
+• 🛠️ Improved Google Sign-In & Firebase cloud sync reliability.
+• 🚀 Null-safety enhancements, UI polish, and performance optimizations.
