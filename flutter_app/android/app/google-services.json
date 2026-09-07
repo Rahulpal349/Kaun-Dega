@@ -1,7 +1,6 @@
 {
   "project_info": {
     "project_number": "889585560545",
-    "firebase_url": "https://kaun-dega-3a5cc-default-rtdb.firebaseio.com",
     "project_id": "kaun-dega-3a5cc",
     "storage_bucket": "kaun-dega-3a5cc.firebasestorage.app"
   },
@@ -20,6 +19,14 @@
           "android_info": {
             "package_name": "com.kaundega.kaun_dega",
             "certificate_hash": "8814dfc991ac9b6240ff6d7448d50e17fe83518e"
+          }
+        },
+        {
+          "client_id": "889585560545-8qd6tmo67cve62sb405pdu3nfs57ef3f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kaundega.kaun_dega",
+            "certificate_hash": "be0d835ee759017a470ac16be255857a9b47deb6"
           }
         },
         {
