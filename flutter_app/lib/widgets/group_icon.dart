@@ -20,6 +20,10 @@ class GroupIconWidget extends StatelessWidget {
 
   IconData _getIconData(String key) {
     final k = key.toLowerCase().trim();
+    if (k.isEmpty) return LucideIcons.tag;
+    if (k == 'user' || k.contains('direct') || k.contains('khatabook')) {
+      return LucideIcons.userCheck;
+    }
     if (k.contains('food') || k.contains('drink') || k.contains('restaurant') || k.contains('dining') || k.contains('snack') || k.contains('lunch') || k.contains('dinner')) {
       return LucideIcons.utensils;
     }

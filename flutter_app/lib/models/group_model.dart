@@ -56,25 +56,26 @@ class GroupModel {
 
     String userRole = 'member';
     if (currentUserId.isNotEmpty && parsedMembers.containsKey(currentUserId)) {
-      userRole = parsedMembers[currentUserId]!.role;
+      userRole = parsedMembers[currentUserId]?.role ?? 'member';
     } else if (json['created_by'] == currentUserId || json['createdBy'] == currentUserId) {
       userRole = 'admin';
     }
 
-    final parsedGroupType = json['groupType'] ?? json['group_type'] ?? (json['icon'] == 'user' ? 'direct' : 'other');
+    final rawIcon = (json['icon'] ?? json['emoji'] ?? 'other').toString();
+    final rawGroupType = json['groupType'] ?? json['group_type'] ?? (rawIcon == 'user' ? 'direct' : 'other');
 
     return GroupModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? 'Group',
-      emoji: json['emoji'] ?? '🧾',
-      icon: json['icon'] ?? json['emoji'] ?? 'other',
-      groupType: parsedGroupType.toString(),
-      createdBy: json['created_by'] ?? json['createdBy'] ?? '',
-      createdAt: json['created_at'] ?? json['createdAt'] ?? '',
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Group',
+      emoji: json['emoji']?.toString() ?? '🧾',
+      icon: rawIcon,
+      groupType: rawGroupType?.toString() ?? 'other',
+      createdBy: (json['created_by'] ?? json['createdBy'])?.toString() ?? '',
+      createdAt: (json['created_at'] ?? json['createdAt'])?.toString() ?? '',
       memberIds: mIds,
       memberEmails: mEmails,
       members: parsedMembers,
-      myRole: json['myRole'] ?? userRole,
+      myRole: (json['myRole'] ?? userRole)?.toString() ?? 'member',
     );
   }
 

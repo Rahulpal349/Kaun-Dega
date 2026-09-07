@@ -25,16 +25,16 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? 'User',
-      email: json['email'] ?? '',
-      phone: json['phone'] ?? '',
-      upiId: json['upi_id'] ?? json['upiId'] ?? '',
-      gender: json['gender'] ?? '',
-      avatarUrl: json['avatar_url'] ?? json['avatarUrl'] ?? '',
-      role: json['role'] ?? 'member',
-      isShadow: json['isShadow'] ?? false,
-      createdAt: json['created_at'] ?? json['createdAt'] ?? '',
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'User',
+      email: json['email']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      upiId: (json['upi_id'] ?? json['upiId'])?.toString() ?? '',
+      gender: json['gender']?.toString() ?? '',
+      avatarUrl: (json['avatar_url'] ?? json['avatarUrl'])?.toString() ?? '',
+      role: json['role']?.toString() ?? 'member',
+      isShadow: json['isShadow'] == true,
+      createdAt: (json['created_at'] ?? json['createdAt'])?.toString() ?? '',
     );
   }
 
