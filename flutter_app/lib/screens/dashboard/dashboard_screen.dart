@@ -24,6 +24,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentTabIndex = 0;
+  int _selectedLedgerType = 0; // 0 = Groups, 1 = 1-on-1 Khatabook
 
   @override
   void initState() {
@@ -306,6 +307,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final appState = Provider.of<AppState>(context);
     final user = appState.currentUser;
     final groups = appState.groups;
+    final groupLedgers = groups.where((g) => !g.isDirect).toList();
+    final directLedgers = groups.where((g) => g.isDirect).toList();
+    final displayedList = _selectedLedgerType == 0 ? groupLedgers : directLedgers;
+
     final consolidatedBal = appState.consolidatedBalance;
     final totalSpent = appState.totalSpent;
 
@@ -717,7 +722,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Active Ledgers Section Header
+                  // Active Ledgers Section Header & Count
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -731,7 +736,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       Text(
-                        '${groups.length} ${groups.length == 1 ? 'group' : 'groups'}',
+                        _selectedLedgerType == 0
+                            ? '${groupLedgers.length} ${groupLedgers.length == 1 ? 'group' : 'groups'}'
+                            : '${directLedgers.length} ${directLedgers.length == 1 ? 'entry' : 'entries'}',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -743,10 +750,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   const SizedBox(height: 12),
 
-                  if (groups.isEmpty)
+                  // Segmented Tab Switcher Control
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.cardBorder),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedLedgerType = 0),
+                            behavior: HitTestBehavior.opaque,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: _selectedLedgerType == 0 ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: _selectedLedgerType == 0
+                                    ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2))]
+                                    : [],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(LucideIcons.users, size: 16, color: _selectedLedgerType == 0 ? AppColors.primary : AppColors.textMuted),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Groups (${groupLedgers.length})',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: _selectedLedgerType == 0 ? AppColors.textPrimary : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedLedgerType = 1),
+                            behavior: HitTestBehavior.opaque,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: _selectedLedgerType == 1 ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: _selectedLedgerType == 1
+                                    ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2))]
+                                    : [],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(LucideIcons.userCheck, size: 16, color: _selectedLedgerType == 1 ? AppColors.primary : AppColors.textMuted),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '1-on-1 Khatabook (${directLedgers.length})',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: _selectedLedgerType == 1 ? AppColors.textPrimary : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  if (displayedList.isEmpty)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
@@ -756,38 +843,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
-                            width: 64,
-                            height: 64,
+                            width: 56,
+                            height: 56,
                             decoration: const BoxDecoration(
                               color: AppColors.positiveBg,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(LucideIcons.users, size: 30, color: AppColors.primary),
+                            child: Icon(
+                              _selectedLedgerType == 0 ? LucideIcons.users : LucideIcons.userCheck,
+                              size: 26,
+                              color: AppColors.primary,
+                            ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No ledgers yet',
-                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                          const SizedBox(height: 14),
+                          Text(
+                            _selectedLedgerType == 0 ? 'No Group Ledgers Yet' : 'No 1-on-1 Khatabook Entries Yet',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
-                            'Create a group to start splitting expenses with friends, flatmates or colleagues.',
+                          Text(
+                            _selectedLedgerType == 0
+                                ? 'Create a group to start splitting expenses with friends, flatmates or colleagues.'
+                                : 'Record 1-on-1 credit & debit entries directly with your contacts.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                            style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
                           ElevatedButton.icon(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const NewGroupScreen()),
-                              );
+                              if (_selectedLedgerType == 0) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const NewGroupScreen()),
+                                );
+                              } else {
+                                _showDirectTransactionModal();
+                              }
                             },
-                            icon: const Icon(LucideIcons.plus, size: 18),
-                            label: const Text('Create First Group'),
+                            icon: Icon(_selectedLedgerType == 0 ? LucideIcons.plus : LucideIcons.userPlus, size: 16),
+                            label: Text(_selectedLedgerType == 0 ? 'Create First Group' : 'Add 1-on-1 Entry'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             ),
                           ),
                         ],
@@ -798,10 +895,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       padding: EdgeInsets.zero,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: groups.length,
+                      itemCount: displayedList.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        final g = groups[index];
+                        final g = displayedList[index];
                         final isAdmin = g.myRole == 'admin';
 
                         return Material(
