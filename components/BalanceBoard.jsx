@@ -142,7 +142,6 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
             {moves.length === 0 ? (
               <p className="px-4 py-6 text-gray-500 text-sm text-center">No settlements needed right now.</p>
             ) : (
-            ) : (
               moves.map((move, idx) => {
                 const isMeDebtor = currentUserId === move.from;
                 const isMeCreditor = currentUserId === move.to;
