@@ -16,6 +16,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String? _expandedActivityId;
+  String? _selectedGroupName; // null = All groups
 
   @override
   void initState() {
@@ -28,7 +29,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
-    final expenses = appState.allExpenses;
+    final allExpenses = appState.allExpenses;
+
+    // Sorted unique group names
+    final groupNames = allExpenses
+        .map((e) => e.groupName ?? 'Group')
+        .toSet()
+        .toList()
+      ..sort();
+
+    // Apply group filter
+    final expenses = _selectedGroupName == null
+        ? allExpenses
+        : allExpenses
+            .where((e) => (e.groupName ?? 'Group') == _selectedGroupName)
+            .toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -37,43 +52,133 @@ class _HistoryScreenState extends State<HistoryScreen> {
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () => appState.loadAllActivity(),
-          color: AppColors.primary,
-          child: appState.isActivityLoading
-              ? const ActivitySkeleton()
-              : expenses.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: const BoxDecoration(
-                                color: AppColors.positiveBg,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(LucideIcons.history, size: 28, color: AppColors.primary),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'No activity yet',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'All expense activities across your ledgers will appear here chronologically.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                            ),
-                          ],
+        child: Column(
+          children: [
+            // ── Group Filter Chips ─────────────────────────────
+            if (!appState.isActivityLoading && allExpenses.isNotEmpty)
+              Container(
+                height: 48,
+                margin: const EdgeInsets.only(top: 12, bottom: 4),
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    // "All" chip
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: const Text('All'),
+                        selected: _selectedGroupName == null,
+                        onSelected: (_) =>
+                            setState(() => _selectedGroupName = null),
+                        selectedColor: AppColors.primary,
+                        backgroundColor: Colors.white,
+                        labelStyle: TextStyle(
+                          color: _selectedGroupName == null
+                              ? Colors.white
+                              : AppColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: _selectedGroupName == null
+                                ? AppColors.primary
+                                : AppColors.cardBorder,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        showCheckmark: false,
+                        avatar: Icon(
+                          LucideIcons.layoutGrid,
+                          size: 13,
+                          color: _selectedGroupName == null
+                              ? Colors.white
+                              : AppColors.textSecondary,
                         ),
                       ),
-                    )
-                  : ListView.separated(
+                    ),
+                    // One chip per group
+                    ...groupNames.map((name) {
+                      final isSelected = _selectedGroupName == name;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(name),
+                          selected: isSelected,
+                          onSelected: (_) => setState(() =>
+                              _selectedGroupName = isSelected ? null : name),
+                          selectedColor: AppColors.primary,
+                          backgroundColor: Colors.white,
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.textSecondary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.cardBorder,
+                            ),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          showCheckmark: false,
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+
+            // ── Activity List ──────────────────────────────────
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => appState.loadAllActivity(),
+                color: AppColors.primary,
+                child: appState.isActivityLoading
+                    ? const ActivitySkeleton()
+                    : expenses.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 64,
+                                    height: 64,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.positiveBg,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(LucideIcons.history, size: 28, color: AppColors.primary),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _selectedGroupName != null
+                                        ? 'No activity in "$_selectedGroupName"'
+                                        : 'No activity yet',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _selectedGroupName != null
+                                        ? 'Try selecting a different group or tap "All".'
+                                        : 'All expense activities across your ledgers will appear here chronologically.',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       itemCount: expenses.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -206,6 +311,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         );
                       },
                     ),
+              ),
+            ),
+          ],
         ),
       ),
     );
