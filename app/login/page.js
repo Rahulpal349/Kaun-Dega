@@ -191,15 +191,18 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Segmented Auth Selector */}
-        <div className="bg-gray-100 p-1 rounded-2xl flex mb-6">
+        {/* Segmented Auth Selector with Sliding Pill Animation */}
+        <div className="bg-gray-100/90 p-1 rounded-2xl flex relative mb-6 border border-gray-200/60">
+          <div 
+            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-xl shadow-sm transition-transform duration-300 ease-out ${
+              authMode === 'phone' ? 'translate-x-[100%]' : 'translate-x-0'
+            }`}
+          />
           <button
             type="button"
             onClick={() => { setAuthMode('google'); setError(''); }}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              authMode === 'google'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+            className={`flex-1 relative z-10 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              authMode === 'google' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
@@ -213,10 +216,8 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => { setAuthMode('phone'); setError(''); }}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              authMode === 'phone'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+            className={`flex-1 relative z-10 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              authMode === 'phone' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             <Phone size={14} className={authMode === 'phone' ? 'text-[#145C4B]' : ''} />

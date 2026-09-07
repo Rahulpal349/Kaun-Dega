@@ -511,110 +511,130 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Segmented Auth Mode Switcher
+                          // Segmented Auth Mode Switcher with Smooth Sliding Pill Animation
                           Container(
+                            height: 48,
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedTab = 0;
-                                        _errorMessage = null;
-                                        _phoneError = null;
-                                      });
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      padding: const EdgeInsets.symmetric(vertical: 11),
-                                      decoration: BoxDecoration(
-                                        color: _selectedTab == 0 ? Colors.white : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: _selectedTab == 0
-                                            ? [
-                                                BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.08),
-                                                  blurRadius: 8,
-                                                  offset: const Offset(0, 2),
-                                                )
-                                              ]
-                                            : [],
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            LucideIcons.chrome,
-                                            size: 16,
-                                            color: _selectedTab == 0 ? AppColors.primary : AppColors.textMuted,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Google',
-                                            style: TextStyle(
-                                              fontSize: 13.5,
-                                              fontWeight: FontWeight.w700,
-                                              color: _selectedTab == 0 ? AppColors.textPrimary : AppColors.textMuted,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final pillWidth = (constraints.maxWidth) / 2;
+                                return Stack(
+                                  children: [
+                                    // Sliding White Pill Indicator
+                                    AnimatedPositioned(
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.fastOutSlowIn,
+                                      left: _selectedTab == 0 ? 0 : pillWidth,
+                                      top: 0,
+                                      bottom: 0,
+                                      width: pillWidth,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(12),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.08),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedTab = 1;
-                                        _errorMessage = null;
-                                        _phoneError = null;
-                                      });
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      padding: const EdgeInsets.symmetric(vertical: 11),
-                                      decoration: BoxDecoration(
-                                        color: _selectedTab == 1 ? Colors.white : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: _selectedTab == 1
-                                            ? [
-                                                BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.08),
-                                                  blurRadius: 8,
-                                                  offset: const Offset(0, 2),
-                                                )
-                                              ]
-                                            : [],
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            LucideIcons.phone,
-                                            size: 16,
-                                            color: _selectedTab == 1 ? AppColors.primary : AppColors.textMuted,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Phone OTP',
-                                            style: TextStyle(
-                                              fontSize: 13.5,
-                                              fontWeight: FontWeight.w700,
-                                              color: _selectedTab == 1 ? AppColors.textPrimary : AppColors.textMuted,
+
+                                    // Tab Buttons
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedTab = 0;
+                                                _errorMessage = null;
+                                                _phoneError = null;
+                                              });
+                                            },
+                                            behavior: HitTestBehavior.opaque,
+                                            child: Container(
+                                              alignment: Alignment.center,
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  AnimatedScale(
+                                                    scale: _selectedTab == 0 ? 1.1 : 1.0,
+                                                    duration: const Duration(milliseconds: 200),
+                                                    curve: Curves.easeOutBack,
+                                                    child: Icon(
+                                                      LucideIcons.chrome,
+                                                      size: 16,
+                                                      color: _selectedTab == 0 ? AppColors.primary : AppColors.textMuted,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  AnimatedDefaultTextStyle(
+                                                    duration: const Duration(milliseconds: 200),
+                                                    style: TextStyle(
+                                                      fontSize: 13.5,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: _selectedTab == 0 ? AppColors.textPrimary : AppColors.textMuted,
+                                                    ),
+                                                    child: const Text('Google'),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedTab = 1;
+                                                _errorMessage = null;
+                                                _phoneError = null;
+                                              });
+                                            },
+                                            behavior: HitTestBehavior.opaque,
+                                            child: Container(
+                                              alignment: Alignment.center,
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  AnimatedScale(
+                                                    scale: _selectedTab == 1 ? 1.1 : 1.0,
+                                                    duration: const Duration(milliseconds: 200),
+                                                    curve: Curves.easeOutBack,
+                                                    child: Icon(
+                                                      LucideIcons.phone,
+                                                      size: 16,
+                                                      color: _selectedTab == 1 ? AppColors.primary : AppColors.textMuted,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  AnimatedDefaultTextStyle(
+                                                    duration: const Duration(milliseconds: 200),
+                                                    style: TextStyle(
+                                                      fontSize: 13.5,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: _selectedTab == 1 ? AppColors.textPrimary : AppColors.textMuted,
+                                                    ),
+                                                    child: const Text('Phone OTP'),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ),
-                              ],
+                                  ],
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(height: 20),
