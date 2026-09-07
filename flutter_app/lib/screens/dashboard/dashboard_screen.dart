@@ -839,7 +839,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         opacity: animation,
                         child: SlideTransition(
                           position: Tween<Offset>(
-                            begin: Offset(_selectedLedgerType == 1 ? 0.04 : -0.04, 0.0),
+                            begin: const Offset(0.02, 0),
                             end: Offset.zero,
                           ).animate(animation),
                           child: child,
@@ -850,6 +850,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       key: ValueKey<int>(_selectedLedgerType),
                       child: displayedList.isEmpty
                           ? Container(
+                              key: ValueKey<String>('empty_$_selectedLedgerType'),
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
                               decoration: BoxDecoration(
@@ -909,6 +910,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             )
                           : ListView.separated(
+                              key: ValueKey<String>('list_$_selectedLedgerType'),
                               padding: EdgeInsets.zero,
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
@@ -1042,6 +1044,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                     ),
                   ),
+
                   const SizedBox(height: 80),
                 ],
               ),
