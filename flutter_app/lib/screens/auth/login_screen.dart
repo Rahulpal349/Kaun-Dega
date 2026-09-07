@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../providers/app_state.dart';
-import '../../models/user_model.dart';
-import '../../services/storage_service.dart';
 import '../dashboard/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -300,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'You can also proceed with your emulator Google profile (irondey006@gmail.com) for immediate testing:',
+              'Or sign in using your email address and name:',
               style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
             ),
           ],
@@ -311,27 +309,89 @@ class _LoginScreenState extends State<LoginScreen> {
             child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(ctx);
+              _showEmailSignInDialog(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Sign In with Email'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEmailSignInDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Row(
+          children: [
+            Icon(LucideIcons.mail, color: AppColors.primary, size: 22),
+            SizedBox(width: 8),
+            Text(
+              'Sign In with Email',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Your Full Name',
+                  hintText: 'e.g. Rahul Sharma',
+                  prefixIcon: const Icon(LucideIcons.user, size: 18),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter your name' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Email Address',
+                  hintText: 'e.g. rahul@example.com',
+                  prefixIcon: const Icon(LucideIcons.mail, size: 18),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Please enter your email';
+                  if (!val.contains('@')) return 'Enter a valid email address';
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final name = nameController.text.trim();
+              final email = emailController.text.trim();
+              Navigator.pop(ctx);
+
               final appState = Provider.of<AppState>(context, listen: false);
-              final existingUser = await StorageService().getUserProfile();
-              const email = 'irondey006@gmail.com';
-              final user = UserModel(
-                id: 'usr_g_irondey',
-                name: (existingUser != null && existingUser.email == email && existingUser.name.trim().isNotEmpty)
-                    ? existingUser.name
-                    : 'Iron Dey',
-                email: email,
-                upiId: (existingUser != null && existingUser.email == email && existingUser.upiId.trim().isNotEmpty)
-                    ? existingUser.upiId
-                    : 'irondey006@okhdfcbank',
-                phone: (existingUser?.email == email) ? (existingUser?.phone ?? '') : '',
-                gender: (existingUser?.email == email) ? (existingUser?.gender ?? '') : '',
-                avatarUrl: existingUser?.avatarUrl ?? '',
-                createdAt: existingUser?.createdAt ?? DateTime.now().toIso8601String(),
-              );
-              await StorageService().saveUserProfile(user);
-              await appState.init();
+              await appState.loginWithEmail(email, '', name: name);
               if (!context.mounted) return;
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (_) => const DashboardScreen()),
@@ -342,7 +402,7 @@ class _LoginScreenState extends State<LoginScreen> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Continue as irondey006'),
+            child: const Text('Continue'),
           ),
         ],
       ),

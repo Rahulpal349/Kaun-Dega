@@ -114,8 +114,7 @@ class AppState extends ChangeNotifier {
       }
 
       final email = account.email;
-      final existingUser = await _storage.getUserProfileForEmail(email) ??
-          await _storage.getUserProfile();
+      final existingUser = await _storage.getUserProfileForEmail(email);
 
       // Deterministic user ID for the Google account
       final userId = account.id.isNotEmpty
