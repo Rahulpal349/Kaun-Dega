@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../models/group_model.dart';
@@ -113,15 +114,27 @@ class AppState extends ChangeNotifier {
         return false;
       }
 
+      String userId;
+      try {
+        final GoogleSignInAuthentication googleAuth = await account.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        userId = userCredential.user?.uid ??
+            (account.id.isNotEmpty ? 'usr_${account.id}' : 'usr_${DateTime.now().millisecondsSinceEpoch}');
+      } catch (e) {
+        if (kDebugMode) print('Firebase credential signin warning: $e');
+        userId = account.id.isNotEmpty
+            ? 'usr_${account.id}'
+            : (account.email.isNotEmpty
+                ? 'usr_g_${account.email.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}'
+                : 'usr_${DateTime.now().millisecondsSinceEpoch}');
+      }
+
       final email = account.email;
       final existingUser = await _storage.getUserProfileForEmail(email);
-
-      // Deterministic user ID for the Google account
-      final userId = account.id.isNotEmpty
-          ? 'usr_${account.id}'
-          : (email.isNotEmpty
-              ? 'usr_g_${email.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}'
-              : 'usr_${DateTime.now().millisecondsSinceEpoch}');
 
       // Preserve custom edited user profile details if previously updated
       final bool hasExisting = existingUser != null;

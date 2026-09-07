@@ -264,42 +264,23 @@ class _LoginScreenState extends State<LoginScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         title: const Row(
           children: [
-            Icon(LucideIcons.alertTriangle, color: AppColors.amber, size: 22),
+            Icon(LucideIcons.alertCircle, color: AppColors.primary, size: 22),
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Google Cloud SHA-1 Needed',
-                style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold),
+                'Sign In Notice',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Google Play Services requires this machine\'s debug SHA-1 fingerprint added to Firebase Console (Project: kaun-dega):',
+            Text(
+              'Google Sign-In is initializing. You can try again or sign in directly with your email address below:',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.cardBorder),
-              ),
-              child: const SelectableText(
-                'B1:70:C3:C9:E0:B3:88:55:4C:FF:D8:FC:C9:AF:58:8E:9C:3B:13:79',
-                style: TextStyle(fontFamily: 'monospace', fontSize: 10.5, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Or sign in using your email address and name:',
-              style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
             ),
           ],
         ),

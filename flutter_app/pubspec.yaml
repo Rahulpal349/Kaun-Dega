@@ -1,7 +1,7 @@
 name: kaun_dega
 description: "Kaun Dega? - Smart Group Expense Manager & Debt Settlements"
 publish_to: 'none'
-version: 1.0.8+8
+version: 1.0.10+10
 
 environment:
   sdk: ^3.9.2
