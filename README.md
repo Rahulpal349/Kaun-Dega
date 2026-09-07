@@ -12,7 +12,7 @@ With real-time sync, smart debt simplification, and instant WhatsApp summary sha
 
 ---
 
-## ✨ Key Features
+## ✨ Key Features !!
 
 ### ⚡ Smart Bill Splitting
 - **Equal Splits**: Distribute costs across all or selected members in one tap.
