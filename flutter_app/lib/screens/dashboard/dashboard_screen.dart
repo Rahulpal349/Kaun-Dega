@@ -750,81 +750,119 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   const SizedBox(height: 12),
 
-                  // Segmented Tab Switcher Control
+                  // Segmented Tab Switcher Control with Smooth Sliding Pill
                   Container(
+                    height: 48,
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: AppColors.cardBorder),
                     ),
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _selectedLedgerType = 0),
-                            behavior: HitTestBehavior.opaque,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: _selectedLedgerType == 0 ? Colors.white : Colors.transparent,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: _selectedLedgerType == 0
-                                    ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2))]
-                                    : [],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(LucideIcons.users, size: 16, color: _selectedLedgerType == 0 ? AppColors.primary : AppColors.textMuted),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Groups (${groupLedgers.length})',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: _selectedLedgerType == 0 ? AppColors.textPrimary : AppColors.textSecondary,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final pillWidth = (constraints.maxWidth) / 2;
+                        return Stack(
+                          children: [
+                            // Sliding White Pill Indicator
+                            AnimatedPositioned(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.fastOutSlowIn,
+                              left: _selectedLedgerType == 0 ? 0 : pillWidth,
+                              top: 0,
+                              bottom: 0,
+                              width: pillWidth,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.08),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _selectedLedgerType = 1),
-                            behavior: HitTestBehavior.opaque,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: _selectedLedgerType == 1 ? Colors.white : Colors.transparent,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: _selectedLedgerType == 1
-                                    ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2))]
-                                    : [],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(LucideIcons.userCheck, size: 16, color: _selectedLedgerType == 1 ? AppColors.primary : AppColors.textMuted),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '1-on-1 Khatabook (${directLedgers.length})',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: _selectedLedgerType == 1 ? AppColors.textPrimary : AppColors.textSecondary,
+
+                            // Interactive Tab Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _selectedLedgerType = 0),
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          AnimatedScale(
+                                            scale: _selectedLedgerType == 0 ? 1.1 : 1.0,
+                                            duration: const Duration(milliseconds: 200),
+                                            curve: Curves.easeOutBack,
+                                            child: Icon(
+                                              LucideIcons.users,
+                                              size: 16,
+                                              color: _selectedLedgerType == 0 ? AppColors.primary : AppColors.textMuted,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          AnimatedDefaultTextStyle(
+                                            duration: const Duration(milliseconds: 200),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                              color: _selectedLedgerType == 0 ? AppColors.primary : AppColors.textSecondary,
+                                            ),
+                                            child: Text('Groups (${groupLedgers.length})'),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _selectedLedgerType = 1),
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          AnimatedScale(
+                                            scale: _selectedLedgerType == 1 ? 1.1 : 1.0,
+                                            duration: const Duration(milliseconds: 200),
+                                            curve: Curves.easeOutBack,
+                                            child: Icon(
+                                              LucideIcons.userCheck,
+                                              size: 16,
+                                              color: _selectedLedgerType == 1 ? AppColors.primary : AppColors.textMuted,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          AnimatedDefaultTextStyle(
+                                            duration: const Duration(milliseconds: 200),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                              color: _selectedLedgerType == 1 ? AppColors.primary : AppColors.textSecondary,
+                                            ),
+                                            child: Text('1-on-1 Khatabook (${directLedgers.length})'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
                   ),
 
