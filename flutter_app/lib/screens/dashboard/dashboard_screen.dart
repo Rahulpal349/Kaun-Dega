@@ -830,200 +830,218 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   const SizedBox(height: 14),
 
-                  if (displayedList.isEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppColors.cardBorder),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: const BoxDecoration(
-                              color: AppColors.positiveBg,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              _selectedLedgerType == 0 ? LucideIcons.users : LucideIcons.userCheck,
-                              size: 26,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            _selectedLedgerType == 0 ? 'No Group Ledgers Yet' : 'No 1-on-1 Khatabook Entries Yet',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _selectedLedgerType == 0
-                                ? 'Create a group to start splitting expenses with friends, flatmates or colleagues.'
-                                : 'Record 1-on-1 credit & debit entries directly with your contacts.',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              if (_selectedLedgerType == 0) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const NewGroupScreen()),
-                                );
-                              } else {
-                                _showDirectTransactionModal();
-                              }
-                            },
-                            icon: Icon(_selectedLedgerType == 0 ? LucideIcons.plus : LucideIcons.userPlus, size: 16),
-                            label: Text(_selectedLedgerType == 0 ? 'Create First Group' : 'Add 1-on-1 Entry'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    ListView.separated(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: displayedList.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final g = displayedList[index];
-                        final isAdmin = g.myRole == 'admin';
-
-                        return Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => GroupDetailScreen(groupId: g.id),
-                                ),
-                              );
-                            },
-                            onLongPress: () => _showGroupOptions(g),
-                            borderRadius: BorderRadius.circular(22),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 280),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: Offset(_selectedLedgerType == 1 ? 0.04 : -0.04, 0.0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: KeyedSubtree(
+                      key: ValueKey<int>(_selectedLedgerType),
+                      child: displayedList.isEmpty
+                          ? Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(22),
+                                borderRadius: BorderRadius.circular(24),
                                 border: Border.all(color: AppColors.cardBorder),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.02),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
                               ),
-                              child: Row(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  GroupIconWidget(
-                                    icon: g.icon,
-                                    size: 22,
-                                    padding: 12,
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                g.name,
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: AppColors.textPrimary,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            if (g.isDirect) ...[
-                                              const SizedBox(width: 6),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.positiveBg,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: const Text(
-                                                  '1-ON-1',
-                                                  style: TextStyle(
-                                                    fontSize: 8.5,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: AppColors.primary,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                            if (isAdmin && !g.isDirect) ...[
-                                              const SizedBox(width: 6),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.amberBg,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: const Text(
-                                                  'ADMIN',
-                                                  style: TextStyle(
-                                                    fontSize: 8.5,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: AppColors.amber,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(g.isDirect ? LucideIcons.userCheck : LucideIcons.users, size: 12, color: AppColors.textMuted),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              g.isDirect ? 'Direct Khatabook' : '${g.memberIds.length} members',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.textSecondary,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                  Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.positiveBg,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      _selectedLedgerType == 0 ? LucideIcons.users : LucideIcons.userCheck,
+                                      size: 26,
+                                      color: AppColors.primary,
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(LucideIcons.moreVertical, size: 18, color: AppColors.textMuted),
-                                    onPressed: () => _showGroupOptions(g),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    _selectedLedgerType == 0 ? 'No Group Ledgers Yet' : 'No 1-on-1 Khatabook Entries Yet',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _selectedLedgerType == 0
+                                        ? 'Create a group to start splitting expenses with friends, flatmates or colleagues.'
+                                        : 'Record 1-on-1 credit & debit entries directly with your contacts.',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      if (_selectedLedgerType == 0) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (_) => const NewGroupScreen()),
+                                        );
+                                      } else {
+                                        _showDirectTransactionModal();
+                                      }
+                                    },
+                                    icon: Icon(_selectedLedgerType == 0 ? LucideIcons.plus : LucideIcons.userPlus, size: 16),
+                                    label: Text(_selectedLedgerType == 0 ? 'Create First Group' : 'Add 1-on-1 Entry'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                            )
+                          : ListView.separated(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: displayedList.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final g = displayedList[index];
+                                final isAdmin = g.myRole == 'admin';
 
+                                return Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => GroupDetailScreen(groupId: g.id),
+                                        ),
+                                      );
+                                    },
+                                    onLongPress: () => _showGroupOptions(g),
+                                    borderRadius: BorderRadius.circular(22),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(22),
+                                        border: Border.all(color: AppColors.cardBorder),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.02),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          GroupIconWidget(
+                                            icon: g.icon,
+                                            size: 22,
+                                            padding: 12,
+                                          ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Flexible(
+                                                      child: Text(
+                                                        g.name,
+                                                        style: const TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: AppColors.textPrimary,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    if (g.isDirect) ...[
+                                                      const SizedBox(width: 6),
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                        decoration: BoxDecoration(
+                                                          color: AppColors.positiveBg,
+                                                          borderRadius: BorderRadius.circular(6),
+                                                        ),
+                                                        child: const Text(
+                                                          '1-ON-1',
+                                                          style: TextStyle(
+                                                            fontSize: 8.5,
+                                                            fontWeight: FontWeight.w800,
+                                                            color: AppColors.primary,
+                                                            letterSpacing: 0.5,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                    if (isAdmin && !g.isDirect) ...[
+                                                      const SizedBox(width: 6),
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                        decoration: BoxDecoration(
+                                                          color: AppColors.amberBg,
+                                                          borderRadius: BorderRadius.circular(6),
+                                                        ),
+                                                        child: const Text(
+                                                          'ADMIN',
+                                                          style: TextStyle(
+                                                            fontSize: 8.5,
+                                                            fontWeight: FontWeight.w800,
+                                                            color: AppColors.amber,
+                                                            letterSpacing: 0.5,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  children: [
+                                                    Icon(g.isDirect ? LucideIcons.userCheck : LucideIcons.users, size: 12, color: AppColors.textMuted),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      g.isDirect ? 'Direct Khatabook' : '${g.memberIds.length} members',
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color: AppColors.textSecondary,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(LucideIcons.moreVertical, size: 18, color: AppColors.textMuted),
+                                            onPressed: () => _showGroupOptions(g),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ),
                   const SizedBox(height: 80),
                 ],
               ),
