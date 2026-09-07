@@ -693,7 +693,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _showDirectTransactionModal,
                           icon: const Icon(LucideIcons.userPlus, size: 16),
-                          label: const Text('1-on-1 Khatabook', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                          label: const Text('+ 1-on-1 Entry', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
