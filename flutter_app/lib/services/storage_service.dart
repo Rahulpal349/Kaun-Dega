@@ -33,7 +33,7 @@ class StorageService {
     if (!_isFirebaseInitialized) return;
     try {
       if (FirebaseAuth.instance.currentUser == null) {
-        await FirebaseAuth.instance.signInAnonymously();
+        await FirebaseAuth.instance.signInAnonymously().timeout(const Duration(seconds: 3));
       }
     } catch (_) {}
   }
@@ -141,7 +141,7 @@ class StorageService {
 
     try {
       final userRef = _firestore.collection('users').doc(user.id);
-      final snap = await userRef.get();
+      final snap = await userRef.get().timeout(const Duration(seconds: 3));
       UserModel profile;
       if (!snap.exists) {
         profile = UserModel(

@@ -13,7 +13,20 @@
           "package_name": "com.kaundega.kaun_dega"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "889585560545-63q83uct9jihahe121uvad92qqid88oa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kaundega.kaun_dega",
+            "certificate_hash": "8814dfc991ac9b6240ff6d7448d50e17fe83518e"
+          }
+        },
+        {
+          "client_id": "889585560545-79s9p2u3vchijbbcam8r4tvbd26fsa1i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD1t41oJAsEuWEf43Q9wi3g6sA2E5dlK5k"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "889585560545-79s9p2u3vchijbbcam8r4tvbd26fsa1i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

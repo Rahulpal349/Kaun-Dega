@@ -246,7 +246,8 @@ class _LoginScreenState extends State<LoginScreen> {
           err.contains('10:') ||
           err.contains('sign_in_failed') ||
           err.contains('com.google.android.gms') ||
-          err.contains('DEVELOPER_ERROR')) {
+          err.contains('DEVELOPER_ERROR') ||
+          err.contains('PlatformException')) {
         _showGoogleSetupDialog(context);
       } else {
         setState(() {
