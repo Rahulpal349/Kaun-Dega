@@ -185,6 +185,128 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Sends a 6-digit SMS OTP code to the specified phone number.
+  Future<void> sendPhoneOtp({
+    required String phoneNumber,
+    required Function(String verificationId) onCodeSent,
+    required Function(String error) onError,
+    Function(PhoneAuthCredential credential)? onAutoVerified,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        timeout: const Duration(seconds: 60),
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          if (onAutoVerified != null) {
+            onAutoVerified(credential);
+          } else {
+            await signInWithPhoneCredential(credential);
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          _isLoading = false;
+          _error = e.message ?? 'Verification failed';
+          notifyListeners();
+          onError(_error!);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          _isLoading = false;
+          notifyListeners();
+          onCodeSent(verificationId);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          if (kDebugMode) print('Auto retrieval timeout: $verificationId');
+        },
+      );
+    } catch (e) {
+      _isLoading = false;
+      _error = e.toString();
+      notifyListeners();
+      onError(_error!);
+    }
+  }
+
+  /// Verifies the SMS OTP code and signs the user into Firebase & App State.
+  Future<bool> verifyPhoneOtp({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      return await signInWithPhoneCredential(credential);
+    } catch (e) {
+      _isLoading = false;
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Helper to complete sign-in using PhoneAuthCredential.
+  Future<bool> signInWithPhoneCredential(PhoneAuthCredential credential) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final fbUser = userCredential.user;
+      final userId = fbUser?.uid ?? 'usr_phone_${DateTime.now().millisecondsSinceEpoch}';
+      final phone = fbUser?.phoneNumber ?? '';
+
+      final existingUser = await _storage.getUserProfile();
+      final bool hasExisting = existingUser != null;
+
+      final name = (hasExisting && existingUser.name.trim().isNotEmpty)
+          ? existingUser.name
+          : (phone.isNotEmpty ? 'User ${phone.substring(phone.length > 4 ? phone.length - 4 : 0)}' : 'Phone User');
+
+      final user = UserModel(
+        id: userId,
+        name: name,
+        email: hasExisting ? existingUser.email : (fbUser?.email ?? ''),
+        phone: phone,
+        upiId: hasExisting ? existingUser.upiId : '',
+        gender: hasExisting ? existingUser.gender : '',
+        avatarUrl: hasExisting ? existingUser.avatarUrl : '',
+        createdAt: (hasExisting && existingUser.createdAt.isNotEmpty)
+            ? existingUser.createdAt
+            : DateTime.now().toIso8601String(),
+      );
+
+      _currentUser = await _storage.ensureUserProfile(user);
+      _hasSeenOnboarding = true;
+      await _storage.setHasSeenOnboarding(true);
+
+      NotificationService().requestPermissions().then((_) {
+        NotificationService().saveTokenForUser(
+          userId: user.id,
+          userEmail: user.email,
+        );
+      });
+
+      await refreshDashboard();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> loginWithEmail(String email, String password, {String name = ''}) async {
     _isLoading = true;
     notifyListeners();

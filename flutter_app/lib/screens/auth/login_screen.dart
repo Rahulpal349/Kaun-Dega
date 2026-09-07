@@ -257,6 +257,253 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _showPhoneLoginModal(BuildContext context) {
+    final phoneController = TextEditingController();
+    final otpController = TextEditingController();
+    String countryCode = '+91';
+    bool isOtpSent = false;
+    String? verificationId;
+    bool isModalLoading = false;
+    String? modalError;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalContext, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.positiveBg,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(LucideIcons.phone, color: AppColors.primary, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            isOtpSent ? 'Enter OTP Code' : 'Phone Sign In',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(modalContext),
+                        icon: const Icon(LucideIcons.x, size: 20),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (modalError != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.negativeBg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        modalError!,
+                        style: const TextStyle(color: AppColors.negative, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (!isOtpSent) ...[
+                    const Text(
+                      'We will send a 6-digit verification code to your phone number via SMS.',
+                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.cardBorder),
+                            borderRadius: BorderRadius.circular(14),
+                            color: Colors.grey.shade50,
+                          ),
+                          child: Text(
+                            countryCode,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: phoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              hintText: '9876543210',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isModalLoading
+                            ? null
+                            : () async {
+                                final phone = phoneController.text.trim();
+                                if (phone.length < 8) {
+                                  setModalState(() => modalError = 'Please enter a valid phone number');
+                                  return;
+                                }
+                                setModalState(() {
+                                  isModalLoading = true;
+                                  modalError = null;
+                                });
+
+                                final fullPhone = countryCode + phone;
+                                final appState = Provider.of<AppState>(context, listen: false);
+
+                                await appState.sendPhoneOtp(
+                                  phoneNumber: fullPhone,
+                                  onCodeSent: (verId) {
+                                    setModalState(() {
+                                      isModalLoading = false;
+                                      isOtpSent = true;
+                                      verificationId = verId;
+                                    });
+                                  },
+                                  onError: (err) {
+                                    setModalState(() {
+                                      isModalLoading = false;
+                                      modalError = err;
+                                    });
+                                  },
+                                );
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: isModalLoading
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Text('Send OTP Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      'Enter the 6-digit code sent to $countryCode${phoneController.text.trim()}',
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: otpController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 8),
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '123456',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isModalLoading
+                            ? null
+                            : () async {
+                                final code = otpController.text.trim();
+                                if (code.length != 6) {
+                                  setModalState(() => modalError = 'Please enter full 6-digit OTP code');
+                                  return;
+                                }
+                                setModalState(() {
+                                  isModalLoading = true;
+                                  modalError = null;
+                                });
+
+                                try {
+                                  final appState = Provider.of<AppState>(context, listen: false);
+                                  final success = await appState.verifyPhoneOtp(
+                                    verificationId: verificationId!,
+                                    smsCode: code,
+                                  );
+
+                                  if (modalContext.mounted) Navigator.pop(modalContext);
+                                  if (context.mounted && success) {
+                                    Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                                    );
+                                  }
+                                } catch (e) {
+                                  setModalState(() {
+                                    isModalLoading = false;
+                                    modalError = 'Invalid OTP code. Please try again.';
+                                  });
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: isModalLoading
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Text('Verify & Sign In', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          setModalState(() {
+                            isOtpSent = false;
+                            modalError = null;
+                            otpController.clear();
+                          });
+                        },
+                        child: const Text('Change Phone Number', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showGoogleSetupDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -619,6 +866,36 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       ],
                                     ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Phone OTP Sign-In Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: _isLoading ? null : () => _showPhoneLoginModal(context),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: AppColors.positiveBg,
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(color: AppColors.primary, width: 1.5),
+                                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(LucideIcons.phone, size: 20, color: AppColors.primary),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Continue with Phone Number',
+                                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
 
