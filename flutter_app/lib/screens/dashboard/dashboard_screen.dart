@@ -11,6 +11,7 @@ import '../group/group_detail_screen.dart';
 import '../history/history_screen.dart';
 import '../profile/profile_screen.dart';
 import '../auth/login_screen.dart';
+import '../../widgets/direct_transaction_modal.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -33,6 +34,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _onTabChanged(int index) {
     if (index == _currentTabIndex) return;
     setState(() => _currentTabIndex = index);
+  }
+
+  void _showDirectTransactionModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const DirectTransactionModal(),
+    );
+  }
+
+  void _showJoinGroupDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Join a Group', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter or paste an invite code or link to join an existing ledger.',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'e.g. g_12345 or link',
+                prefixIcon: Icon(LucideIcons.link, size: 18),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              String input = controller.text.trim();
+              if (input.isNotEmpty) {
+                if (input.contains('/join/')) {
+                  input = input.split('/join/').last.split('?').first.split('#').first.trim();
+                }
+                Navigator.pop(ctx);
+                final appState = Provider.of<AppState>(context, listen: false);
+                final joinedGroup = await appState.joinGroupByCode(input);
+                if (mounted) {
+                  if (joinedGroup != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Joined "${joinedGroup.name}"!'), behavior: SnackBarBehavior.floating),
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => GroupDetailScreen(groupId: joinedGroup.id)),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Invalid invite code or group not found.'), behavior: SnackBarBehavior.floating),
+                    );
+                  }
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text('Join'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmSignOut() {
@@ -374,7 +453,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 18),
+
+                  // Quick Action Bar (1-on-1 Khatabook & Join Code)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _showDirectTransactionModal,
+                          icon: const Icon(LucideIcons.userPlus, size: 16),
+                          label: const Text('1-on-1 Khatabook', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _showJoinGroupDialog,
+                          icon: const Icon(LucideIcons.link, size: 16),
+                          label: const Text('Join via Code', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.cardBorder, width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
 
                   // Active Ledgers Section Header
                   Row(

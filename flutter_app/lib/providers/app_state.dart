@@ -12,7 +12,6 @@ import '../services/notification_service.dart';
 class AppState extends ChangeNotifier {
   final StorageService _storage = StorageService();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '53793768201-2q4alqb6cbqjmj74vtgo3nuga1tqvn67.apps.googleusercontent.com',
     scopes: ['email', 'profile'],
   );
 
@@ -161,12 +160,14 @@ class AppState extends ChangeNotifier {
         );
       });
       await refreshDashboard();
+      _isLoading = false;
+      notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
-      return false;
+      rethrow;
     }
   }
 
@@ -291,6 +292,90 @@ class AppState extends ChangeNotifier {
 
     await refreshDashboard();
     return group;
+  }
+
+  // --- Khatabook 1-on-1 Direct Transactions ---
+  Future<GroupModel> addDirect1on1Transaction({
+    required String contactName,
+    required String contactEmail,
+    required double amount,
+    required bool isYouGave,
+    String note = '',
+  }) async {
+    if (_currentUser == null) throw Exception('Must be logged in');
+
+    final cleanName = contactName.trim();
+    final cleanEmail = contactEmail.trim().toLowerCase();
+    if (cleanName.isEmpty) throw Exception('Contact name required');
+
+    // 1. Find or create 1-on-1 group for this contact
+    GroupModel? targetGroup;
+    for (final g in _groups) {
+      if (g.memberIds.length == 2) {
+        final otherMember = g.memberList.firstWhere(
+          (m) => m.id != _currentUser!.id,
+          orElse: () => UserModel(id: '', name: '', email: ''),
+        );
+        if (otherMember.id.isNotEmpty) {
+          final isSameName = otherMember.name.toLowerCase() == cleanName.toLowerCase();
+          final isSameEmail = cleanEmail.isNotEmpty && otherMember.email.toLowerCase() == cleanEmail;
+          if (isSameName || isSameEmail) {
+            targetGroup = g;
+            break;
+          }
+        }
+      }
+    }
+
+    if (targetGroup == null) {
+      final participantInput = cleanEmail.isNotEmpty ? cleanEmail : cleanName;
+      targetGroup = await createGroup(
+        name: cleanName,
+        icon: 'user',
+        extraParticipants: [participantInput],
+      );
+    }
+
+    final otherMemberId = targetGroup.memberIds.firstWhere(
+      (id) => id != _currentUser!.id,
+      orElse: () => targetGroup!.memberList.isNotEmpty ? targetGroup.memberList.last.id : '',
+    );
+
+    final payerInfo = PayerInfo(
+      id: _currentUser!.id,
+      name: _currentUser!.name.isNotEmpty ? _currentUser!.name : 'You',
+      upiId: _currentUser!.upiId,
+    );
+
+    if (isYouGave) {
+      // You Gave (Paid expense / lent money to contact)
+      final shares = [
+        ExpenseShare(userId: otherMemberId, amount: amount),
+      ];
+
+      await _storage.addExpense(
+        groupId: targetGroup.id,
+        description: note.isNotEmpty ? note : 'Direct Entry',
+        amount: amount,
+        paidBy: _currentUser!.id,
+        splitType: 'exact',
+        shares: shares,
+        payer: payerInfo,
+        note: note,
+      );
+    } else {
+      // You Got (Received payment from contact)
+      await _storage.recordSettlement(
+        groupId: targetGroup.id,
+        fromUser: otherMemberId,
+        toUser: _currentUser!.id,
+        amount: amount,
+      );
+    }
+
+    await loadGroupDetails(targetGroup.id);
+    await refreshDashboard();
+    return targetGroup;
   }
 
   Future<void> deleteGroup(String groupId) async {
