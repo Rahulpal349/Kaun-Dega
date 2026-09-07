@@ -261,10 +261,15 @@ class AppState extends ChangeNotifier {
     try {
       final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
       final fbUser = userCredential.user;
-      final userId = fbUser?.uid ?? 'usr_phone_${DateTime.now().millisecondsSinceEpoch}';
       final phone = fbUser?.phoneNumber ?? '';
 
-      final existingUser = await _storage.getUserProfile();
+      UserModel? existingUser;
+      if (phone.isNotEmpty) {
+        existingUser = await _storage.getUserProfileForPhone(phone);
+      }
+      existingUser ??= await _storage.getUserProfile();
+
+      final userId = existingUser?.id ?? fbUser?.uid ?? 'usr_phone_${DateTime.now().millisecondsSinceEpoch}';
       final bool hasExisting = existingUser != null;
 
       final name = (hasExisting && existingUser.name.trim().isNotEmpty)

@@ -101,6 +101,26 @@ class StorageService {
     return null;
   }
 
+  Future<UserModel?> getUserProfileForPhone(String phone) async {
+    final cleanPhone = phone.trim();
+    if (cleanPhone.isEmpty) return null;
+
+    if (_isFirebaseInitialized) {
+      try {
+        final snap = await _firestore
+            .collection('users')
+            .where('phone', isEqualTo: cleanPhone)
+            .limit(1)
+            .get();
+        if (snap.docs.isNotEmpty) {
+          final d = snap.docs.first;
+          return UserModel.fromJson({'id': d.id, ...d.data()});
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
   Future<UserModel?> getUserProfileForEmail(String email) async {
     final emailLower = email.toLowerCase().trim();
     if (emailLower.isEmpty) return null;
