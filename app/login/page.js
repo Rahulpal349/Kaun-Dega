@@ -160,12 +160,14 @@ export default function LoginPage() {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-50 to-emerald-100 flex items-center justify-center mb-4 p-1 shadow-sm border border-emerald-100">
-            <img 
-              src="/logo.png" 
-              alt="Kaun Dega Logo" 
-              className="w-full h-full object-cover rounded-full"
-            />
+          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#34D399] to-[#059669] p-1 shadow-[0_0_25px_rgba(16,185,129,0.4)] mb-4">
+            <div className="w-full h-full rounded-full bg-[#0E382F] p-0.5 overflow-hidden flex items-center justify-center">
+              <img 
+                src="/logo.png" 
+                alt="Kaun Dega Logo" 
+                className="w-full h-full object-cover rounded-full"
+              />
+            </div>
           </div>
           <h1 className="font-display font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-2">
             Kaun Dega?
