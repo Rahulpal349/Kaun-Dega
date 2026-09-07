@@ -292,9 +292,22 @@ class _LoginScreenState extends State<LoginScreen> {
       },
       onError: (err) {
         if (!mounted) return;
+        final lower = err.toLowerCase();
+        String userFriendlyError = err;
+
+        if (lower.contains('quota') ||
+            lower.contains('limit') ||
+            lower.contains('too-many-requests') ||
+            lower.contains('blocked') ||
+            lower.contains('exceeded') ||
+            lower.contains('10/day')) {
+          userFriendlyError =
+              'SMS daily quota limit reached (10 SMS/day).\n\nPlease sign in with Google instead, then add your mobile number in Profile settings.';
+        }
+
         setState(() {
           _isPhoneLoading = false;
-          _phoneError = err;
+          _phoneError = userFriendlyError;
         });
       },
     );
@@ -643,20 +656,49 @@ class _LoginScreenState extends State<LoginScreen> {
                           if (_errorMessage != null || _phoneError != null || stateError != null) ...[
                             Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: AppColors.negativeBg,
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(16),
                                 border: Border.all(color: AppColors.negative.withValues(alpha: 0.3)),
                               ),
-                              child: Text(
-                                _phoneError ?? _errorMessage ?? stateError!,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: AppColors.negative,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    _phoneError ?? _errorMessage ?? stateError!,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: AppColors.negative,
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  if ((_phoneError ?? '').contains('Google')) ...[
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedTab = 0;
+                                            _phoneError = null;
+                                            _errorMessage = null;
+                                          });
+                                        },
+                                        icon: const Icon(LucideIcons.chrome, size: 16),
+                                        label: const Text('Switch to Google Sign-In', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          elevation: 0,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                             const SizedBox(height: 16),

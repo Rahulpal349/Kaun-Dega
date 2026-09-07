@@ -106,7 +106,13 @@ export default function LoginPage() {
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setError(err.message || 'Failed to send OTP code. Please try again.');
+      const errMsg = err.message || '';
+      const lower = errMsg.toLowerCase();
+      if (lower.includes('quota') || lower.includes('limit') || lower.includes('too-many-requests') || lower.includes('exceeded') || lower.includes('10/day')) {
+        setError('SMS daily quota limit reached (10 SMS/day). Please sign in with Google instead, then add your mobile number in Profile settings.');
+      } else {
+        setError(errMsg || 'Failed to send OTP code. Please try again.');
+      }
       if (window.recaptchaVerifier) {
         try { window.recaptchaVerifier.clear(); } catch (_) {}
         window.recaptchaVerifier = null;
@@ -186,8 +192,18 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200/80 text-red-600 px-4 py-3 rounded-xl text-xs font-medium mb-6 text-center leading-relaxed">
-            {error}
+          <div className="bg-red-50 border border-red-200/80 text-red-600 px-4 py-3 rounded-2xl text-xs font-medium mb-6 text-center leading-relaxed flex flex-col items-center gap-2">
+            <span>{error}</span>
+            {error.includes('Google') && (
+              <button
+                type="button"
+                onClick={() => { setAuthMode('google'); setError(''); }}
+                className="mt-1 bg-[#145C4B] hover:bg-[#0E382F] text-white font-bold py-2 px-4 rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Switch to Google Sign-In</span>
+                <ArrowRight size={13} />
+              </button>
+            )}
           </div>
         )}
 
