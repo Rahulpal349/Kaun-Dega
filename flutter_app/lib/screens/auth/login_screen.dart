@@ -17,6 +17,16 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Phone OTP States
+  int _selectedTab = 0; // 0: Google, 1: Phone
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
+  final String _countryCode = '+91';
+  bool _isOtpSent = false;
+  String? _verificationId;
+  bool _isPhoneLoading = false;
+  String? _phoneError;
+
   late final TapGestureRecognizer _termsRecognizer;
   late final TapGestureRecognizer _privacyRecognizer;
 
@@ -31,6 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _termsRecognizer.dispose();
     _privacyRecognizer.dispose();
+    _phoneController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -53,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
         {
           'title': '3. User Accounts & Google Auth',
           'content':
-              'You access the Service securely via Google Authentication. You are responsible for safeguarding your account credentials and for all activities that occur under your account.',
+              'You access the Service securely via Google Authentication or Verified Mobile OTP. You are responsible for safeguarding your account credentials and for all activities under your account.',
         },
         {
           'title': '4. Accurate Information',
@@ -73,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
         {
           'title': '1. Information We Collect',
           'content':
-              'When you sign in to Kaun Dega?, we collect your basic profile details provided via Google Authentication (name, email, profile photo). We also securely store expense entries, group memberships, and settlement notes that you create in the app.',
+              'When you sign in to Kaun Dega?, we collect basic profile details (name, email, profile photo, phone number). We also securely store expense entries, group memberships, and settlement notes that you create in the app.',
         },
         {
           'title': '2. How We Use Your Data',
@@ -83,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
         {
           'title': '3. Data Sharing & Security',
           'content':
-              'Expense records and group memberships are shared exclusively with the members of the specific groups you join. We do not sell, rent, or monetize your personal data to third parties. All network communications are encrypted via modern TLS/HTTPS.',
+              'Expense records and group memberships are shared exclusively with members of the specific groups you join. We do not sell or monetize your personal data. All network communications are encrypted via TLS/HTTPS.',
         },
       ],
     );
@@ -103,11 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
         height: MediaQuery.of(ctx).size.height * 0.78,
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
           children: [
-            // Handle bar
             Container(
               margin: const EdgeInsets.only(top: 12, bottom: 8),
               width: 40,
@@ -117,7 +128,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
@@ -166,7 +176,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const Divider(height: 1, color: AppColors.cardBorder),
-            // Content
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.all(20),
@@ -199,7 +208,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
               ),
             ),
-            // Bottom Action
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               child: SizedBox(
@@ -210,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   child: const Text('I Understand', style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
@@ -257,251 +265,73 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showPhoneLoginModal(BuildContext context) {
-    final phoneController = TextEditingController();
-    final otpController = TextEditingController();
-    String countryCode = '+91';
-    bool isOtpSent = false;
-    String? verificationId;
-    bool isModalLoading = false;
-    String? modalError;
+  Future<void> _handleSendPhoneOtp() async {
+    final phone = _phoneController.text.trim();
+    if (phone.length < 8) {
+      setState(() => _phoneError = 'Please enter a valid mobile number');
+      return;
+    }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (modalContext, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
-                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.positiveBg,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(LucideIcons.phone, color: AppColors.primary, size: 20),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            isOtpSent ? 'Enter OTP Code' : 'Phone Sign In',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(modalContext),
-                        icon: const Icon(LucideIcons.x, size: 20),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (modalError != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.negativeBg,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        modalError!,
-                        style: const TextStyle(color: AppColors.negative, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  if (!isOtpSent) ...[
-                    const Text(
-                      'We will send a 6-digit verification code to your phone number via SMS.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.cardBorder),
-                            borderRadius: BorderRadius.circular(14),
-                            color: Colors.grey.shade50,
-                          ),
-                          child: Text(
-                            countryCode,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: phoneController,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              hintText: '9876543210',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isModalLoading
-                            ? null
-                            : () async {
-                                final phone = phoneController.text.trim();
-                                if (phone.length < 8) {
-                                  setModalState(() => modalError = 'Please enter a valid phone number');
-                                  return;
-                                }
-                                setModalState(() {
-                                  isModalLoading = true;
-                                  modalError = null;
-                                });
+    setState(() {
+      _isPhoneLoading = true;
+      _phoneError = null;
+    });
 
-                                final fullPhone = countryCode + phone;
-                                final appState = Provider.of<AppState>(context, listen: false);
+    final fullPhone = _countryCode + phone;
+    final appState = Provider.of<AppState>(context, listen: false);
 
-                                await appState.sendPhoneOtp(
-                                  phoneNumber: fullPhone,
-                                  onCodeSent: (verId) {
-                                    setModalState(() {
-                                      isModalLoading = false;
-                                      isOtpSent = true;
-                                      verificationId = verId;
-                                    });
-                                  },
-                                  onError: (err) {
-                                    setModalState(() {
-                                      isModalLoading = false;
-                                      modalError = err;
-                                    });
-                                  },
-                                );
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        child: isModalLoading
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text('Send OTP Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                      ),
-                    ),
-                  ] else ...[
-                    Text(
-                      'Enter the 6-digit code sent to $countryCode${phoneController.text.trim()}',
-                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: otpController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 8),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        hintText: '123456',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isModalLoading
-                            ? null
-                            : () async {
-                                final code = otpController.text.trim();
-                                if (code.length != 6) {
-                                  setModalState(() => modalError = 'Please enter full 6-digit OTP code');
-                                  return;
-                                }
-                                setModalState(() {
-                                  isModalLoading = true;
-                                  modalError = null;
-                                });
-
-                                try {
-                                  final appState = Provider.of<AppState>(context, listen: false);
-                                  final success = await appState.verifyPhoneOtp(
-                                    verificationId: verificationId!,
-                                    smsCode: code,
-                                  );
-
-                                  if (modalContext.mounted) Navigator.pop(modalContext);
-                                  if (context.mounted && success) {
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(builder: (_) => const DashboardScreen()),
-                                    );
-                                  }
-                                } catch (e) {
-                                  setModalState(() {
-                                    isModalLoading = false;
-                                    modalError = 'Invalid OTP code. Please try again.';
-                                  });
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        child: isModalLoading
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text('Verify & Sign In', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: TextButton(
-                        onPressed: () {
-                          setModalState(() {
-                            isOtpSent = false;
-                            modalError = null;
-                            otpController.clear();
-                          });
-                        },
-                        child: const Text('Change Phone Number', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          },
-        );
+    await appState.sendPhoneOtp(
+      phoneNumber: fullPhone,
+      onCodeSent: (verId) {
+        if (!mounted) return;
+        setState(() {
+          _isPhoneLoading = false;
+          _isOtpSent = true;
+          _verificationId = verId;
+        });
+      },
+      onError: (err) {
+        if (!mounted) return;
+        setState(() {
+          _isPhoneLoading = false;
+          _phoneError = err;
+        });
       },
     );
+  }
+
+  Future<void> _handleVerifyPhoneOtp() async {
+    final code = _otpController.text.trim();
+    if (code.length != 6) {
+      setState(() => _phoneError = 'Please enter full 6-digit OTP code');
+      return;
+    }
+
+    setState(() {
+      _isPhoneLoading = true;
+      _phoneError = null;
+    });
+
+    try {
+      final appState = Provider.of<AppState>(context, listen: false);
+      final success = await appState.verifyPhoneOtp(
+        verificationId: _verificationId!,
+        smsCode: code,
+      );
+
+      if (!mounted) return;
+      if (success) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isPhoneLoading = false;
+        _phoneError = 'Invalid OTP verification code. Please check and try again.';
+      });
+    }
   }
 
   void _showGoogleSetupDialog(BuildContext context) {
@@ -515,122 +345,20 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Sign In Notice',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                'Google Sign-In Setup',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Google Sign-In is initializing. You can try again or sign in directly with your email address below:',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
-            ),
-          ],
+        content: const Text(
+          'Google Sign-In requires your app SHA-1 fingerprint to be registered in Firebase Console.\n\nAlternatively, you can test with Phone OTP or Guest mode.',
+          style: TextStyle(fontSize: 13, height: 1.45),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showEmailSignInDialog(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Sign In with Email'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEmailSignInDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: const Row(
-          children: [
-            Icon(LucideIcons.mail, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text(
-              'Sign In with Email',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Your Full Name',
-                  hintText: 'e.g. Rahul Sharma',
-                  prefixIcon: const Icon(LucideIcons.user, size: 18),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter your name' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email Address',
-                  hintText: 'e.g. rahul@example.com',
-                  prefixIcon: const Icon(LucideIcons.mail, size: 18),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Please enter your email';
-                  if (!val.contains('@')) return 'Enter a valid email address';
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final name = nameController.text.trim();
-              final email = emailController.text.trim();
-              Navigator.pop(ctx);
-
-              final appState = Provider.of<AppState>(context, listen: false);
-              await appState.loginWithEmail(email, '', name: name);
-              if (!context.mounted) return;
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const DashboardScreen()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Continue'),
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -639,32 +367,44 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final stateError = Provider.of<AppState>(context).error;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F3E34),
+      backgroundColor: const Color(0xFF092921),
       body: Stack(
         children: [
-          // Background subtle ambient gradients
+          // Elegant Deep Background Gradient Glows
           Positioned(
-            top: -120,
+            top: -140,
             left: -100,
             child: Container(
-              width: 380,
-              height: 380,
+              width: 440,
+              height: 440,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF10B981).withValues(alpha: 0.25),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
           Positioned(
-            bottom: -100,
+            bottom: -120,
             right: -80,
             child: Container(
-              width: 350,
-              height: 350,
+              width: 400,
+              height: 400,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF2DD4BF).withValues(alpha: 0.12),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF2DD4BF).withValues(alpha: 0.18),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
@@ -672,151 +412,229 @@ class _LoginScreenState extends State<LoginScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Main Glassmorphism Card
+                    // Brand Header
                     Container(
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      padding: const EdgeInsets.all(28),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(36),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            blurRadius: 40,
-                            offset: const Offset(0, 16),
-                          ),
-                        ],
-                      ),
+                      margin: const EdgeInsets.only(bottom: 24),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // App Logo
+                          // Glowing Logo Avatar
                           Container(
-                            width: 80,
-                            height: 80,
-                            padding: const EdgeInsets.all(3),
+                            width: 86,
+                            height: 86,
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: AppColors.positiveBg,
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.cardBorder, width: 2),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF34D399), Color(0xFF059669)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                                  blurRadius: 24,
+                                  spreadRadius: 2,
+                                ),
+                              ],
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(40),
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  color: AppColors.primary,
-                                  child: const Center(
-                                    child: Text('KD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)),
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF0E382F),
+                                shape: BoxShape.circle,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(40),
+                                child: Image.asset(
+                                  'assets/images/logo.png',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: AppColors.primary,
+                                    child: const Center(
+                                      child: Text(
+                                        'KD',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 26,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 16),
-
-                          // Brand Title
                           const Text(
                             'Kaun Dega?',
                             style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -0.6,
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
-                            'Split bills and settle debts with friends in seconds.',
+                          Text(
+                            'Split bills & settle debts with friends in seconds',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 13.5,
-                              color: AppColors.textSecondary,
-                              height: 1.4,
+                              fontSize: 14,
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
 
-                          // Feature Badges
+                    // Glassmorphic Authentication Card
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            blurRadius: 50,
+                            offset: const Offset(0, 20),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Segmented Auth Mode Switcher
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: AppColors.positiveBg.withValues(alpha: 0.8),
+                              color: Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.cardBorder),
                             ),
-                            child: Column(
+                            child: Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.primary,
-                                        shape: BoxShape.circle,
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedTab = 0;
+                                        _errorMessage = null;
+                                        _phoneError = null;
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.symmetric(vertical: 11),
+                                      decoration: BoxDecoration(
+                                        color: _selectedTab == 0 ? Colors.white : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: _selectedTab == 0
+                                            ? [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.08),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 2),
+                                                )
+                                              ]
+                                            : [],
                                       ),
-                                      child: const Icon(LucideIcons.zap, size: 10, color: Colors.white),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    const Expanded(
-                                      child: Text(
-                                        'Instant 1-tap Google / Guest access',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimary,
-                                        ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            LucideIcons.chrome,
+                                            size: 16,
+                                            color: _selectedTab == 0 ? AppColors.primary : AppColors.textMuted,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Google',
+                                            style: TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: _selectedTab == 0 ? AppColors.textPrimary : AppColors.textMuted,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
+                                  ),
                                 ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.primary,
-                                        shape: BoxShape.circle,
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedTab = 1;
+                                        _errorMessage = null;
+                                        _phoneError = null;
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.symmetric(vertical: 11),
+                                      decoration: BoxDecoration(
+                                        color: _selectedTab == 1 ? Colors.white : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: _selectedTab == 1
+                                            ? [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.08),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 2),
+                                                )
+                                              ]
+                                            : [],
                                       ),
-                                      child: const Icon(LucideIcons.checkCircle2, size: 10, color: Colors.white),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    const Expanded(
-                                      child: Text(
-                                        'Smart debt simplification & WhatsApp share',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimary,
-                                        ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            LucideIcons.phone,
+                                            size: 16,
+                                            color: _selectedTab == 1 ? AppColors.primary : AppColors.textMuted,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Phone OTP',
+                                            style: TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: _selectedTab == 1 ? AppColors.textPrimary : AppColors.textMuted,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 20),
 
-                          if (_errorMessage != null || Provider.of<AppState>(context).error != null) ...[
+                          // Error Display
+                          if (_errorMessage != null || _phoneError != null || stateError != null) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                               decoration: BoxDecoration(
                                 color: AppColors.negativeBg,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: AppColors.negative.withValues(alpha: 0.3)),
                               ),
                               child: Text(
-                                _errorMessage ?? Provider.of<AppState>(context).error!,
+                                _phoneError ?? _errorMessage ?? stateError!,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: AppColors.negative,
-                                  fontSize: 12,
+                                  fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -824,86 +642,293 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(height: 16),
                           ],
 
-                          // Google Sign-In Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _handleGoogleSignIn,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: AppColors.textPrimary,
-                                elevation: 0,
-                                side: const BorderSide(color: AppColors.cardBorder, width: 1.5),
-                                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
+                          // TAB 0: GOOGLE SIGN-IN
+                          if (_selectedTab == 0) ...[
+                            // Features overview
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: AppColors.positiveBg.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.cardBorder),
                               ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Image.asset(
-                                          'assets/images/google_logo.png',
-                                          width: 20,
-                                          height: 20,
-                                          fit: BoxFit.contain,
-                                          errorBuilder: (_, __, ___) => Image.network(
-                                            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png',
-                                            width: 20,
-                                            height: 20,
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.primary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(LucideIcons.zap, size: 11, color: Colors.white),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      const Expanded(
+                                        child: Text(
+                                          '1-Tap Secure Google Authentication',
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textPrimary,
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
-                                        const Text(
-                                          'Continue with Google',
-                                          style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.primary,
+                                          shape: BoxShape.circle,
                                         ),
-                                      ],
-                                    ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Phone OTP Sign-In Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton(
-                              onPressed: _isLoading ? null : () => _showPhoneLoginModal(context),
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: AppColors.positiveBg,
-                                foregroundColor: AppColors.primary,
-                                side: const BorderSide(color: AppColors.primary, width: 1.5),
-                                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(LucideIcons.phone, size: 20, color: AppColors.primary),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'Continue with Phone Number',
-                                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                                        child: const Icon(LucideIcons.checkCircle2, size: 11, color: Colors.white),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      const Expanded(
+                                        child: Text(
+                                          'Auto-syncs group ledgers & WhatsApp share',
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 20),
 
-                          const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _handleGoogleSignIn,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: AppColors.textPrimary,
+                                  elevation: 0,
+                                  side: const BorderSide(color: AppColors.cardBorder, width: 1.5),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Image.asset(
+                                            'assets/images/google_logo.png',
+                                            width: 20,
+                                            height: 20,
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, __, ___) => Image.network(
+                                              'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png',
+                                              width: 20,
+                                              height: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Text(
+                                            'Continue with Google',
+                                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ]
+                          // TAB 1: PHONE OTP SIGN-IN
+                          else ...[
+                            if (!_isOtpSent) ...[
+                              const Text(
+                                'Mobile Number',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: AppColors.cardBorder, width: 1.5),
+                                      borderRadius: BorderRadius.circular(16),
+                                      color: Colors.grey.shade50,
+                                    ),
+                                    child: Text(
+                                      _countryCode,
+                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _phoneController,
+                                      keyboardType: TextInputType.phone,
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                      decoration: InputDecoration(
+                                        hintText: '9876543210',
+                                        prefixIcon: const Icon(LucideIcons.phone, size: 18, color: AppColors.textMuted),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                          borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.5),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _isPhoneLoading ? null : _handleSendPhoneOtp,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                    elevation: 0,
+                                  ),
+                                  child: _isPhoneLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                        )
+                                      : const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              'Send OTP Code',
+                                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Icon(LucideIcons.arrowRight, size: 18),
+                                          ],
+                                        ),
+                                ),
+                              ),
+                            ] else ...[
+                              Text(
+                                'Enter 6-digit code sent to $_countryCode${_phoneController.text.trim()}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              TextField(
+                                controller: _otpController,
+                                keyboardType: TextInputType.number,
+                                maxLength: 6,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 10,
+                                  color: AppColors.primary,
+                                ),
+                                decoration: InputDecoration(
+                                  counterText: '',
+                                  hintText: '123456',
+                                  hintStyle: TextStyle(
+                                    letterSpacing: 8,
+                                    color: Colors.grey.shade300,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.5),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _isPhoneLoading ? null : _handleVerifyPhoneOtp,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                    elevation: 0,
+                                  ),
+                                  child: _isPhoneLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                        )
+                                      : const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              'Verify & Sign In',
+                                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Icon(LucideIcons.checkCircle2, size: 18),
+                                          ],
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Center(
+                                child: TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isOtpSent = false;
+                                      _phoneError = null;
+                                      _otpController.clear();
+                                    });
+                                  },
+                                  child: const Text(
+                                    'Change Phone Number',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+
+                          const SizedBox(height: 20),
                           const Divider(color: AppColors.cardBorder, height: 1),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
 
-                          // Legal Footer
+                          // Legal Terms Footer
                           Text.rich(
                             TextSpan(
                               text: 'By signing in, you agree to our ',
@@ -949,6 +974,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.white.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
