@@ -105,11 +105,22 @@ class StorageService {
     final cleanPhone = phone.trim();
     if (cleanPhone.isEmpty) return null;
 
-    if (_isFirebaseInitialized) {
+    final digits = cleanPhone.replaceAll(RegExp(r'\D'), '');
+    final last10 = digits.length >= 10 ? digits.substring(digits.length - 10) : digits;
+
+    if (_isFirebaseInitialized && last10.isNotEmpty) {
       try {
+        final Set<String> possibleFormats = {
+          cleanPhone,
+          last10,
+          '+91$last10',
+          '+91 $last10',
+          '91$last10',
+        };
+
         final snap = await _firestore
             .collection('users')
-            .where('phone', isEqualTo: cleanPhone)
+            .where('phone', whereIn: possibleFormats.toList())
             .limit(1)
             .get();
         if (snap.docs.isNotEmpty) {
