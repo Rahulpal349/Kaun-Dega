@@ -5,6 +5,7 @@ class GroupModel {
   final String name;
   final String emoji;
   final String icon;
+  final String groupType;
   final String createdBy;
   final String createdAt;
   final List<String> memberIds;
@@ -17,6 +18,7 @@ class GroupModel {
     required this.name,
     this.emoji = '🧾',
     this.icon = 'other',
+    this.groupType = 'other',
     required this.createdBy,
     String? createdAt,
     this.memberIds = const [],
@@ -24,6 +26,8 @@ class GroupModel {
     this.members = const {},
     this.myRole = 'member',
   }) : createdAt = createdAt ?? DateTime.now().toIso8601String();
+
+  bool get isDirect => groupType == 'direct' || icon == 'user';
 
   factory GroupModel.fromJson(Map<String, dynamic> json, {String currentUserId = ''}) {
     final rawMembers = json['members'];
@@ -57,11 +61,14 @@ class GroupModel {
       userRole = 'admin';
     }
 
+    final parsedGroupType = json['groupType'] ?? json['group_type'] ?? (json['icon'] == 'user' ? 'direct' : 'other');
+
     return GroupModel(
       id: json['id'] ?? '',
       name: json['name'] ?? 'Group',
       emoji: json['emoji'] ?? '🧾',
       icon: json['icon'] ?? json['emoji'] ?? 'other',
+      groupType: parsedGroupType.toString(),
       createdBy: json['created_by'] ?? json['createdBy'] ?? '',
       createdAt: json['created_at'] ?? json['createdAt'] ?? '',
       memberIds: mIds,
@@ -80,6 +87,7 @@ class GroupModel {
       'name': name,
       'emoji': emoji,
       'icon': icon,
+      'groupType': groupType,
       'created_by': createdBy,
       'created_at': createdAt,
       'memberIds': memberIds,

@@ -857,7 +857,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
-                                            if (isAdmin) ...[
+                                            if (g.isDirect) ...[
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.positiveBg,
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: const Text(
+                                                  '1-ON-1',
+                                                  style: TextStyle(
+                                                    fontSize: 8.5,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: AppColors.primary,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                            if (isAdmin && !g.isDirect) ...[
                                               const SizedBox(width: 6),
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -881,10 +900,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         const SizedBox(height: 4),
                                         Row(
                                           children: [
-                                            const Icon(LucideIcons.users, size: 12, color: AppColors.textMuted),
+                                            Icon(g.isDirect ? LucideIcons.userCheck : LucideIcons.users, size: 12, color: AppColors.textMuted),
                                             const SizedBox(width: 4),
                                             Text(
-                                              '${g.memberIds.length} members',
+                                              g.isDirect ? 'Direct Khatabook' : '${g.memberIds.length} members',
                                               style: const TextStyle(
                                                 fontSize: 12,
                                                 color: AppColors.textSecondary,

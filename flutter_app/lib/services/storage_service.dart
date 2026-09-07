@@ -588,6 +588,7 @@ class StorageService {
     required String icon,
     required UserModel currentUser,
     required List<String> extraParticipants,
+    String groupType = 'other',
   }) async {
     await _ensureFirebaseAuth();
     final groupId = _firestore.collection('groups').doc().id;
@@ -667,7 +668,7 @@ class StorageService {
       'name': name,
       'emoji': icon,
       'icon': icon,
-      'groupType': 'other',
+      'groupType': groupType,
       'created_by': currentUser.id,
       'created_at': DateTime.now().toIso8601String(),
       'memberIds': memberIds,

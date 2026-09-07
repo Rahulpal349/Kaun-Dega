@@ -325,6 +325,7 @@ class AppState extends ChangeNotifier {
     required String name,
     required String icon,
     required List<String> extraParticipants,
+    String groupType = 'other',
   }) async {
     if (_currentUser == null) throw Exception('Must be logged in');
 
@@ -333,6 +334,7 @@ class AppState extends ChangeNotifier {
       icon: icon,
       currentUser: _currentUser!,
       extraParticipants: extraParticipants,
+      groupType: groupType,
     );
 
     await refreshDashboard();
@@ -349,6 +351,7 @@ class AppState extends ChangeNotifier {
       name: cleanName,
       emoji: newIcon,
       icon: newIcon,
+      groupType: _activeGroup!.groupType,
       createdBy: _activeGroup!.createdBy,
       createdAt: _activeGroup!.createdAt,
       memberIds: _activeGroup!.memberIds,
@@ -380,10 +383,10 @@ class AppState extends ChangeNotifier {
     final cleanEmail = contactEmail.trim().toLowerCase();
     if (cleanName.isEmpty) throw Exception('Contact name required');
 
-    // 1. Find or create 1-on-1 group for this contact
+    // 1. Find existing 1-on-1 direct Khatabook ledger ONLY for this contact
     GroupModel? targetGroup;
     for (final g in _groups) {
-      if (g.memberIds.length == 2) {
+      if (g.isDirect || g.icon == 'user' || g.groupType == 'direct') {
         final otherMember = g.memberList.firstWhere(
           (m) => m.id != _currentUser!.id,
           orElse: () => UserModel(id: '', name: '', email: ''),
@@ -392,6 +395,11 @@ class AppState extends ChangeNotifier {
           final isSameName = otherMember.name.toLowerCase() == cleanName.toLowerCase();
           final isSameEmail = cleanEmail.isNotEmpty && otherMember.email.toLowerCase() == cleanEmail;
           if (isSameName || isSameEmail) {
+            targetGroup = g;
+            break;
+          }
+        } else {
+          if (g.name.toLowerCase() == cleanName.toLowerCase()) {
             targetGroup = g;
             break;
           }
@@ -405,6 +413,7 @@ class AppState extends ChangeNotifier {
         name: cleanName,
         icon: 'user',
         extraParticipants: [participantInput],
+        groupType: 'direct',
       );
     }
 
