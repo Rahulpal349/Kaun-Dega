@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -9,11 +10,13 @@ import '../../widgets/custom_bottom_nav.dart';
 import '../../widgets/group_icon.dart';
 import '../group/new_group_screen.dart';
 import '../group/group_detail_screen.dart';
+import '../group/join_group_screen.dart';
 import '../history/history_screen.dart';
 import '../profile/profile_screen.dart';
 import '../auth/login_screen.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/direct_transaction_modal.dart';
+import '../../services/deep_link_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -25,6 +28,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentTabIndex = 0;
   int _selectedLedgerType = 0; // 0 = Groups, 1 = 1-on-1 Khatabook
+  StreamSubscription<String>? _deepLinkSub;
 
   @override
   void initState() {
@@ -32,6 +36,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<AppState>(context, listen: false).refreshDashboard();
     });
+    // Listen for invite links while the dashboard is active
+    _deepLinkSub = DeepLinkService.instance.codeStream.listen((code) {
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => JoinGroupScreen(groupId: code)),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _deepLinkSub?.cancel();
+    super.dispose();
   }
 
   void _onTabChanged(int index) {

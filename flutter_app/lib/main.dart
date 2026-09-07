@@ -7,6 +7,7 @@ import 'screens/splash_screen.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'services/notification_service.dart';
+import 'services/deep_link_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -14,6 +15,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await NotificationService().initialize();
+
+  // Initialise deep link listener BEFORE runApp so cold-start links are captured
+  await DeepLinkService.instance.init();
 
   // Enable Edge-to-Edge mode and transparent system bars for Android 15 compliance
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

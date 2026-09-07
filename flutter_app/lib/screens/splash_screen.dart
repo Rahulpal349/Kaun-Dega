@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/app_state.dart';
+import '../services/deep_link_service.dart';
 import 'auth/login_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'onboarding/onboarding_screen.dart';
+import 'group/join_group_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -36,6 +38,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
     _navigateNext();
+
+    // Handle foreground deep links arriving while the splash is visible
+    DeepLinkService.instance.codeStream.listen((code) {
+      if (!mounted) return;
+      final appState = Provider.of<AppState>(context, listen: false);
+      if (appState.isAuthenticated) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => JoinGroupScreen(groupId: code)),
+        );
+      }
+    });
   }
 
   Future<void> _navigateNext() async {
@@ -51,11 +64,23 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     await minDelay;
     if (!mounted) return;
 
+    // Check if the app was opened via a group invite link (cold-start)
+    final pendingCode = await DeepLinkService.instance.getInitialCode();
+    if (!mounted) return;
+
     if (appState.isAuthenticated) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
+      if (pendingCode != null) {
+        DeepLinkService.instance.consumeInitialCode();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => JoinGroupScreen(groupId: pendingCode)),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      }
     } else if (appState.hasSeenOnboarding) {
+      // Save the code so after login we can redirect to the join screen
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
