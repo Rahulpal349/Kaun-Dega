@@ -2,12 +2,17 @@
 
 import { useState } from 'react';
 import { api } from '../lib/firebaseApi';
+import { BalanceBoardSkeleton } from './Skeleton';
 import { ChevronDown, ChevronUp, X, Copy, Check, IndianRupee, ArrowRight, Smartphone, ExternalLink, Download } from 'lucide-react';
 
-export default function BalanceBoard({ groupId, balances, moves, currentUserId, totalExpenses, onSettled }) {
+export default function BalanceBoard({ groupId, balances, moves, currentUserId, totalExpenses, onSettled, loading }) {
   const [settling, setSettling] = useState(null);
   const [showSummary, setShowSummary] = useState(true);
   const [showSettle, setShowSettle] = useState(true);
+
+  if (loading || !balances) {
+    return <BalanceBoardSkeleton />;
+  }
 
   // Confirmation modal state
   const [confirmMove, setConfirmMove] = useState(null); // the move object to confirm

@@ -8,7 +8,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { api, isDirectGroup } from '../../lib/firebaseApi';
 import GroupIcon from '../../components/GroupIcon';
 import TopHeader from '../../components/TopHeader';
-import { GroupCardSkeleton } from '../../components/Skeleton';
+import { DashboardSkeleton, GroupCardSkeleton } from '../../components/Skeleton';
 import { Plus, Users, ChevronRight, LogOut, Trash2, ArrowUpRight, ArrowDownLeft, Sparkles, Link as LinkIcon, Wallet, UserCheck, Shield } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -24,6 +24,42 @@ export default function DashboardPage() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [joinLoading, setJoinLoading] = useState(false);
+
+  // 1-on-1 Khatabook Modal
+  const [showKhatabookModal, setShowKhatabookModal] = useState(false);
+  const [khatabookFriendInput, setKhatabookFriendInput] = useState('');
+  const [khatabookNameInput, setKhatabookNameInput] = useState('');
+  const [creatingKhatabook, setCreatingKhatabook] = useState(false);
+
+  async function handleCreateKhatabookSubmit(e) {
+    if (e) e.preventDefault();
+    if (!khatabookFriendInput.trim()) return;
+    setCreatingKhatabook(true);
+    try {
+      const friendName = khatabookFriendInput.trim();
+      const ledgerName = khatabookNameInput.trim() || `Khatabook: ${friendName}`;
+      const newGroup = await api.createGroup({
+        name: ledgerName,
+        emoji: '👤',
+        icon: '👤',
+        groupType: 'khatabook',
+        memberEmails: [friendName],
+      });
+      setShowKhatabookModal(false);
+      setKhatabookFriendInput('');
+      setKhatabookNameInput('');
+      if (newGroup && newGroup.id) {
+        router.push(`/groups/${newGroup.id}`);
+      } else {
+        const fetchedGroups = await api.getGroups();
+        setGroups(fetchedGroups);
+      }
+    } catch (err) {
+      alert('Failed to create 1-on-1 Khatabook: ' + err.message);
+    } finally {
+      setCreatingKhatabook(false);
+    }
+  }
 
   async function handleDeleteGroup(group) {
     if (group.myRole === 'admin') {
@@ -217,6 +253,13 @@ export default function DashboardPage() {
                 <LinkIcon className="w-4 h-4 stroke-[2.5] text-[#145C4B]" />
                 <span>Join with Code</span>
               </button>
+              <button
+                onClick={() => setShowKhatabookModal(true)}
+                className="flex-1 sm:flex-initial px-5 py-3 rounded-2xl bg-emerald-950/40 hover:bg-emerald-950/60 border border-white/20 text-white text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 cursor-pointer backdrop-blur-md"
+              >
+                <UserCheck className="w-4 h-4 text-[#25D366]" />
+                <span>+ 1-on-1 Khatabook</span>
+              </button>
               <Link
                 href="/groups/new"
                 className="flex-1 sm:flex-initial px-6 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20b859] text-[#0E382F] text-xs font-extrabold transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
@@ -373,6 +416,88 @@ export default function DashboardPage() {
           <Plus className="w-6 h-6 stroke-[3]" />
         </Link>
       </div>
+
+      {/* 1-on-1 Khatabook Modal */}
+      {showKhatabookModal && (
+        <div className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowKhatabookModal(false)}>
+          <div className="bg-white border border-[#E2EFE9] rounded-[28px] max-w-md w-full p-6 shadow-2xl space-y-4 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] flex items-center justify-center text-[#145C4B]">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-gray-900">Start 1-on-1 Khatabook</h3>
+                  <p className="text-xs font-medium text-gray-500">Track borrowing & lending</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowKhatabookModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 font-medium leading-relaxed">
+              Create a direct 1-on-1 ledger with a friend. Enter their Email ID, Phone Number, or Name.
+            </p>
+
+            <form onSubmit={handleCreateKhatabookSubmit} className="space-y-4 pt-1">
+              <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Friend's Email, Phone, or Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Rahul, rahul@gmail.com, or 9876543210"
+                  value={khatabookFriendInput}
+                  onChange={(e) => setKhatabookFriendInput(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#145C4B] focus:bg-white transition-all placeholder:text-gray-400"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Ledger Title (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Personal IOU or Lunch Expenses"
+                  value={khatabookNameInput}
+                  onChange={(e) => setKhatabookNameInput(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#145C4B] focus:bg-white transition-all placeholder:text-gray-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKhatabookModal(false)}
+                  className="py-3 rounded-2xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 transition-all flex items-center justify-center min-w-0"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingKhatabook || !khatabookFriendInput.trim()}
+                  className="py-3 rounded-2xl bg-[#145C4B] text-white text-xs font-bold hover:bg-[#0E382F] disabled:opacity-50 transition-all shadow-sm flex items-center justify-center gap-2 min-w-0"
+                >
+                  {creatingKhatabook ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Create Khatabook</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Join Group Modal */}
       {showJoinModal && (

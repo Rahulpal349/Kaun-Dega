@@ -9,7 +9,7 @@ import GroupIcon from '../../../components/GroupIcon';
 import { GroupDetailSkeleton } from '../../../components/Skeleton';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
-import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check, Users, LogOut, Copy, X, Crown, UserPlus, UserCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check, Users, LogOut, Copy, X, Crown, UserPlus, UserCheck, Sparkles, Search } from 'lucide-react';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -30,6 +30,7 @@ export default function GroupDetailPage() {
   // Tabs and overlays
   const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'balance'
   const [expenseSort, setExpenseSort] = useState('recent'); // 'recent' | 'highest' | 'lowest'
+  const [expenseSearch, setExpenseSearch] = useState('');
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [expandedExpenseId, setExpandedExpenseId] = useState(null);
@@ -477,12 +478,21 @@ export default function GroupDetailPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between px-2">
-                  <span className="text-xs font-extrabold text-gray-400 uppercase tracking-wider">Expense Feed</span>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-1">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search expense, category, payer..."
+                      value={expenseSearch}
+                      onChange={(e) => setExpenseSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 bg-white border border-[#E2EFE9] rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#145C4B] transition-all placeholder:text-gray-400"
+                    />
+                  </div>
                   <select 
                     value={expenseSort} 
                     onChange={e => setExpenseSort(e.target.value)}
-                    className="text-xs bg-white border border-[#E2EFE9] font-bold text-gray-700 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#145C4B]"
+                    className="text-xs bg-white border border-[#E2EFE9] font-bold text-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:border-[#145C4B]"
                   >
                     <option value="recent">Sort: Most Recent</option>
                     <option value="highest">Sort: Highest Amount</option>
@@ -490,11 +500,20 @@ export default function GroupDetailPage() {
                   </select>
                 </div>
 
-                {[...financialExpenses].sort((a, b) => {
-                  if (expenseSort === 'highest') return Number(b.amount) - Number(a.amount);
-                  if (expenseSort === 'lowest') return Number(a.amount) - Number(b.amount);
-                  return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-                }).map((e) => {
+                {[...financialExpenses]
+                  .filter((e) => {
+                    if (!expenseSearch.trim()) return true;
+                    const q = expenseSearch.toLowerCase();
+                    const titleMatch = (e.description || e.title || e.name || '').toLowerCase().includes(q);
+                    const catMatch = (e.category || '').toLowerCase().includes(q);
+                    const payerMatch = (e.paid_by_name || e.payer?.name || '').toLowerCase().includes(q);
+                    return titleMatch || catMatch || payerMatch;
+                  })
+                  .sort((a, b) => {
+                    if (expenseSort === 'highest') return Number(b.amount) - Number(a.amount);
+                    if (expenseSort === 'lowest') return Number(a.amount) - Number(b.amount);
+                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                  }).map((e) => {
                   const date = new Date(e.created_at || new Date());
                   const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
                   const isExpanded = expandedExpenseId === e.id;
