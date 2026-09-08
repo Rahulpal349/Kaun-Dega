@@ -593,15 +593,15 @@ export default function GroupDetailPage() {
 
       {/* Add/Edit Expense Overlay Modal */}
       {showExpenseForm && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white rounded-[32px] shadow-2xl border border-[#E2EFE9] overflow-hidden max-h-[90vh] flex flex-col animate-pop-in">
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="w-full max-w-lg bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl border border-[#E2EFE9] overflow-hidden max-h-[92vh] flex flex-col animate-pop-in">
             <header className="px-6 py-4 bg-[#F4FBF7] border-b border-[#E2EFE9] flex items-center justify-between shrink-0">
               <h2 className="font-extrabold text-lg text-gray-900">{editingExpense ? 'Edit Expense' : 'Add New Expense'}</h2>
               <button onClick={() => { setShowExpenseForm(false); setEditingExpense(null); }} className="p-1.5 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
                 <X className="w-5 h-5" />
               </button>
             </header>
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               <ExpenseForm 
                 groupId={id} 
                 members={members} 
@@ -625,13 +625,21 @@ export default function GroupDetailPage() {
 
       {/* Invite Link Modal */}
       {showInviteModal && (
-        <>
-          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[70]" onClick={() => setShowInviteModal(false)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white rounded-[28px] shadow-2xl z-[80] overflow-hidden p-6 border border-[#E2EFE9] space-y-4 animate-pop-in">
+        <div
+          className="fixed inset-0 z-[80] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowInviteModal(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-[28px] shadow-2xl p-6 border border-[#E2EFE9] space-y-4 animate-pop-in"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
               <h3 className="font-extrabold text-lg text-gray-900">Invite Members</h3>
-              <button onClick={() => setShowInviteModal(false)} className="p-1 hover:bg-gray-100 rounded-full">
-                <X className="w-5 h-5 text-gray-400" />
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
             <p className="text-xs text-gray-500 font-medium leading-relaxed">
@@ -642,26 +650,25 @@ export default function GroupDetailPage() {
               {inviteLink}
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 onClick={copyInviteLink}
-                className="flex-1 py-3 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] font-bold text-xs text-[#145C4B] hover:bg-[#E2EFE9] transition-all flex items-center justify-center gap-1.5"
+                className="py-3 px-3 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] font-bold text-xs text-[#145C4B] hover:bg-[#E2EFE9] transition-all flex items-center justify-center gap-1.5 min-w-0"
               >
-                {inviteCopied ? <Check className="w-4 h-4 text-[#0D9488]" /> : <Copy className="w-4 h-4" />}
-                <span>{inviteCopied ? 'Copied!' : 'Copy Link'}</span>
+                {inviteCopied ? <Check className="w-4 h-4 shrink-0 text-[#0D9488]" /> : <Copy className="w-4 h-4 shrink-0" />}
+                <span className="truncate">{inviteCopied ? 'Copied!' : 'Copy Link'}</span>
               </button>
               <button
                 onClick={shareInviteWhatsApp}
-                className="flex-1 py-3 rounded-2xl bg-[#25D366] text-[#0E382F] font-extrabold text-xs hover:bg-[#20b859] transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                className="py-3 px-3 rounded-2xl bg-[#25D366] text-[#0E382F] font-extrabold text-xs hover:bg-[#20b859] transition-all flex items-center justify-center gap-1.5 shadow-sm min-w-0"
               >
-                <Share2 className="w-4 h-4" />
-                <span>WhatsApp</span>
+                <Share2 className="w-4 h-4 shrink-0" />
+                <span className="truncate">WhatsApp</span>
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
-

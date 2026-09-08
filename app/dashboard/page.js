@@ -401,18 +401,18 @@ export default function DashboardPage() {
                   autoFocus
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowJoinModal(false)}
-                  className="px-4 py-2.5 rounded-2xl bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200 transition-all"
+                  className="py-3 rounded-2xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 transition-all flex items-center justify-center min-w-0"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={joinLoading || !joinCodeInput.trim()}
-                  className="px-5 py-2.5 rounded-2xl bg-[#145C4B] text-white text-xs font-bold hover:bg-[#0E382F] disabled:opacity-50 transition-all shadow-sm"
+                  className="py-3 rounded-2xl bg-[#145C4B] text-white text-xs font-bold hover:bg-[#0E382F] disabled:opacity-50 transition-all shadow-sm flex items-center justify-center min-w-0"
                 >
                   {joinLoading ? 'Joining...' : 'Join Group'}
                 </button>
