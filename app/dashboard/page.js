@@ -245,27 +245,27 @@ export default function DashboardPage() {
             </div>
 
             {/* Action Buttons Row */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3 pt-2">
               <button
                 onClick={() => setShowJoinModal(true)}
-                className="flex-1 sm:flex-initial px-5 py-3 rounded-2xl bg-white/95 hover:bg-white text-[#0E382F] text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                className="px-3.5 sm:px-5 py-3 rounded-2xl bg-white/95 hover:bg-white text-[#0E382F] text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 cursor-pointer min-w-0"
               >
-                <LinkIcon className="w-4 h-4 stroke-[2.5] text-[#145C4B]" />
-                <span>Join with Code</span>
+                <LinkIcon className="w-4 h-4 shrink-0 stroke-[2.5] text-[#145C4B]" />
+                <span className="truncate">Join with Code</span>
               </button>
               <button
                 onClick={() => setShowKhatabookModal(true)}
-                className="flex-1 sm:flex-initial px-5 py-3 rounded-2xl bg-emerald-950/40 hover:bg-emerald-950/60 border border-white/20 text-white text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 cursor-pointer backdrop-blur-md"
+                className="px-3.5 sm:px-5 py-3 rounded-2xl bg-emerald-950/40 hover:bg-emerald-950/60 border border-white/20 text-white text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 cursor-pointer backdrop-blur-md min-w-0"
               >
-                <UserCheck className="w-4 h-4 text-[#25D366]" />
-                <span>+ 1-on-1 Khatabook</span>
+                <UserCheck className="w-4 h-4 shrink-0 text-[#25D366]" />
+                <span className="truncate">+ 1-on-1 Khatabook</span>
               </button>
               <Link
                 href="/groups/new"
-                className="flex-1 sm:flex-initial px-6 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20b859] text-[#0E382F] text-xs font-extrabold transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                className="col-span-2 sm:col-span-1 px-5 sm:px-6 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20b859] text-[#0E382F] text-xs font-extrabold transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2 active:scale-95 cursor-pointer min-w-0"
               >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Create Group</span>
+                <Plus className="w-4 h-4 shrink-0 stroke-[3]" />
+                <span className="truncate">Create Group</span>
               </Link>
             </div>
           </div>
