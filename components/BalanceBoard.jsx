@@ -150,15 +150,15 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
       <div className="bg-white rounded-[24px] shadow-sm border border-[#E2EFE9] flex flex-col overflow-hidden">
         <button 
           onClick={() => setShowSettle(!showSettle)}
-          className="w-full px-6 py-4 flex items-center justify-between border-b border-[#E2EFE9] hover:bg-[#F0F7F4]/50 transition-colors"
+          className="w-full px-4 sm:px-6 py-4 flex items-center justify-between border-b border-[#E2EFE9] hover:bg-[#F0F7F4]/50 transition-colors"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-extrabold text-gray-900 text-base">Optimal Settlement Path</h3>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#25D366]/20 text-[#0E382F]">
-              {moves.length} transactions
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#25D366]/20 text-[#0E382F] whitespace-nowrap">
+              {moves.length} {moves.length === 1 ? 'transaction' : 'transactions'}
             </span>
           </div>
-          {showSettle ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+          {showSettle ? <ChevronUp size={20} className="text-gray-400 shrink-0" /> : <ChevronDown size={20} className="text-gray-400 shrink-0" />}
         </button>
 
         {showSettle && (
@@ -174,29 +174,24 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
                 const isMeCreditor = currentUserId === move.to;
 
                 return (
-                  <div key={idx} className="px-6 py-4 flex items-center justify-between gap-3 hover:bg-[#F0F7F4]/40 transition-colors">
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 text-sm font-extrabold text-gray-900 truncate">
-                        <span className={isMeDebtor ? 'text-[#E11D48]' : 'text-gray-900'}>
-                          {isMeDebtor ? 'You' : move.fromName}
-                        </span>
-                        <ArrowRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <span className={isMeCreditor ? 'text-[#0D9488]' : 'text-gray-900'}>
-                          {isMeCreditor ? 'You' : move.toName}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-500 font-medium mt-0.5">
-                        Direct transfer
+                  <div key={idx} className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 hover:bg-[#F0F7F4]/40 transition-colors">
+                    <div className="flex items-center gap-1.5 text-sm sm:text-base font-extrabold text-gray-900 flex-wrap min-w-0">
+                      <span className={isMeDebtor ? 'text-[#E11D48]' : 'text-gray-900'}>
+                        {isMeDebtor ? 'You' : move.fromName}
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <span className={isMeCreditor ? 'text-[#0D9488]' : 'text-gray-900'}>
+                        {isMeCreditor ? 'You' : move.toName}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0">
                       <span className="font-extrabold text-base text-[#145C4B]">
                         ₹{move.amount.toFixed(2)}
                       </span>
                       <button
                         onClick={() => openConfirmModal(move, idx)}
-                        className={`text-xs font-bold px-4 py-2 rounded-2xl transition-all shadow-xs ${
+                        className={`text-xs font-extrabold px-4 py-2 rounded-2xl transition-all shadow-xs shrink-0 ${
                           isMeDebtor
                             ? 'bg-[#145C4B] text-white hover:bg-[#0E382F] active:scale-95'
                             : isMeCreditor

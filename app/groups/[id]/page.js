@@ -426,28 +426,33 @@ export default function GroupDetailPage() {
 
       {/* Main Content & Tab Container */}
       <div className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 space-y-6">
-        {/* Navigation Tabs */}
-        <div className="flex items-center p-1 bg-white border border-[#E2EFE9] rounded-2xl shadow-xs w-full max-w-md">
+        {/* Navigation Tabs with Sliding Pill Animation */}
+        <div className="relative inline-grid grid-cols-2 p-1 bg-white border border-[#E2EFE9] rounded-2xl shadow-xs w-full max-w-md overflow-hidden">
+          {/* Sliding Active Pill Background */}
+          <div
+            className="absolute top-1 bottom-1 rounded-xl bg-[#145C4B] shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{
+              width: 'calc(50% - 6px)',
+              left: activeTab === 'expenses' ? '4px' : 'calc(50% + 2px)',
+            }}
+          />
+
           <button
             onClick={() => setActiveTab('expenses')}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'expenses'
-                ? 'bg-[#145C4B] text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+            className={`relative z-10 py-2.5 rounded-xl text-xs font-extrabold transition-colors duration-200 flex items-center justify-center gap-2 ${
+              activeTab === 'expenses' ? 'text-white' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <Receipt className="w-4 h-4" />
+            <Receipt className="w-4 h-4 shrink-0" />
             <span>Expenses ({financialExpenses.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('balance')}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'balance'
-                ? 'bg-[#145C4B] text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+            className={`relative z-10 py-2.5 rounded-xl text-xs font-extrabold transition-colors duration-200 flex items-center justify-center gap-2 ${
+              activeTab === 'balance' ? 'text-white' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <Scale className="w-4 h-4" />
+            <Scale className="w-4 h-4 shrink-0" />
             <span>Settlement Balances</span>
           </button>
         </div>
@@ -455,7 +460,7 @@ export default function GroupDetailPage() {
         {error && <p className="bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold p-4 rounded-2xl">{error}</p>}
 
         {activeTab === 'expenses' && (
-          <div className="space-y-4">
+          <div key="expenses" className="animate-tab-switch space-y-4">
             {financialExpenses.length === 0 ? (
               <div className="bg-white border border-[#E2EFE9] rounded-[28px] p-12 text-center shadow-sm">
                 <div className="w-16 h-16 rounded-full bg-[#145C4B]/10 text-[#145C4B] flex items-center justify-center mx-auto mb-4">
@@ -607,7 +612,7 @@ export default function GroupDetailPage() {
         )}
 
         {activeTab === 'balance' && (
-          <div className="space-y-4">
+          <div key="balance" className="animate-tab-switch space-y-4">
             <BalanceBoard
               groupId={id}
               balances={balanceData.balances}
