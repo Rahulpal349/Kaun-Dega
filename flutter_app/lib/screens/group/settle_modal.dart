@@ -46,12 +46,12 @@ class _SettleModalState extends State<SettleModal> {
   Future<void> _launchUpiApp() async {
     if (widget.move.toUpiId == null || widget.move.toUpiId!.isEmpty) return;
 
+    // Clean P2P UPI URI without 'tn' parameter to prevent PhonePe fraud security flag
     final upiUri = Uri.parse(
-      'upi://pay?pa=${widget.move.toUpiId}'
+      'upi://pay?pa=${Uri.encodeComponent(widget.move.toUpiId!)}'
       '&pn=${Uri.encodeComponent(widget.move.toName)}'
       '&am=${widget.move.amount.toStringAsFixed(2)}'
-      '&cu=INR'
-      '&tn=KaunDegaSettlement',
+      '&cu=INR',
     );
 
     try {

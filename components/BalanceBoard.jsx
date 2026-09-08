@@ -241,7 +241,7 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
                     
                     {/* Direct Pay Button opening GPay / PhonePe / Paytm */}
                     <a
-                      href={`upi://pay?pa=${encodeURIComponent(confirmMove.toUpiId)}&pn=${encodeURIComponent(confirmMove.toName || 'User')}&am=${confirmMove.amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Kaun Dega Settlement')}`}
+                      href={`upi://pay?pa=${encodeURIComponent(confirmMove.toUpiId)}&pn=${encodeURIComponent(confirmMove.toName || 'User')}&am=${confirmMove.amount.toFixed(2)}&cu=INR`}
                       className="w-full mb-3 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 text-white font-bold text-sm hover:opacity-95 active:scale-[0.99] transition-all shadow-md group"
                     >
                       <Smartphone size={18} className="group-hover:scale-110 transition-transform" />
