@@ -365,7 +365,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Floating Action Button for Mobile */}
-      <div className="md:hidden fixed bottom-20 right-4 z-40">
+      <div className="md:hidden fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 z-40">
         <Link
           href="/groups/new"
           className="w-14 h-14 bg-[#145C4B] text-white rounded-full shadow-xl shadow-[#145C4B]/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all"

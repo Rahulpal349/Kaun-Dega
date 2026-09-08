@@ -578,7 +578,7 @@ export default function GroupDetailPage() {
 
       {/* Floating Action Button for Adding Expense */}
       {activeTab === 'expenses' && (
-        <div className="fixed bottom-20 right-4 sm:right-8 z-40">
+        <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] right-4 sm:right-8 z-40">
           <button 
             onClick={() => {
               setEditingExpense(null);

@@ -30,7 +30,7 @@ export default function BottomNav() {
   const activeIndex = getActiveIndex();
 
   return (
-    <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm bg-white/95 backdrop-blur-xl border border-[#E2EFE9] rounded-[28px] p-1.5 z-50 shadow-[0_10px_35px_rgba(20,92,75,0.15)] transition-all">
+    <div className="md:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm bg-white/95 backdrop-blur-xl border border-[#E2EFE9] rounded-[28px] p-1.5 z-50 shadow-[0_10px_35px_rgba(20,92,75,0.15)] transition-all">
       <div className="relative inline-grid grid-cols-3 w-full">
         {/* Sliding Active Pill Background */}
         <div
