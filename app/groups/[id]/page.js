@@ -9,7 +9,7 @@ import GroupIcon from '../../../components/GroupIcon';
 import { GroupDetailSkeleton } from '../../../components/Skeleton';
 import ExpenseForm from '../../../components/ExpenseForm';
 import BalanceBoard from '../../../components/BalanceBoard';
-import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check, Users, LogOut, Copy, X, Crown } from 'lucide-react';
+import { ArrowLeft, Share2, MoreVertical, Settings, Plus, Receipt, Scale, Trash2, Edit3, Link2, Check, Users, LogOut, Copy, X, Crown, UserPlus, UserCheck, Sparkles } from 'lucide-react';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -39,6 +39,10 @@ export default function GroupDetailPage() {
   const [inviteLink, setInviteLink] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
   const [dismissedEmptyState, setDismissedEmptyState] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [newMemberInput, setNewMemberInput] = useState('');
+  const [addingMember, setAddingMember] = useState(false);
+  const [addMemberMessage, setAddMemberMessage] = useState(null);
   
   const isAdmin = userRole === 'admin';
 
@@ -140,15 +144,37 @@ export default function GroupDetailPage() {
     }
   }
 
-  async function handleAddShadowMember() {
+  function handleAddShadowMember() {
     setShowMenu(false);
-    const input = window.prompt("Enter member name or Email ID (e.g. Rahul or friend@gmail.com):");
-    if (!input || !input.trim()) return;
+    setNewMemberInput('');
+    setAddMemberMessage(null);
+    setShowAddMemberModal(true);
+  }
+
+  async function handleAddMemberSubmit(e) {
+    if (e) e.preventDefault();
+    if (!newMemberInput || !newMemberInput.trim()) return;
+    setAddingMember(true);
+    setAddMemberMessage(null);
     try {
-      await api.addShadowMember(id, input.trim());
+      const addedMember = await api.addShadowMember(id, newMemberInput.trim());
       await loadAll();
+      const isAppUser = addedMember && !addedMember.isShadow;
+      setAddMemberMessage({
+        type: 'success',
+        text: isAppUser
+          ? `Connected app user "${addedMember.name}"!`
+          : `Added "${addedMember?.name || newMemberInput}" to group.`,
+      });
+      setNewMemberInput('');
+      setTimeout(() => {
+        setShowAddMemberModal(false);
+        setAddMemberMessage(null);
+      }, 1400);
     } catch (err) {
-      alert("Failed to add member: " + err.message);
+      setAddMemberMessage({ type: 'error', text: err.message || 'Failed to add member' });
+    } finally {
+      setAddingMember(false);
     }
   }
 
@@ -331,8 +357,8 @@ export default function GroupDetailPage() {
                   onClick={handleAddShadowMember}
                   className="w-full flex items-center justify-center gap-1.5 mt-2 py-2 text-xs font-bold text-[#145C4B] bg-[#F0F7F4] hover:bg-[#E2EFE9] rounded-xl transition-all"
                 >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Add Offline Member</span>
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Add Member</span>
                 </button>
               </div>
 
@@ -618,6 +644,105 @@ export default function GroupDetailPage() {
                   loadAll();
                 }}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <div
+          className="fixed inset-0 z-[80] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => { setShowAddMemberModal(false); setAddMemberMessage(null); }}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-[28px] shadow-2xl p-6 border border-[#E2EFE9] space-y-4 animate-pop-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] flex items-center justify-center text-[#145C4B]">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-gray-900">Add Member</h3>
+                  <p className="text-xs font-medium text-gray-500">App users & offline friends</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowAddMemberModal(false); setAddMemberMessage(null); }}
+                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-[#F0F7F4]/70 rounded-2xl p-3.5 border border-[#E2EFE9] space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#145C4B]">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Auto-links App Accounts</span>
+              </div>
+              <p className="text-[11px] text-gray-600 leading-relaxed font-medium">
+                Enter an <strong>Email ID</strong>, <strong>Phone Number</strong>, or <strong>Name</strong>. If they already use Kaun-Dega, their app account will link automatically!
+              </p>
+            </div>
+
+            <form onSubmit={handleAddMemberSubmit} className="space-y-3 pt-1">
+              <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-gray-400 mb-1.5">
+                  Email, Phone, or Name
+                </label>
+
+                <input
+                  type="text"
+                  value={newMemberInput}
+                  onChange={(e) => setNewMemberInput(e.target.value)}
+                  placeholder="e.g. rahul@gmail.com or 9876543210"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#145C4B] focus:bg-white transition-all placeholder:text-gray-400"
+                  autoFocus
+                />
+              </div>
+
+              {addMemberMessage && (
+                <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                  addMemberMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                }`}>
+                  {addMemberMessage.type === 'success' && <UserCheck className="w-4 h-4 shrink-0 text-emerald-600" />}
+                  <span>{addMemberMessage.text}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={addingMember || !newMemberInput.trim()}
+                className="w-full py-3.5 bg-[#145C4B] text-white rounded-2xl font-bold text-xs hover:bg-[#0E4337] transition-all disabled:opacity-50 shadow-md active:scale-[0.99] flex items-center justify-center gap-2"
+              >
+                {addingMember ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Searching & Adding...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4" />
+                    <span>Add to Group</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-gray-400">Prefer sending invite?</span>
+              <button
+                onClick={() => {
+                  setShowAddMemberModal(false);
+                  handleGenerateInvite();
+                }}
+                className="text-xs font-extrabold text-[#145C4B] hover:underline flex items-center gap-1"
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                <span>Share Group Link</span>
+              </button>
             </div>
           </div>
         </div>
