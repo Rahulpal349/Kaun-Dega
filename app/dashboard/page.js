@@ -248,24 +248,24 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3 pt-2">
               <button
                 onClick={() => setShowJoinModal(true)}
-                className="px-3.5 sm:px-5 py-3 rounded-2xl bg-white/95 hover:bg-white text-[#0E382F] text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 cursor-pointer min-w-0"
+                className="h-12 px-3 sm:px-5 rounded-2xl bg-white hover:bg-gray-50 text-[#0E382F] text-xs font-extrabold transition-all shadow-md border border-[#E2EFE9] flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 cursor-pointer whitespace-nowrap min-w-0"
               >
                 <LinkIcon className="w-4 h-4 shrink-0 stroke-[2.5] text-[#145C4B]" />
-                <span className="truncate">Join with Code</span>
+                <span>Join with Code</span>
               </button>
               <button
                 onClick={() => setShowKhatabookModal(true)}
-                className="px-3.5 sm:px-5 py-3 rounded-2xl bg-emerald-950/40 hover:bg-emerald-950/60 border border-white/20 text-white text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 cursor-pointer backdrop-blur-md min-w-0"
+                className="h-12 px-3 sm:px-5 rounded-2xl bg-white hover:bg-gray-50 text-[#0E382F] text-xs font-extrabold transition-all shadow-md border border-[#E2EFE9] flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 cursor-pointer whitespace-nowrap min-w-0"
               >
-                <UserCheck className="w-4 h-4 shrink-0 text-[#25D366]" />
-                <span className="truncate">+ 1-on-1 Khatabook</span>
+                <UserCheck className="w-4 h-4 shrink-0 text-[#145C4B]" />
+                <span>1-on-1 Khatabook</span>
               </button>
               <Link
                 href="/groups/new"
-                className="col-span-2 sm:col-span-1 px-5 sm:px-6 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20b859] text-[#0E382F] text-xs font-extrabold transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2 active:scale-95 cursor-pointer min-w-0"
+                className="col-span-2 sm:col-span-1 h-12 px-5 sm:px-6 rounded-2xl bg-[#25D366] hover:bg-[#20b859] text-[#0E382F] text-xs font-extrabold transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap min-w-0"
               >
                 <Plus className="w-4 h-4 shrink-0 stroke-[3]" />
-                <span className="truncate">Create Group</span>
+                <span>Create Group</span>
               </Link>
             </div>
           </div>
@@ -351,12 +351,13 @@ export default function DashboardPage() {
             {displayedGroups.map((g) => (
               <div
                 key={g.id}
-                className="group bg-white border border-[#E2EFE9] rounded-[24px] p-5 shadow-sm hover:shadow-md hover:border-[#145C4B]/30 transition-all flex flex-col justify-between relative overflow-hidden"
+                onClick={() => router.push(`/groups/${g.id}`)}
+                className="group bg-white border border-[#E2EFE9] rounded-[24px] p-5 shadow-sm hover:shadow-md hover:border-[#145C4B]/40 transition-all flex flex-col justify-between relative overflow-hidden cursor-pointer active:scale-[0.99]"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] flex items-center justify-center shadow-sm text-2xl">
+                      <div className="w-12 h-12 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] flex items-center justify-center shadow-sm text-2xl group-hover:scale-105 transition-transform">
                         <GroupIcon icon={g.icon || g.emoji} size={22} />
                       </div>
                       <div>
@@ -382,20 +383,18 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="pt-4 border-t border-[#E2EFE9] flex items-center justify-between">
-                  <Link
-                    href={`/groups/${g.id}`}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[#145C4B] hover:underline"
-                  >
-                    Open Ledger
+                  <div className="inline-flex items-center gap-1 text-xs font-bold text-[#145C4B] group-hover:translate-x-0.5 transition-transform">
+                    <span>Open Ledger</span>
                     <ChevronRight className="w-4 h-4" />
-                  </Link>
+                  </div>
 
                   <button
                     onClick={(e) => {
+                      e.stopPropagation();
                       e.preventDefault();
                       handleDeleteGroup(g);
                     }}
-                    className="p-1.5 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                    className="p-1.5 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors z-10"
                     title={g.myRole === 'admin' ? 'Delete Group' : 'Leave Group'}
                   >
                     {g.myRole === 'admin' ? <Trash2 className="w-4 h-4" /> : <LogOut className="w-4 h-4" />}
