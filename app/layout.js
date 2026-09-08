@@ -38,15 +38,27 @@ export const metadata = {
 };
 
 import LayoutWrapper from './LayoutWrapper';
+import PwaRegister from '../components/PwaRegister';
+import PwaInstallPrompt from '../components/PwaInstallPrompt';
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${plusJakartaSans.variable} ${plexMono.variable}`}>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Kaun Dega" />
+        <meta name="theme-color" content="#145C4B" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="font-sans min-h-screen bg-[#F4FBF7] text-text-main antialiased selection:bg-primary/20 selection:text-primary">
+        <PwaRegister />
         <LayoutWrapper>{children}</LayoutWrapper>
+        <PwaInstallPrompt />
       </body>
     </html>
   );

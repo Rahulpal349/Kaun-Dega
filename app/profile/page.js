@@ -327,6 +327,33 @@ export default function ProfilePage() {
             </div>
 
             {!isEditing && (
+              <div className="bg-[#0E382F] text-white rounded-[24px] p-6 shadow-md border border-emerald-500/20 relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-[#145C4B] border border-emerald-400/20 flex items-center justify-center text-emerald-300 shrink-0">
+                      <Smartphone className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-base text-white">iPhone & Mobile App</h4>
+                      <p className="text-xs text-emerald-100/70 font-medium mt-0.5">
+                        Add Kaun Dega to your iPhone Home Screen via Safari Share ⎋ → Add to Home Screen ➕
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('pwa_prompt_dismissed');
+                      window.location.reload();
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#25D366] hover:bg-[#20b859] text-[#0E382F] text-xs font-extrabold transition-all shadow-sm shrink-0"
+                  >
+                    View App Setup
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isEditing && (
               <button
                 onClick={handleLogout}
                 className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 font-bold text-xs hover:bg-rose-100 transition-all flex items-center justify-center gap-2 shadow-xs"
