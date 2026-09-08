@@ -5,16 +5,19 @@ import { useRouter } from 'next/navigation';
 import { auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../../lib/firebaseApi';
+import TopHeader from '../../components/TopHeader';
 import { ProfileSkeleton } from '../../components/Skeleton';
-import { LogOut, ArrowLeft, Edit2, Save, X, Camera } from 'lucide-react';
+import { LogOut, Edit2, Save, X, Camera, Shield, Smartphone, QrCode, User } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imgError, setImgError] = useState(false);
   
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -30,6 +33,7 @@ export default function ProfilePage() {
         router.push('/login');
         return;
       }
+      setCurrentUser(user);
       try {
         const data = await api.getProfile(user.uid);
         setProfile(data);
@@ -47,12 +51,16 @@ export default function ProfilePage() {
     return () => unsubscribe();
   }, [router]);
 
+  const avatarUrl = profile?.avatar_url || currentUser?.photoURL;
+
   async function handleLogout() {
-    try {
-      await api.logout();
-      router.push('/login');
-    } catch (err) {
-      alert(err.message);
+    if (confirm('Are you sure you want to sign out?')) {
+      try {
+        await api.logout();
+        router.push('/login');
+      } catch (err) {
+        alert(err.message);
+      }
     }
   }
 
@@ -127,8 +135,6 @@ export default function ProfilePage() {
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-
-          // Compress as JPEG
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           resolve(dataUrl);
         };
@@ -139,42 +145,47 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-green-50 flex flex-col pb-24">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-30 bg-green-50/80 backdrop-blur-md border-b border-green-100/50">
-        <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/dashboard')} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600">
-              <ArrowLeft size={20} />
-            </button>
-            <h1 className="font-display font-bold text-xl text-gray-900 tracking-tight">Your Profile</h1>
+    <div className="flex-1 flex flex-col w-full bg-[#F4FBF7] min-h-screen">
+      <TopHeader title="My Profile" userName={profile?.name || currentUser?.displayName || currentUser?.email} />
+
+      <div className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-extrabold text-2xl text-gray-900 tracking-tight">Account Settings</h2>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">
+              Manage personal info, UPI payment details & preferences
+            </p>
           </div>
+
           {!isEditing && profile && (
             <button 
               onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 text-sm font-semibold text-[#145C4B] bg-[#e6f4ed] px-3 py-1.5 rounded-full hover:bg-[#d3ebd9] transition-colors"
+              className="px-4 py-2 rounded-2xl bg-white border border-[#E2EFE9] text-xs font-bold text-[#145C4B] hover:bg-[#F0F7F4] transition-all flex items-center gap-1.5 shadow-xs"
             >
-              <Edit2 size={14} /> Edit
+              <Edit2 className="w-3.5 h-3.5" /> Edit Profile
             </button>
           )}
         </div>
-      </header>
 
-      <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full px-4 sm:px-6 py-8">
-        {error && <p className="text-red-500 text-sm font-medium mb-4">{error}</p>}
+        {error && <p className="bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold p-4 rounded-2xl">{error}</p>}
 
         {profile === null ? (
           <ProfileSkeleton />
         ) : (
           <div className="space-y-6">
-            <div className="bg-white p-6 sm:p-8 border border-gray-100 rounded-2xl shadow-sm">
-              <div className="flex items-center gap-4 mb-8">
+            <div className="bg-white border border-[#E2EFE9] rounded-[28px] p-6 sm:p-8 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 pb-6 border-b border-[#E2EFE9]">
                 <div className="relative group shrink-0">
-                  <div className="w-20 h-20 rounded-full bg-green-100 text-[#145C4B] font-bold text-3xl flex items-center justify-center overflow-hidden border-2 border-white shadow-sm relative">
-                    {profile.avatar_url ? (
-                      <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  <div className="w-24 h-24 rounded-3xl bg-[#F0F7F4] text-[#145C4B] font-extrabold text-4xl flex items-center justify-center overflow-hidden border-2 border-white shadow-md relative">
+                    {avatarUrl && !imgError ? (
+                      <img
+                        src={avatarUrl}
+                        alt={profile.name || 'Profile'}
+                        className="w-full h-full object-cover"
+                        onError={() => setImgError(true)}
+                      />
                     ) : (
-                      profile.name?.charAt(0).toUpperCase() || 'U'
+                      profile.name?.charAt(0).toUpperCase() || currentUser?.email?.charAt(0).toUpperCase() || 'U'
                     )}
                     
                     {uploadingImage && (
@@ -185,8 +196,8 @@ export default function ProfilePage() {
                   </div>
                   
                   {isEditing && !uploadingImage && (
-                    <label className="absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full shadow border border-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors z-20">
-                      <Camera size={14} className="text-gray-600" />
+                    <label className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-xl shadow border border-[#E2EFE9] flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-all z-20 text-gray-600">
+                      <Camera className="w-4 h-4" />
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -197,55 +208,67 @@ export default function ProfilePage() {
                     </label>
                   )}
                 </div>
-                <div>
-                  <h2 className="font-bold text-2xl text-gray-900">{profile.name}</h2>
-                  <p className="text-gray-500">{profile.email}</p>
+
+                <div className="text-center sm:text-left space-y-1">
+                  <h3 className="font-extrabold text-2xl text-gray-900">{profile.name}</h3>
+                  <p className="text-sm font-medium text-gray-500">{profile.email}</p>
+                  <div className="pt-1">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#145C4B]/10 text-[#145C4B] text-xs font-bold">
+                      <Shield className="w-3.5 h-3.5" /> Verified User
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {isEditing ? (
-                <div className="space-y-4 pt-6 border-t border-gray-100">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Name</label>
-                    <input 
-                      type="text" 
-                      value={editForm.name} 
-                      onChange={e => setEditForm({...editForm, name: e.target.value})}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#145C4B]/30"
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Full Name</label>
+                      <input 
+                        type="text" 
+                        value={editForm.name} 
+                        onChange={e => setEditForm({...editForm, name: e.target.value})}
+                        className="w-full px-4 py-3 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] text-sm text-gray-900 font-bold focus:outline-none focus:border-[#145C4B] focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">UPI ID (For Quick Settle)</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. 9876543210@upi"
+                        value={editForm.upi_id} 
+                        onChange={e => setEditForm({...editForm, upi_id: e.target.value})}
+                        className="w-full px-4 py-3 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] text-sm text-gray-900 font-bold focus:outline-none focus:border-[#145C4B] focus:bg-white transition-all"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">UPI ID</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 9876543210@upi"
-                      value={editForm.upi_id} 
-                      onChange={e => setEditForm({...editForm, upi_id: e.target.value})}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#145C4B]/30"
-                    />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Phone Number</label>
+                      <input 
+                        type="text" 
+                        value={editForm.phone} 
+                        onChange={e => setEditForm({...editForm, phone: e.target.value})}
+                        className="w-full px-4 py-3 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] text-sm text-gray-900 font-bold focus:outline-none focus:border-[#145C4B] focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Gender</label>
+                      <select 
+                        value={editForm.gender}
+                        onChange={e => setEditForm({...editForm, gender: e.target.value})}
+                        className="w-full px-4 py-3 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] text-sm text-gray-900 font-bold focus:outline-none focus:border-[#145C4B] focus:bg-white transition-all"
+                      >
+                        <option value="">Select gender...</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Phone Number</label>
-                    <input 
-                      type="text" 
-                      value={editForm.phone} 
-                      onChange={e => setEditForm({...editForm, phone: e.target.value})}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#145C4B]/30"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Gender</label>
-                    <select 
-                      value={editForm.gender}
-                      onChange={e => setEditForm({...editForm, gender: e.target.value})}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#145C4B]/30"
-                    >
-                      <option value="">Select...</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
+
                   <div className="flex gap-3 pt-4">
                     <button 
                       onClick={() => {
@@ -258,36 +281,42 @@ export default function ProfilePage() {
                         });
                         setError('');
                       }}
-                      className="flex-1 py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 py-3 rounded-2xl font-bold text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5"
                     >
-                      <X size={16} /> Cancel
+                      <X className="w-4 h-4" /> Cancel
                     </button>
                     <button 
                       onClick={handleSave}
                       disabled={saving}
-                      className="flex-1 py-3 rounded-xl font-semibold text-white bg-[#145C4B] hover:bg-[#145C4B]/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                      className="flex-1 py-3 rounded-2xl font-bold text-xs text-white bg-[#145C4B] hover:bg-[#0E382F] transition-all flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-60"
                     >
-                      <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
+                      <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Profile'}
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4 pt-6 border-t border-gray-100">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">UPI ID</label>
-                    <p className="text-gray-700 font-medium">{profile.upi_id || <span className="text-gray-400 italic">Not set</span>}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-[#F0F7F4] border border-[#E2EFE9] rounded-2xl p-4">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">UPI ID</label>
+                    <p className="text-sm font-bold text-gray-900 font-mono">
+                      {profile.upi_id || <span className="text-gray-400 italic font-sans text-xs">Not configured yet</span>}
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Phone Number</label>
-                    <p className="text-gray-700 font-medium">{profile.phone || <span className="text-gray-400 italic">Not set</span>}</p>
+                  <div className="bg-[#F0F7F4] border border-[#E2EFE9] rounded-2xl p-4">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Phone Number</label>
+                    <p className="text-sm font-bold text-gray-900">
+                      {profile.phone || <span className="text-gray-400 italic text-xs">Not added</span>}
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Gender</label>
-                    <p className="text-gray-700 font-medium">{profile.gender || <span className="text-gray-400 italic">Not set</span>}</p>
+                  <div className="bg-[#F0F7F4] border border-[#E2EFE9] rounded-2xl p-4">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Gender</label>
+                    <p className="text-sm font-bold text-gray-900">
+                      {profile.gender || <span className="text-gray-400 italic text-xs">Not set</span>}
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Member Since</label>
-                    <p className="text-gray-700 font-medium">
+                  <div className="bg-[#F0F7F4] border border-[#E2EFE9] rounded-2xl p-4">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Member Since</label>
+                    <p className="text-sm font-bold text-gray-900">
                       {profile.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, {
                         month: 'long', day: 'numeric', year: 'numeric'
                       }) : 'Recently'}
@@ -300,15 +329,16 @@ export default function ProfilePage() {
             {!isEditing && (
               <button
                 onClick={handleLogout}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-red-50 text-red-600 border border-red-100 font-semibold hover:bg-red-100 hover:border-red-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 font-bold text-xs hover:bg-rose-100 transition-all flex items-center justify-center gap-2 shadow-xs"
               >
-                <LogOut size={18} />
-                Sign Out
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out of Account</span>
               </button>
             )}
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
+

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import BottomNav from '../components/BottomNav';
+import DesktopSidebar from '../components/DesktopSidebar';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -15,6 +16,7 @@ export default function LayoutWrapper({ children }) {
   
   // Marketing pages should be full width responsive
   const isMarketing = ['/', '/privacy', '/terms'].includes(pathname);
+  const isAuth = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -30,22 +32,30 @@ export default function LayoutWrapper({ children }) {
   }, [pathname, router]);
 
   if (loading) {
-    return <div className="w-full min-h-screen bg-green-50" />;
+    return (
+      <div className="w-full min-h-screen bg-[#F4FBF7] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-[#145C4B]/20 border-t-[#145C4B] rounded-full animate-spin" />
+      </div>
+    );
   }
 
-  if (isMarketing) {
+  if (isMarketing || isAuth) {
     return (
-      <div className="w-full min-h-screen bg-green-50 relative flex flex-col overflow-x-hidden">
+      <div className="w-full min-h-screen bg-[#F4FBF7] relative flex flex-col overflow-x-hidden selection:bg-[#145C4B]/20 selection:text-[#145C4B]">
         {children}
       </div>
     );
   }
 
-  // App pages are constrained to mobile view
+  // App pages: Responsive Desktop & Mobile layout
   return (
-    <div className="w-full max-w-md min-h-screen bg-green-50 relative shadow-2xl shadow-gray-400/20 flex flex-col overflow-x-hidden">
-      {children}
+    <div className="w-full min-h-screen bg-[#F4FBF7] flex flex-col md:flex-row relative">
+      <DesktopSidebar />
+      <main className="flex-1 min-w-0 min-h-screen pb-24 md:pb-8 flex flex-col">
+        {children}
+      </main>
       <BottomNav />
     </div>
   );
 }
+

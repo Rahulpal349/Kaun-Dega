@@ -1,17 +1,11 @@
-import { Fraunces, Manrope, IBM_Plex_Mono } from 'next/font/google';
+import { Plus_Jakarta_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 
-const fraunces = Fraunces({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-fraunces',
-  weight: ['500', '600', '700'],
-  style: ['normal', 'italic'],
-});
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  variable: '--font-manrope',
-  weight: ['400', '500', '700'],
+  variable: '--font-plus-jakarta',
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -47,13 +41,14 @@ import LayoutWrapper from './LayoutWrapper';
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${manrope.variable} ${plexMono.variable}`}>
+    <html lang="en" className={`${plusJakartaSans.variable} ${plexMono.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
       </head>
-      <body className="font-body min-h-screen bg-gray-200 relative antialiased flex justify-center text-ink">
+      <body className="font-sans min-h-screen bg-[#F4FBF7] text-text-main antialiased selection:bg-primary/20 selection:text-primary">
         <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );
 }
+

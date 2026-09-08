@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 body {
-  background-color: #f9fafb; /* gray-50, matches Tailwind bg-gray-50 */
-  color: #0B2B26;
+  background-color: #F4FBF7;
+  color: #111827;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
@@ -13,6 +13,22 @@ body {
 /* Safe area for phones with notch/home indicator */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
 }
 
 /* Prevent iOS zoom on inputs */
@@ -36,7 +52,7 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Hide scrollbar on mobile bottom nav areas */
+/* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -44,3 +60,34 @@ html {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Card border utility */
+.app-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2EFE9;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px 0 rgba(20, 92, 75, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-card:hover {
+  border-color: #D1E5DC;
+  box-shadow: 0 10px 25px -5px rgba(20, 92, 75, 0.08);
+}
+
+@keyframes tabSlideFade {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-tab-switch {
+  animation: tabSlideFade 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+

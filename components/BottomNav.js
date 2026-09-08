@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, History, User } from 'lucide-react';
+import { LayoutGrid, Activity, User } from 'lucide-react';
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -16,38 +16,60 @@ export default function BottomNav() {
   }
 
   const navItems = [
-    { name: 'Home', href: '/dashboard', icon: Home, activeMatch: '/dashboard' },
-    { name: 'Groups', href: '/groups', icon: Users, activeMatch: '/groups' },
-    { name: 'Activity', href: '/history', icon: History, activeMatch: '/history' },
+    { name: 'Ledgers', href: '/dashboard', icon: LayoutGrid, activeMatch: '/dashboard' },
+    { name: 'Activity', href: '/history', icon: Activity, activeMatch: '/history' },
     { name: 'Profile', href: '/profile', icon: User, activeMatch: '/profile' },
   ];
 
-  const isActive = (item) => {
-    if (item.name === 'Groups' && pathname?.startsWith('/groups')) return true;
-    if (item.name === 'Home' && pathname === '/dashboard') return true;
-    return pathname === item.activeMatch;
+  const getActiveIndex = () => {
+    if (pathname === '/history') return 1;
+    if (pathname === '/profile') return 2;
+    return 0; // Default to Ledgers
   };
 
+  const activeIndex = getActiveIndex();
+
   return (
-    <div className="fixed bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 bg-white border-t border-gray-100 flex justify-around items-center h-20 px-4 sm:px-8 z-50 rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
-      {navItems.map((item) => {
-        const Icon = item.icon;
-        const active = isActive(item);
-        return (
-          <Link
-            key={item.name}
-            href={item.href}
-            className="flex flex-col items-center justify-center w-full h-full"
-          >
-            <div className={`px-5 py-1.5 rounded-full transition-colors ${active ? 'bg-soft-green text-primary' : 'text-gray-400 hover:text-gray-600'}`}>
-              <Icon size={24} strokeWidth={active ? 2.5 : 2} />
-            </div>
-            <span className={`text-[11px] mt-1.5 font-medium ${active ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>
-              {item.name}
-            </span>
-          </Link>
-        );
-      })}
+    <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm bg-white/95 backdrop-blur-xl border border-[#E2EFE9] rounded-[28px] p-1.5 z-50 shadow-[0_10px_35px_rgba(20,92,75,0.15)] transition-all">
+      <div className="relative inline-grid grid-cols-3 w-full">
+        {/* Sliding Active Pill Background */}
+        <div
+          className="absolute top-0 bottom-0 rounded-[22px] bg-[#145C4B]/10 shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{
+            width: '33.333%',
+            left: `${activeIndex * 33.333}%`,
+          }}
+        />
+
+        {navItems.map((item, index) => {
+          const Icon = item.icon;
+          const active = activeIndex === index;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`relative z-10 flex flex-col items-center justify-center py-2 px-3 rounded-[22px] transition-colors duration-200 ${
+                active
+                  ? 'text-[#145C4B] font-black'
+                  : 'text-gray-400 hover:text-gray-700 font-medium'
+              }`}
+            >
+              <Icon
+                className={`w-5 h-5 transition-transform duration-300 ${
+                  active ? 'stroke-[2.5] scale-110 text-[#145C4B]' : 'stroke-[1.8]'
+                }`}
+              />
+              <span className={`text-[11px] mt-1 tracking-tight transition-all duration-300 ${
+                active ? 'font-black text-[#145C4B]' : 'font-semibold text-gray-400'
+              }`}>
+                {item.name}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
+
+
