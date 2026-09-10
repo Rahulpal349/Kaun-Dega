@@ -130,7 +130,7 @@ export default function DashboardPage() {
           await Promise.all(
             fetchedGroups.map(async (g) => {
               try {
-                const balanceData = await api.getBalances(g.id);
+                const balanceData = await api.getBalances(g.id, g);
                 const myBal = balanceData.balances.find((b) => b.id === user.uid);
                 if (myBal) {
                   total += (myBal.amount || 0);
@@ -349,9 +349,12 @@ export default function DashboardPage() {
         ) : (
           <div key={ledgerType} className="animate-tab-switch grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {displayedGroups.map((g) => (
-              <div
+              <Link
                 key={g.id}
-                onClick={() => router.push(`/groups/${g.id}`)}
+                href={`/groups/${g.id}`}
+                prefetch={true}
+                onMouseEnter={() => api.prefetchGroup(g.id)}
+                onTouchStart={() => api.prefetchGroup(g.id)}
                 className="group bg-white border border-[#E2EFE9] rounded-[24px] p-5 shadow-sm hover:shadow-md hover:border-[#145C4B]/40 transition-all flex flex-col justify-between relative overflow-hidden cursor-pointer active:scale-[0.99]"
               >
                 <div>
@@ -388,19 +391,28 @@ export default function DashboardPage() {
                     <ChevronRight className="w-4 h-4" />
                   </div>
 
-                  <button
+                  <span
+                    role="button"
+                    tabIndex={0}
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
                       handleDeleteGroup(g);
                     }}
-                    className="p-1.5 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors z-10"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleDeleteGroup(g);
+                      }
+                    }}
+                    className="p-1.5 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors z-10 cursor-pointer"
                     title={g.myRole === 'admin' ? 'Delete Group' : 'Leave Group'}
                   >
                     {g.myRole === 'admin' ? <Trash2 className="w-4 h-4" /> : <LogOut className="w-4 h-4" />}
-                  </button>
+                  </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

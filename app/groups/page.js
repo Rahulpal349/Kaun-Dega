@@ -69,7 +69,14 @@ export default function GroupsPage() {
         ) : (
           <div className="space-y-3">
             {groups.map((g) => (
-              <Link key={g.id} href={`/groups/${g.id}`} className="block group">
+              <Link
+                key={g.id}
+                href={`/groups/${g.id}`}
+                prefetch={true}
+                onMouseEnter={() => api.prefetchGroup(g.id)}
+                onTouchStart={() => api.prefetchGroup(g.id)}
+                className="block group"
+              >
                 <div className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md hover:border-gray-200 transition-all">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-green-50 border border-gray-100 flex items-center justify-center shadow-sm">
@@ -85,8 +92,11 @@ export default function GroupsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
+                    <span
+                      role="button"
+                      tabIndex={0}
                       onClick={async (e) => {
+                        e.stopPropagation();
                         e.preventDefault();
                         if (confirm('Delete this group? This cannot be undone.')) {
                           try {
@@ -97,11 +107,25 @@ export default function GroupsPage() {
                           }
                         }
                       }}
-                      className="w-10 h-10 rounded-full hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors z-10"
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          if (confirm('Delete this group? This cannot be undone.')) {
+                            try {
+                              await api.deleteGroup(g.id);
+                              setGroups(groups.filter(group => group.id !== g.id));
+                            } catch (err) {
+                              alert('Failed to delete: ' + err.message);
+                            }
+                          }
+                        }
+                      }}
+                      className="w-10 h-10 rounded-full hover:bg-red-50 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors z-10 cursor-pointer"
                       title="Delete Group"
                     >
                       <Trash2 size={18} />
-                    </button>
+                    </span>
                     <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-gray-400 group-hover:bg-[#e6f4ed] group-hover:text-[#145C4B] transition-colors">
                       <ChevronRight size={18} />
                     </div>

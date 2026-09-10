@@ -16,16 +16,34 @@ export default function GroupDetailPage() {
   const router = useRouter();
   const menuRef = useRef(null);
 
-  const [userId, setUserId] = useState(null);
-  const [members, setMembers] = useState([]);
-  const [expenses, setExpenses] = useState([]);
-  const [balanceData, setBalanceData] = useState({ balances: [], moves: [] });
-  const [loading, setLoading] = useState(true);
+  const cachedInitialGroup = api.getCachedGroup(id);
+  const cachedInitialExpenses = api.getCachedExpenses(id);
+  const cachedInitialSettlements = api.getCachedSettlements(id);
+
+  const [userId, setUserId] = useState(() => auth.currentUser?.uid || null);
+  const [group, setGroup] = useState(cachedInitialGroup);
+  const [members, setMembers] = useState(() =>
+    cachedInitialGroup ? Object.values(cachedInitialGroup.members || {}) : []
+  );
+  const [expenses, setExpenses] = useState(() => cachedInitialExpenses || []);
+  const [settlements, setSettlements] = useState(() => cachedInitialSettlements || []);
+  const [balanceData, setBalanceData] = useState(() => {
+    if (cachedInitialGroup && cachedInitialExpenses) {
+      return api.computeBalancesFromData(cachedInitialGroup, cachedInitialExpenses, cachedInitialSettlements || []);
+    }
+    return { balances: [], moves: [] };
+  });
+  const [loading, setLoading] = useState(() => !cachedInitialGroup);
   const [error, setError] = useState('');
-  const [group, setGroup] = useState(null);
   const [sharing, setSharing] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [userRole, setUserRole] = useState(null); // 'admin' | 'member'
+  const [userRole, setUserRole] = useState(() => {
+    const curUid = auth.currentUser?.uid;
+    if (cachedInitialGroup && curUid) {
+      return cachedInitialGroup.members?.[curUid]?.role || null;
+    }
+    return null;
+  }); // 'admin' | 'member'
 
   // Tabs and overlays
   const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'balance'
@@ -181,19 +199,15 @@ export default function GroupDetailPage() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [membersData, expensesData, balances, groupData] = await Promise.all([
-        api.getMembers(id),
-        api.getExpenses(id),
-        api.getBalances(id),
-        api.getGroup(id),
-      ]);
-      setMembers(membersData);
-      setExpenses(expensesData);
-      setBalanceData(balances);
-      setGroup(groupData);
+      const details = await api.getGroupDetails(id);
+      setGroup(details.group);
+      setMembers(details.members);
+      setExpenses(details.expenses);
+      setSettlements(details.settlements);
+      setBalanceData(details.balances);
       
       const currentUid = auth.currentUser?.uid;
-      const myMember = membersData.find(m => m.id === currentUid);
+      const myMember = details.members.find(m => m.id === currentUid);
       setUserRole(myMember?.role || null);
     } catch (err) {
       setError(err.message || 'Failed to load group');
@@ -206,17 +220,15 @@ export default function GroupDetailPage() {
     let unsubscribeExpenses = null;
     let unsubscribeSettlements = null;
     let unsubscribeGroup = null;
+    let isMounted = true;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-      setUserId(user.uid);
-      await loadAll();
+    const startSubscriptions = (user) => {
+      const uid = user?.uid;
+      if (uid) setUserId(uid);
 
-      // Realtime subscriptions
+      // Realtime group listener
       unsubscribeGroup = api.subscribeGroup(id, (updatedGroup) => {
+        if (!isMounted) return;
         if (!updatedGroup) {
           router.push('/dashboard');
           return;
@@ -224,26 +236,74 @@ export default function GroupDetailPage() {
         setGroup(updatedGroup);
         const mems = Object.values(updatedGroup.members || {});
         setMembers(mems);
-        const myMember = mems.find(m => m.id === user.uid);
+        const myMember = mems.find(m => m.id === (uid || auth.currentUser?.uid));
         setUserRole(myMember?.role || null);
+        setLoading(false);
+
+        // Update balances in-memory
+        setExpenses((curExp) => {
+          setSettlements((curSet) => {
+            setBalanceData(api.computeBalancesFromData(updatedGroup, curExp, curSet));
+            return curSet;
+          });
+          return curExp;
+        });
       });
 
-      unsubscribeExpenses = api.subscribeExpenses(id, () => {
-        loadAll();
+      // Realtime expenses listener
+      unsubscribeExpenses = api.subscribeExpenses(id, (updatedExpenses) => {
+        if (!isMounted) return;
+        setExpenses(updatedExpenses);
+        setGroup((curGroup) => {
+          if (curGroup) {
+            setSettlements((curSet) => {
+              setBalanceData(api.computeBalancesFromData(curGroup, updatedExpenses, curSet));
+              return curSet;
+            });
+          }
+          return curGroup;
+        });
       });
 
-      unsubscribeSettlements = api.subscribeSettlements(id, () => {
-        loadAll();
+      // Realtime settlements listener
+      unsubscribeSettlements = api.subscribeSettlements(id, (updatedSettlements) => {
+        if (!isMounted) return;
+        setSettlements(updatedSettlements);
+        setGroup((curGroup) => {
+          if (curGroup) {
+            setExpenses((curExp) => {
+              setBalanceData(api.computeBalancesFromData(curGroup, curExp, updatedSettlements));
+              return curExp;
+            });
+          }
+          return curGroup;
+        });
       });
+    };
+
+    if (auth.currentUser) {
+      startSubscriptions(auth.currentUser);
+    }
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!isMounted) return;
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+      if (!auth.currentUser) {
+        startSubscriptions(user);
+      }
     });
 
     return () => {
+      isMounted = false;
       unsubscribeAuth();
       if (unsubscribeGroup) unsubscribeGroup();
       if (unsubscribeExpenses) unsubscribeExpenses();
       if (unsubscribeSettlements) unsubscribeSettlements();
     };
-  }, [id, loadAll, router]);
+  }, [id, router]);
 
   useEffect(() => {
     function handleClickOutside(event) {

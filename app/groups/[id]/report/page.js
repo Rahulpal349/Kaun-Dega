@@ -26,16 +26,11 @@ export default function GroupReportPage() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [membersData, expensesData, balances, groupData] = await Promise.all([
-        api.getMembers(id),
-        api.getExpenses(id),
-        api.getBalances(id),
-        api.getGroup(id),
-      ]);
-      setMembers(membersData);
-      setExpenses(expensesData);
-      setBalanceData(balances);
-      setGroup(groupData);
+      const details = await api.getGroupDetails(id);
+      setMembers(details.members);
+      setExpenses(details.expenses);
+      setBalanceData(details.balances);
+      setGroup(details.group);
     } catch (err) {
       console.error(err);
     } finally {
