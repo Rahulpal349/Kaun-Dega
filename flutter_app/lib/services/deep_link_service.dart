@@ -60,13 +60,34 @@ class DeepLinkService {
   }
 
   /// Extracts the group invite code from a join URL.
-  /// e.g.  https://kaun-dega.vercel.app/join/abc123  →  "abc123"
+  /// Handles:
+  ///   https://kaun-dega.vercel.app/join/abc123  →  "abc123"
+  ///   kaundega://join/abc123                   →  "abc123"
+  ///   kaundega://kaun-dega.vercel.app/join/abc →  "abc"
   String? _extractCode(Uri uri) {
-    final segments = uri.pathSegments;
-    if (segments.length >= 2 && segments[0] == 'join') {
-      final code = segments[1].trim();
-      return code.isNotEmpty ? code : null;
+    // 1. Handle kaundega://join/[code]
+    if (uri.scheme == 'kaundega' && uri.host == 'join') {
+      final pathCode = uri.path.replaceAll('/', '').trim();
+      if (pathCode.isNotEmpty) return pathCode;
     }
+
+    // 2. Handle /join/[code] path segments
+    final segments = uri.pathSegments;
+    final joinIdx = segments.indexOf('join');
+    if (joinIdx != -1 && segments.length > joinIdx + 1) {
+      final code = segments[joinIdx + 1].trim();
+      if (code.isNotEmpty) return code;
+    }
+
+    // Fallback: if last segment exists and path starts with /join/
+    if (uri.path.contains('/join/')) {
+      final parts = uri.path.split('/join/');
+      if (parts.length > 1) {
+        final code = parts[1].split('/')[0].split('?')[0].trim();
+        if (code.isNotEmpty) return code;
+      }
+    }
+
     return null;
   }
 

@@ -114,7 +114,8 @@ export default function GroupDetailPage() {
 
   // Invite generation
   function handleGenerateInvite() {
-    const link = `${window.location.origin}/join/${id}`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://kaun-dega.vercel.app';
+    const link = `${origin}/join/${id}`;
     setInviteLink(link);
     setShowInviteModal(true);
   }
@@ -129,8 +130,28 @@ export default function GroupDetailPage() {
   }
 
   function shareInviteWhatsApp() {
-    const text = `Join my group "${group?.name}" on Kaun Dega!\n${inviteLink}`;
+    const text = `👋 Join my group "*${group?.name}*" on *Kaun Dega* to easily split bills & track expenses!\n\n🔗 Join Link: ${inviteLink}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  }
+
+  async function shareInviteNative() {
+    const text = `👋 Join my group "${group?.name}" on Kaun Dega to easily split bills & track expenses!`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join ${group?.name} on Kaun Dega`,
+          text: text,
+          url: inviteLink,
+        });
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          shareInviteWhatsApp();
+        }
+        return;
+      }
+    }
+    shareInviteWhatsApp();
   }
 
   async function handleDeleteGroup() {
@@ -875,6 +896,16 @@ export default function GroupDetailPage() {
                 <span className="truncate">WhatsApp</span>
               </button>
             </div>
+
+            {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
+              <button
+                onClick={shareInviteNative}
+                className="w-full py-2.5 px-3 rounded-2xl bg-white border border-[#E2EFE9] text-gray-700 hover:bg-[#F0F7F4] font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+              >
+                <Share2 className="w-3.5 h-3.5 text-[#145C4B]" />
+                <span>More Share Options (SMS, Telegram, etc.)</span>
+              </button>
+            )}
           </div>
         </div>
       )}
