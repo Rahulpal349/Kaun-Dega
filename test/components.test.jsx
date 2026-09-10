@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import GroupIcon, { ICON_MAP } from '../components/GroupIcon';
 import Chit from '../components/Chit';
 import LandingHeader from '../components/LandingHeader';
+import AnimatedCounter from '../components/AnimatedCounter';
 import { 
   Skeleton, 
   GroupCardSkeleton, 
@@ -83,6 +84,24 @@ describe('Web Component Unit Tests', () => {
 
       const { container: joinCont } = render(<JoinSkeleton />);
       expect(joinCont.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('AnimatedCounter Component', () => {
+    it('renders formatted number correctly', () => {
+      render(<AnimatedCounter value={1250} prefix="₹" />);
+      const valueEl = screen.getByTestId('animated-counter-value');
+      expect(valueEl).toHaveTextContent('₹1,250');
+    });
+
+    it('renders delta indicator when value increases', () => {
+      const { rerender } = render(<AnimatedCounter value={1000} prefix="₹" />);
+      expect(screen.queryByTestId('animated-counter-delta')).not.toBeInTheDocument();
+
+      rerender(<AnimatedCounter value={1500} prefix="₹" />);
+      const deltaEl = screen.getByTestId('animated-counter-delta');
+      expect(deltaEl).toBeInTheDocument();
+      expect(deltaEl).toHaveTextContent('+₹500');
     });
   });
 });

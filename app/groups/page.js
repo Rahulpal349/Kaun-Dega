@@ -12,7 +12,12 @@ import { Plus, Trash2, ChevronRight, Users } from 'lucide-react';
 
 export default function GroupsPage() {
   const router = useRouter();
-  const [groups, setGroups] = useState(null);
+  const [groups, setGroups] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return api.getCachedGroups();
+    }
+    return null;
+  });
   const [error, setError] = useState('');
 
   useEffect(() => {

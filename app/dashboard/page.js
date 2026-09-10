@@ -8,6 +8,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { api, isDirectGroup } from '../../lib/firebaseApi';
 import GroupIcon from '../../components/GroupIcon';
 import TopHeader from '../../components/TopHeader';
+import AnimatedCounter from '../../components/AnimatedCounter';
 import { DashboardSkeleton, GroupCardSkeleton } from '../../components/Skeleton';
 import { Plus, Users, ChevronRight, LogOut, Trash2, ArrowUpRight, ArrowDownLeft, Sparkles, Link as LinkIcon, Wallet, UserCheck, Shield } from 'lucide-react';
 
@@ -15,11 +16,37 @@ export default function DashboardPage() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
-  const [groups, setGroups] = useState(null);
+  const [groups, setGroups] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = api.getCachedDashboardSummary();
+      if (cached && Array.isArray(cached.groups)) return cached.groups;
+      const cachedGrp = api.getCachedGroups();
+      if (cachedGrp) return cachedGrp;
+    }
+    return null;
+  });
   const [error, setError] = useState('');
-  const [consolidatedBalance, setConsolidatedBalance] = useState(0);
-  const [totalSpent, setTotalSpent] = useState(0);
-  const [netBalanceLoading, setNetBalanceLoading] = useState(true);
+  const [consolidatedBalance, setConsolidatedBalance] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = api.getCachedDashboardSummary();
+      if (cached && typeof cached.consolidatedBalance === 'number') return cached.consolidatedBalance;
+    }
+    return 0;
+  });
+  const [totalSpent, setTotalSpent] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = api.getCachedDashboardSummary();
+      if (cached && typeof cached.totalSpent === 'number') return cached.totalSpent;
+    }
+    return 0;
+  });
+  const [netBalanceLoading, setNetBalanceLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = api.getCachedDashboardSummary();
+      if (cached && typeof cached.consolidatedBalance === 'number') return false;
+    }
+    return true;
+  });
   const [ledgerType, setLedgerType] = useState(0); // 0 = Groups, 1 = 1-on-1 Khatabook
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCodeInput, setJoinCodeInput] = useState('');
@@ -144,6 +171,11 @@ export default function DashboardPage() {
           setConsolidatedBalance(total);
           setTotalSpent(spent);
           setNetBalanceLoading(false);
+          api.setCachedDashboardSummary({
+            groups: fetchedGroups,
+            consolidatedBalance: total,
+            totalSpent: spent,
+          });
         });
       } catch (err) {
         setError(err.message || 'Failed to load dashboard');
@@ -184,60 +216,61 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span
-                  className={`w-2.5 h-2.5 rounded-full animate-pulse ${
-                    consolidatedBalance > 0
-                      ? 'bg-[#25D366] shadow-[0_0_8px_#25D366]'
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    netBalanceLoading
+                      ? 'bg-emerald-300 animate-ping'
+                      : consolidatedBalance > 0
+                      ? 'bg-[#25D366] shadow-[0_0_8px_#25D366] animate-pulse'
                       : consolidatedBalance < 0
-                      ? 'bg-rose-400 shadow-[0_0_8px_#fb7185]'
+                      ? 'bg-rose-400 shadow-[0_0_8px_#fb7185] animate-pulse'
                       : 'bg-white/70'
                   }`}
                 />
-                <span className="text-[11px] font-extrabold tracking-widest text-emerald-200/90 uppercase">
+                <span className="text-[11px] font-extrabold tracking-widest text-emerald-200/90 uppercase flex items-center gap-1.5">
                   Consolidated Net Balance
+                  {netBalanceLoading && (
+                    <span className="text-[10px] text-emerald-300/80 font-normal lowercase tracking-normal">
+                      (updating...)
+                    </span>
+                  )}
                 </span>
               </div>
 
-              {!netBalanceLoading && (
-                <div
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-sm ${
-                    consolidatedBalance > 0
-                      ? 'bg-[#059669] text-white shadow-emerald-950/40'
-                      : consolidatedBalance < 0
-                      ? 'bg-[#E11D48] text-white shadow-rose-950/40'
-                      : 'bg-white/20 text-white'
-                  }`}
-                >
-                  {consolidatedBalance > 0 ? (
-                    <>
-                      <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>You get back</span>
-                    </>
-                  ) : consolidatedBalance < 0 ? (
-                    <>
-                      <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>You owe</span>
-                    </>
-                  ) : (
-                    <span>All Settled Up</span>
-                  )}
-                </div>
-              )}
+              <div
+                className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all duration-300 ${
+                  consolidatedBalance > 0
+                    ? 'bg-[#059669] text-white shadow-emerald-950/40'
+                    : consolidatedBalance < 0
+                    ? 'bg-[#E11D48] text-white shadow-rose-950/40'
+                    : 'bg-white/20 text-white'
+                }`}
+              >
+                {consolidatedBalance > 0 ? (
+                  <>
+                    <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>You get back</span>
+                  </>
+                ) : consolidatedBalance < 0 ? (
+                  <>
+                    <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>You owe</span>
+                  </>
+                ) : (
+                  <span>All Settled Up</span>
+                )}
+              </div>
             </div>
 
             {/* Main Balance Display */}
             <div className="space-y-1">
-              {netBalanceLoading ? (
-                <div className="h-12 w-48 bg-white/20 animate-pulse rounded-2xl" />
-              ) : (
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl sm:text-3xl font-bold text-emerald-200/80">₹</span>
-                  <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                    {consolidatedBalance >= 0
-                      ? `${consolidatedBalance.toLocaleString('en-IN')}`
-                      : `${Math.abs(consolidatedBalance).toLocaleString('en-IN')}`}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-bold text-emerald-200/80">₹</span>
+                <AnimatedCounter
+                  value={Math.abs(consolidatedBalance)}
+                  duration={1200}
+                  className="text-4xl sm:text-5xl font-black text-white tracking-tight"
+                />
+              </div>
 
               <p className="text-xs text-emerald-100/70 font-medium">
                 Overall position across all active group ledgers & 1-on-1 khatabook
