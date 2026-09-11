@@ -193,25 +193,23 @@ class NotificationService {
   }
 
   StreamSubscription<QuerySnapshot>? _notifSubscription;
+  StreamSubscription<QuerySnapshot>? _userIdNotifSubscription;
 
   void listenForUserNotifications({
     required String userId,
     required String userEmail,
   }) {
     _notifSubscription?.cancel();
+    _userIdNotifSubscription?.cancel();
     final emailLower = userEmail.toLowerCase().trim();
     if (emailLower.isEmpty && userId.isEmpty) return;
 
     final firestore = FirebaseFirestore.instance;
 
-    _notifSubscription = firestore
-        .collection('notifications')
-        .where('targetEmail', isEqualTo: emailLower)
-        .snapshots()
-        .listen((snapshot) {
+    void handleSnapshot(QuerySnapshot snapshot) {
       for (final change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
-          final data = change.doc.data();
+          final data = change.doc.data() as Map<String, dynamic>?;
           if (data != null) {
             final title = data['title'] as String? ?? 'Kaun Dega?';
             final body = data['body'] as String? ?? 'You have a new update';
@@ -234,9 +232,27 @@ class NotificationService {
           }
         }
       }
-    }, onError: (e) {
-      if (kDebugMode) print('Notification listener error: $e');
-    });
+    }
+
+    if (userId.isNotEmpty) {
+      _userIdNotifSubscription = firestore
+          .collection('notifications')
+          .where('targetUserId', isEqualTo: userId)
+          .snapshots()
+          .listen(handleSnapshot, onError: (e) {
+        if (kDebugMode) print('Notification userId listener error: $e');
+      });
+    }
+
+    if (emailLower.isNotEmpty) {
+      _notifSubscription = firestore
+          .collection('notifications')
+          .where('targetEmail', isEqualTo: emailLower)
+          .snapshots()
+          .listen(handleSnapshot, onError: (e) {
+        if (kDebugMode) print('Notification email listener error: $e');
+      });
+    }
   }
 
   Future<void> showNotification({

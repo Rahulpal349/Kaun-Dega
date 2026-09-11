@@ -712,10 +712,12 @@ class StorageService {
       await _firestore.collection('groups').doc(groupId).set(groupData);
 
       // Send notifications to invited members
-      for (final email in memberEmails) {
-        if (email != myEmailLower) {
+      for (final mId in memberIds) {
+        if (mId != currentUser.id) {
+          final mEmail = (members[mId]?['email'] as String? ?? '').toLowerCase().trim();
           sendNotificationToUser(
-            targetEmail: email,
+            targetUserId: mId,
+            targetEmail: mEmail.isNotEmpty ? mEmail : null,
             title: 'New Group Invite 🎉',
             body: '${currentUser.name.isNotEmpty ? currentUser.name : "A friend"} added you to "$name"',
             groupId: groupId,
@@ -1153,16 +1155,16 @@ class StorageService {
       final groupSnap = await _firestore.collection('groups').doc(groupId).get();
       if (groupSnap.exists && groupSnap.data() != null) {
         final groupData = groupSnap.data()!;
-        final memberEmails = List<String>.from(groupData['memberEmails'] ?? []);
+        final memberIds = List<String>.from(groupData['memberIds'] ?? []);
         final groupName = groupData['name'] as String? ?? 'Ledger';
         final members = groupData['members'] as Map<String, dynamic>? ?? {};
-        final payerEmail = (members[paidBy]?['email'] as String? ?? '').toLowerCase().trim();
 
-        for (final email in memberEmails) {
-          final cleanEmail = email.toLowerCase().trim();
-          if (cleanEmail.isNotEmpty && cleanEmail != payerEmail) {
+        for (final mId in memberIds) {
+          if (mId != paidBy) {
+            final mEmail = (members[mId]?['email'] as String? ?? '').toLowerCase().trim();
             sendNotificationToUser(
-              targetEmail: cleanEmail,
+              targetUserId: mId,
+              targetEmail: mEmail.isNotEmpty ? mEmail : null,
               title: 'New Expense in $groupName 💸',
               body: '${payer.name} added "$description" (₹${amount.toStringAsFixed(2)})',
               groupId: groupId,
@@ -1371,22 +1373,21 @@ class StorageService {
       final groupSnap = await _firestore.collection('groups').doc(groupId).get();
       if (groupSnap.exists && groupSnap.data() != null) {
         final groupData = groupSnap.data()!;
-        final memberEmails = List<String>.from(groupData['memberEmails'] ?? []);
+        final memberIds = List<String>.from(groupData['memberIds'] ?? []);
         final groupName = groupData['name'] as String? ?? 'Ledger';
         final members = groupData['members'] as Map<String, dynamic>? ?? {};
         final fromName = (members[fromUser]?['name'] as String?) ?? 'Member';
         final toName = (members[toUser]?['name'] as String?) ?? 'Member';
 
-        for (final email in memberEmails) {
-          final cleanEmail = email.toLowerCase().trim();
-          if (cleanEmail.isNotEmpty) {
-            sendNotificationToUser(
-              targetEmail: cleanEmail,
-              title: 'Settlement Recorded 🤝',
-              body: '$fromName paid ₹${amount.toStringAsFixed(2)} to $toName in "$groupName"',
-              groupId: groupId,
-            );
-          }
+        for (final mId in memberIds) {
+          final mEmail = (members[mId]?['email'] as String? ?? '').toLowerCase().trim();
+          sendNotificationToUser(
+            targetUserId: mId,
+            targetEmail: mEmail.isNotEmpty ? mEmail : null,
+            title: 'Settlement Recorded 🤝',
+            body: '$fromName paid ₹${amount.toStringAsFixed(2)} to $toName in "$groupName"',
+            groupId: groupId,
+          );
         }
       }
     } catch (e) {
@@ -1431,16 +1432,18 @@ class StorageService {
 
   // --- Notification Helper ---
   Future<void> sendNotificationToUser({
-    required String targetEmail,
+    String? targetEmail,
+    String? targetUserId,
     required String title,
     required String body,
     String? groupId,
   }) async {
-    final emailClean = targetEmail.toLowerCase().trim();
-    if (emailClean.isEmpty) return;
+    final emailClean = targetEmail?.toLowerCase().trim();
+    if ((emailClean == null || emailClean.isEmpty) && (targetUserId == null || targetUserId.isEmpty)) return;
     try {
       await _firestore.collection('notifications').add({
-        'targetEmail': emailClean,
+        'targetEmail': (emailClean != null && emailClean.isNotEmpty) ? emailClean : null,
+        'targetUserId': targetUserId,
         'title': title,
         'body': body,
         'groupId': groupId,
