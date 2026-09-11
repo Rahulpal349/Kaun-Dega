@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { auth } from '../../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { api } from '../../../lib/firebaseApi';
+import { api, isDirectGroup } from '../../../lib/firebaseApi';
 import GroupIcon from '../../../components/GroupIcon';
 import { GroupDetailSkeleton } from '../../../components/Skeleton';
 import ExpenseForm from '../../../components/ExpenseForm';
@@ -383,7 +383,7 @@ export default function GroupDetailPage() {
                 )}
               </div>
               <p className="text-xs font-semibold text-gray-500 mt-0.5">
-                {members.length} members · Total ₹{totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                {isDirectGroup(group) ? '1-on-1 Khatabook' : `${members.length} members`} · Total ₹{totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
               </p>
             </div>
           </div>
@@ -737,6 +737,7 @@ export default function GroupDetailPage() {
                 groupId={id} 
                 members={members} 
                 currentUserId={userId} 
+                isDirect={isDirectGroup(group)}
                 existingExpense={editingExpense}
                 onAdded={() => {
                   setShowExpenseForm(false);

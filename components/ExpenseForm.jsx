@@ -5,16 +5,43 @@ import { api } from '../lib/firebaseApi';
 import { Coffee, IndianRupee, FileText } from 'lucide-react';
 import AdjustSplitModal from './AdjustSplitModal';
 
-export default function ExpenseForm({ groupId, members, currentUserId, onAdded, existingExpense = null, onUpdated }) {
+export default function ExpenseForm({
+  groupId,
+  members,
+  currentUserId,
+  isDirect = false,
+  onAdded,
+  existingExpense = null,
+  onUpdated,
+}) {
+  const otherMember = members.find((m) => m.id !== currentUserId) || members[1] || members[0];
+  const currentMember = members.find((m) => m.id === currentUserId) || members[0];
+
   const [description, setDescription] = useState(existingExpense ? existingExpense.description : '');
   const [amount, setAmount] = useState(existingExpense ? String(existingExpense.amount) : '');
-  const [paidBy, setPaidBy] = useState(existingExpense ? existingExpense.paid_by : currentUserId);
-  const [splitType, setSplitType] = useState(existingExpense ? existingExpense.split_type : 'equal');
+  const [paidBy, setPaidBy] = useState(existingExpense ? existingExpense.paid_by || existingExpense.paidBy : currentUserId);
+  const [splitType, setSplitType] = useState(existingExpense ? existingExpense.split_type || existingExpense.splitType : 'equal');
   const [splitData, setSplitData] = useState(existingExpense ? existingExpense.splitData : null);
-  const [shares, setShares] = useState(existingExpense ? existingExpense.expense_shares : null);
+  const [shares, setShares] = useState(existingExpense ? existingExpense.expense_shares || existingExpense.shares : null);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const [directMode, setDirectMode] = useState(() => {
+    if (!existingExpense) return 'you_gave';
+    const exShares = existingExpense.expense_shares || existingExpense.shares || [];
+    const exPaidBy = existingExpense.paid_by || existingExpense.paidBy;
+    if (exShares.length === 1 && otherMember) {
+      const sUid = exShares[0].user_id || exShares[0].userId;
+      if (sUid === otherMember.id && exPaidBy === currentUserId) return 'you_gave';
+      if (sUid === currentUserId && exPaidBy === otherMember.id) return 'you_got';
+    }
+    if (existingExpense.split_type === 'equal' || existingExpense.splitType === 'equal') {
+      return 'split_equal';
+    }
+    return 'custom';
+  });
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -26,19 +53,54 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
 
     setSaving(true);
     try {
+      const numTotal = Number(amount);
+      const round2 = (num) => Math.round((Number(num) + Number.EPSILON) * 100) / 100;
+
       const body = {
         groupId,
         description: description.trim(),
-        amount: Number(amount),
-        paidBy,
-        splitType,
-        splitData,
+        amount: numTotal,
       };
 
-      if (shares) {
-        body.shares = shares;
+      if (isDirect && otherMember && directMode !== 'custom') {
+        if (directMode === 'you_gave') {
+          body.paidBy = currentUserId;
+          body.splitType = 'exact';
+          body.splitData = { [otherMember.id]: numTotal };
+          body.shares = [{ userId: otherMember.id, user_id: otherMember.id, amount: numTotal, share_amount: numTotal }];
+          body.memberIds = [currentUserId, otherMember.id];
+        } else if (directMode === 'you_got') {
+          body.paidBy = otherMember.id;
+          body.splitType = 'exact';
+          body.splitData = { [currentUserId]: numTotal };
+          body.shares = [{ userId: currentUserId, user_id: currentUserId, amount: numTotal, share_amount: numTotal }];
+          body.memberIds = [currentUserId, otherMember.id];
+        } else if (directMode === 'split_equal') {
+          body.paidBy = paidBy || currentUserId;
+          body.splitType = 'equal';
+          const half = round2(numTotal / 2);
+          const rem = round2(numTotal - half * 2);
+          const isPayerCurrent = body.paidBy === currentUserId;
+          const userAmt = isPayerCurrent ? round2(half + rem) : half;
+          const otherAmt = !isPayerCurrent ? round2(half + rem) : half;
+          body.shares = [
+            { userId: currentUserId, user_id: currentUserId, amount: userAmt, share_amount: userAmt },
+            { userId: otherMember.id, user_id: otherMember.id, amount: otherAmt, share_amount: otherAmt },
+          ];
+          body.splitData = {
+            [currentUserId]: userAmt,
+            [otherMember.id]: otherAmt,
+          };
+          body.memberIds = [currentUserId, otherMember.id];
+        }
       } else {
-        body.memberIds = members.map(m => m.id);
+        body.paidBy = paidBy;
+        body.splitType = splitType;
+        body.splitData = splitData;
+        body.memberIds = members.map((m) => m.id);
+        if (shares) {
+          body.shares = shares;
+        }
       }
 
       if (existingExpense) {
@@ -52,7 +114,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
         setSplitType('equal');
         setSplitData(null);
         setShares(null);
-        
+        if (isDirect) setDirectMode('you_gave');
         onAdded?.();
       }
     } catch (err) {
@@ -62,12 +124,9 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
     }
   }
 
-  const activeSplitClass = "bg-[#145C4B] text-white shadow-sm";
-  const inactiveSplitClass = "text-gray-500 hover:text-gray-700 bg-transparent";
-
-  const payingMember = members.find(m => m.id === paidBy);
+  const payingMember = members.find((m) => m.id === paidBy);
   const totalAmountNum = Number(amount || 0);
-  
+
   let splitSummary = 'equally';
   if (splitType === 'exact') splitSummary = 'unequally';
   if (splitType === 'percentage') splitSummary = 'by percentages';
@@ -85,7 +144,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={existingExpense ? "Description" : "Enter a description"}
+            placeholder={existingExpense ? 'Description' : 'Enter a description (e.g. UPI, lunch, movie)'}
             className="w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#145C4B] focus:ring-1 focus:ring-[#145C4B] transition-all text-sm font-medium"
           />
         </div>
@@ -109,38 +168,161 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
             />
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-800 mb-2">Paid by</label>
-          <select
-            value={paidBy}
-            onChange={(e) => setPaidBy(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-gray-900 focus:outline-none focus:border-[#145C4B] focus:ring-1 focus:ring-[#145C4B] transition-all appearance-none text-sm font-medium"
-          >
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>{m.name.toUpperCase()} {m.id === currentUserId ? '(You)' : ''}</option>
-            ))}
-          </select>
-        </div>
+
+        {/* In 1-on-1 Khatabook mode, Paid By is derived from transaction type toggle below, or selectable if 50/50 */}
+        {(!isDirect || directMode === 'split_equal' || directMode === 'custom') ? (
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">Paid by</label>
+            <select
+              value={paidBy}
+              onChange={(e) => setPaidBy(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-gray-900 focus:outline-none focus:border-[#145C4B] focus:ring-1 focus:ring-[#145C4B] transition-all appearance-none text-sm font-medium"
+            >
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name.toUpperCase()} {m.id === currentUserId ? '(You)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">Contact</label>
+            <div className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-700 text-sm font-semibold truncate flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>{otherMember?.name || 'Friend'}</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="flex justify-center mt-6">
-        <button
-          type="button"
-          onClick={() => setShowAdjustModal(true)}
-          className="bg-green-50 text-[#145C4B] font-semibold text-sm px-6 py-3 rounded-full border border-green-100 hover:bg-green-100 transition-colors shadow-sm"
-        >
-          Paid by <span className="font-bold">{paidBy === currentUserId ? 'you' : payingMember?.name}</span> and split <span className="font-bold">{splitSummary}</span>.
-        </button>
-      </div>
+      {/* 1-on-1 Khatabook Transaction Type Selector */}
+      {isDirect && otherMember ? (
+        <div className="space-y-3 pt-1">
+          <label className="block text-xs font-extrabold uppercase tracking-wider text-gray-500">
+            Khatabook Transaction Type
+          </label>
+          <div className="grid grid-cols-3 gap-2 p-1.5 bg-gray-100 rounded-2xl border border-gray-200/80">
+            <button
+              type="button"
+              onClick={() => {
+                setDirectMode('you_gave');
+                setPaidBy(currentUserId);
+              }}
+              className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
+                directMode === 'you_gave'
+                  ? 'bg-[#DC2626] text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 bg-transparent'
+              }`}
+            >
+              <span>You Gave (diye)</span>
+              <span className="text-[10px] opacity-85 truncate max-w-full font-medium">
+                {otherMember.name} owes you
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setDirectMode('you_got');
+                setPaidBy(otherMember.id);
+              }}
+              className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
+                directMode === 'you_got'
+                  ? 'bg-[#059669] text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 bg-transparent'
+              }`}
+            >
+              <span>You Got (liye)</span>
+              <span className="text-[10px] opacity-85 truncate max-w-full font-medium">
+                You owe {otherMember.name}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDirectMode('split_equal')}
+              className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
+                directMode === 'split_equal'
+                  ? 'bg-[#145C4B] text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 bg-transparent'
+              }`}
+            >
+              <span>Split 50 / 50</span>
+              <span className="text-[10px] opacity-85 font-medium">Shared expense</span>
+            </button>
+          </div>
+
+          {/* Dynamic helper banner */}
+          <div
+            className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-colors ${
+              directMode === 'you_gave'
+                ? 'bg-rose-50 border-rose-200 text-rose-800'
+                : directMode === 'you_got'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : directMode === 'split_equal'
+                ? 'bg-teal-50 border-teal-200 text-teal-800'
+                : 'bg-gray-50 border-gray-200 text-gray-700'
+            }`}
+          >
+            <div>
+              {directMode === 'you_gave' && (
+                <p>
+                  💸 Paid by <span className="font-extrabold">You</span> · <span className="font-extrabold">{otherMember.name}</span> will owe you <span className="font-extrabold">₹{totalAmountNum.toFixed(2)}</span>
+                </p>
+              )}
+              {directMode === 'you_got' && (
+                <p>
+                  🤝 Paid by <span className="font-extrabold">{otherMember.name}</span> · You will owe <span className="font-extrabold">₹{totalAmountNum.toFixed(2)}</span>
+                </p>
+              )}
+              {directMode === 'split_equal' && (
+                <p>
+                  ⚖️ Split equally between both · <span className="font-extrabold">₹{(totalAmountNum / 2).toFixed(2)}</span> each
+                </p>
+              )}
+              {directMode === 'custom' && (
+                <p>
+                  ⚙️ Custom split configured
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setDirectMode('custom');
+                setShowAdjustModal(true);
+              }}
+              className="text-[11px] underline font-bold shrink-0 ml-2 hover:opacity-80 cursor-pointer"
+            >
+              Custom Split
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-center mt-6">
+          <button
+            type="button"
+            onClick={() => setShowAdjustModal(true)}
+            className="bg-green-50 text-[#145C4B] font-semibold text-sm px-6 py-3 rounded-full border border-green-100 hover:bg-green-100 transition-colors shadow-sm"
+          >
+            Paid by <span className="font-bold">{paidBy === currentUserId ? 'you' : payingMember?.name}</span> and split{' '}
+            <span className="font-bold">{splitSummary}</span>.
+          </button>
+        </div>
+      )}
 
       <div className="bg-gray-50/80 rounded-xl p-3 border border-gray-100 flex items-start gap-3">
         <div className="mt-0.5 text-gray-400">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
         </div>
-        <input 
-          type="text" 
-          placeholder="Add a note (optional)" 
-          className="bg-transparent border-none w-full text-sm focus:outline-none placeholder-gray-400 text-gray-700" 
+        <input
+          type="text"
+          placeholder="Add a note (optional)"
+          className="bg-transparent border-none w-full text-sm focus:outline-none placeholder-gray-400 text-gray-700"
         />
       </div>
 
@@ -152,14 +334,28 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
           <div className="flex justify-between items-center px-2">
             <div>
               <p className="text-xs font-semibold text-gray-500 mb-0.5">
-                {paidBy === currentUserId ? 'You are paying' : `${payingMember?.name || 'Someone'} is paying`}
+                {isDirect && directMode === 'you_gave'
+                  ? 'You are lending'
+                  : isDirect && directMode === 'you_got'
+                  ? `${otherMember?.name || 'Contact'} is paying`
+                  : paidBy === currentUserId
+                  ? 'You are paying'
+                  : `${payingMember?.name || 'Someone'} is paying`}
               </p>
               <p className="text-xl font-bold text-[#145C4B]">₹{totalAmountNum.toFixed(2)}</p>
             </div>
             <div className="w-[1px] h-8 bg-gray-200"></div>
             <div className="text-right flex flex-col justify-center">
               <p className="text-sm font-bold text-[#145C4B]">
-                {shares ? `${shares.length} people` : `${members.length} people`}
+                {isDirect
+                  ? directMode === 'you_gave'
+                    ? `100% to ${otherMember?.name || 'Friend'}`
+                    : directMode === 'you_got'
+                    ? '100% to You'
+                    : '2 people (50/50)'
+                  : shares
+                  ? `${shares.length} people`
+                  : `${members.length} people`}
               </p>
             </div>
           </div>
@@ -168,17 +364,17 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
             disabled={saving}
             className="w-full rounded-xl bg-[#145C4B] text-white font-bold uppercase tracking-widest py-4 hover:bg-[#145C4B]/90 disabled:opacity-60 transition-colors shadow-md"
           >
-            {saving ? 'SAVING...' : (existingExpense ? 'UPDATE EXPENSE' : 'SAVE EXPENSE')}
+            {saving ? 'SAVING...' : existingExpense ? 'UPDATE EXPENSE' : 'SAVE EXPENSE'}
           </button>
         </div>
       </div>
 
       {showAdjustModal && (
-        <AdjustSplitModal 
-          members={members} 
-          totalAmount={amount} 
-          currentSplitType={splitType} 
-          currentSplitData={splitData} 
+        <AdjustSplitModal
+          members={members}
+          totalAmount={amount}
+          currentSplitType={splitType}
+          currentSplitData={splitData}
           onClose={() => setShowAdjustModal(false)}
           onSave={(newType, newData, computedShares) => {
             setSplitType(newType);
@@ -191,3 +387,4 @@ export default function ExpenseForm({ groupId, members, currentUserId, onAdded, 
     </form>
   );
 }
+

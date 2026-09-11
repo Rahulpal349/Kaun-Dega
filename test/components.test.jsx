@@ -104,4 +104,30 @@ describe('Web Component Unit Tests', () => {
       expect(deltaEl).toHaveTextContent('+₹500');
     });
   });
+
+  describe('ExpenseForm Khatabook Direct Mode', () => {
+    it('renders Khatabook transaction type buttons when isDirect is true', async () => {
+      const ExpenseForm = (await import('../components/ExpenseForm')).default;
+      const members = [
+        { id: 'u1', name: 'Manas Dey' },
+        { id: 'u2', name: 'Rahul Pal' }
+      ];
+
+      render(
+        <ExpenseForm
+          groupId="grp1"
+          members={members}
+          currentUserId="u1"
+          isDirect={true}
+          onAdded={() => {}}
+        />
+      );
+
+      expect(screen.getByText('Khatabook Transaction Type')).toBeInTheDocument();
+      expect(screen.getByText('You Gave (diye)')).toBeInTheDocument();
+      expect(screen.getByText('You Got (liye)')).toBeInTheDocument();
+      expect(screen.getByText('Split 50 / 50')).toBeInTheDocument();
+    });
+  });
 });
+
