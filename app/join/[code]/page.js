@@ -44,11 +44,18 @@ export default function JoinGroupPage() {
     setAttemptedAppOpen(true);
 
     if (isAndroid) {
-      // Android Intent: If app com.kaundega.kaun_dega is installed, Android launches it immediately.
-      // S.browser_fallback_url keeps the browser on the current page if not installed.
+      // Direct custom scheme for webviews/in-app browsers + Chrome intent syntax fallback
       const currentUrl = window.location.href;
       const intentUrl = `intent://join/${code}#Intent;scheme=kaundega;package=com.kaundega.kaun_dega;S.browser_fallback_url=${encodeURIComponent(currentUrl)};end`;
-      window.location.href = intentUrl;
+      
+      try {
+        window.location.href = `kaundega://join/${code}`;
+        setTimeout(() => {
+          window.location.href = intentUrl;
+        }, 150);
+      } catch (_) {
+        window.location.href = intentUrl;
+      }
     } else if (isIOS) {
       // iOS Custom Scheme
       window.location.href = `kaundega://join/${code}`;

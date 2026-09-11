@@ -28,7 +28,7 @@ void main() {
       expect(find.byIcon(LucideIcons.plane), findsOneWidget);
       expect(find.byIcon(LucideIcons.utensils), findsOneWidget);
       expect(find.byIcon(LucideIcons.sparkles), findsOneWidget);
-      expect(find.byIcon(LucideIcons.receipt), findsOneWidget);
+      expect(find.byIcon(LucideIcons.tag), findsOneWidget);
     });
   });
 }

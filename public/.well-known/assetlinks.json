@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.kaundega.kaun_dega",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_YOUR_RELEASE_SHA256_FINGERPRINT"
+        "C2:F6:37:9D:15:A7:4E:94:68:E2:D3:93:7F:C3:EA:A4:24:F1:9C:D6:7A:82:5F:99:03:9A:AA:0B:A6:C8:E8:4A",
+        "1E:68:08:79:2F:57:E6:85:AF:44:A9:48:83:7F:9E:03:5A:53:04:A7:74:66:1C:5E:84:53:8B:1D:7D:BA:87:FD"
       ]
     }
   }

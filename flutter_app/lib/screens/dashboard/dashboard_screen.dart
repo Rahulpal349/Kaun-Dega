@@ -43,6 +43,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         MaterialPageRoute(builder: (_) => JoinGroupScreen(groupId: code)),
       );
     });
+
+    // Handle any pending deep link that wasn't consumed during cold start
+    DeepLinkService.instance.getInitialCode().then((initialCode) {
+      if (initialCode != null && mounted) {
+        DeepLinkService.instance.consumeInitialCode();
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => JoinGroupScreen(groupId: initialCode)),
+        );
+      }
+    });
   }
 
   @override

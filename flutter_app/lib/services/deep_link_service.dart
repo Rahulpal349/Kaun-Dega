@@ -59,32 +59,37 @@ class DeepLinkService {
     _initialCode = null;
   }
 
-  /// Extracts the group invite code from a join URL.
+  /// Extracts the group invite code or group ID from a URL.
   /// Handles:
   ///   https://kaun-dega.vercel.app/join/abc123  →  "abc123"
+  ///   https://kaun-dega.vercel.app/groups/abc123 → "abc123"
   ///   kaundega://join/abc123                   →  "abc123"
-  ///   kaundega://kaun-dega.vercel.app/join/abc →  "abc"
+  ///   kaundega://groups/abc123                 →  "abc123"
   String? _extractCode(Uri uri) {
-    // 1. Handle kaundega://join/[code]
-    if (uri.scheme == 'kaundega' && uri.host == 'join') {
+    // 1. Handle kaundega://join/[code] or kaundega://groups/[code]
+    if (uri.scheme == 'kaundega' && (uri.host == 'join' || uri.host == 'groups')) {
       final pathCode = uri.path.replaceAll('/', '').trim();
       if (pathCode.isNotEmpty) return pathCode;
     }
 
-    // 2. Handle /join/[code] path segments
+    // 2. Handle /join/[code] or /groups/[code] path segments
     final segments = uri.pathSegments;
-    final joinIdx = segments.indexOf('join');
-    if (joinIdx != -1 && segments.length > joinIdx + 1) {
-      final code = segments[joinIdx + 1].trim();
-      if (code.isNotEmpty) return code;
+    for (final prefix in ['join', 'groups']) {
+      final idx = segments.indexOf(prefix);
+      if (idx != -1 && segments.length > idx + 1) {
+        final code = segments[idx + 1].trim();
+        if (code.isNotEmpty) return code;
+      }
     }
 
-    // Fallback: if last segment exists and path starts with /join/
-    if (uri.path.contains('/join/')) {
-      final parts = uri.path.split('/join/');
-      if (parts.length > 1) {
-        final code = parts[1].split('/')[0].split('?')[0].trim();
-        if (code.isNotEmpty) return code;
+    // Fallback: if path contains /join/ or /groups/
+    for (final prefix in ['/join/', '/groups/']) {
+      if (uri.path.contains(prefix)) {
+        final parts = uri.path.split(prefix);
+        if (parts.length > 1) {
+          final code = parts[1].split('/')[0].split('?')[0].trim();
+          if (code.isNotEmpty) return code;
+        }
       }
     }
 
