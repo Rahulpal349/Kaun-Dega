@@ -205,6 +205,8 @@ class NotificationService {
     if (emailLower.isEmpty && userId.isEmpty) return;
 
     final firestore = FirebaseFirestore.instance;
+    // Only alert for notifications that occurred within the last 2 minutes or while listening
+    final listenerStartTime = DateTime.now().subtract(const Duration(minutes: 2));
 
     void handleSnapshot(QuerySnapshot snapshot) {
       for (final change in snapshot.docChanges) {
@@ -218,10 +220,21 @@ class NotificationService {
                 data['group_id']?.toString() ??
                 '';
 
+            // Mark read in Firestore so it doesn't linger unread
             if (!isRead) {
-              // Immediately mark read in Firestore so reloading the app won't re-trigger it
               change.doc.reference.update({'read': true}).catchError((_) {});
+            }
 
+            // Only show push notification banner if it was created recently
+            final createdAtStr = data['created_at']?.toString() ?? '';
+            DateTime? createdAt;
+            if (createdAtStr.isNotEmpty) {
+              createdAt = DateTime.tryParse(createdAtStr);
+            }
+
+            final isRecent = createdAt != null && createdAt.isAfter(listenerStartTime);
+
+            if (!isRead && isRecent) {
               showNotification(
                 id: change.doc.id.hashCode,
                 title: title,
