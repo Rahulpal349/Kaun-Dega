@@ -1142,6 +1142,13 @@ class StorageService {
     try {
       await _firestore.collection('expenses').doc(expenseId).set(expense.toJson());
 
+      // Touch group document so real-time dashboard listeners sync immediately
+      try {
+        await _firestore.collection('groups').doc(groupId).update({
+          'last_expense_at': FieldValue.serverTimestamp(),
+        });
+      } catch (_) {}
+
       // Trigger notifications for group members
       final groupSnap = await _firestore.collection('groups').doc(groupId).get();
       if (groupSnap.exists && groupSnap.data() != null) {
@@ -1197,6 +1204,13 @@ class StorageService {
         'type': 'expense_update',
       };
       await _firestore.collection('expenses').doc(updateActivityId).set(activityDoc);
+
+      // Touch group document so real-time dashboard listeners sync immediately
+      try {
+        await _firestore.collection('groups').doc(updatedExpense.groupId).update({
+          'last_expense_at': FieldValue.serverTimestamp(),
+        });
+      } catch (_) {}
 
       // 2. Notify all group members
       final groupSnap = await _firestore.collection('groups').doc(updatedExpense.groupId).get();
@@ -1260,6 +1274,13 @@ class StorageService {
       }
 
       await _firestore.collection('expenses').doc(expenseId).delete();
+
+      // Touch group document so real-time dashboard listeners sync immediately
+      try {
+        await _firestore.collection('groups').doc(groupId).update({
+          'last_expense_at': FieldValue.serverTimestamp(),
+        });
+      } catch (_) {}
 
       // Log deletion activity entry into Firestore
       final deleteActivityId = _uuid.v4();
@@ -1338,6 +1359,13 @@ class StorageService {
 
     try {
       await _firestore.collection('settlements').doc(settlementId).set(settlement.toJson());
+
+      // Touch group document so real-time dashboard listeners sync immediately
+      try {
+        await _firestore.collection('groups').doc(groupId).update({
+          'last_settlement_at': FieldValue.serverTimestamp(),
+        });
+      } catch (_) {}
 
       // Notify group members about the settlement
       final groupSnap = await _firestore.collection('groups').doc(groupId).get();

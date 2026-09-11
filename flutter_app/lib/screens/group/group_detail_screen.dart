@@ -13,6 +13,8 @@ import 'new_group_screen.dart';
 import 'group_report_screen.dart';
 import 'settle_modal.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/direct_transaction_modal.dart';
+import '../../models/user_model.dart';
 
 class GroupDetailScreen extends StatefulWidget {
   final String groupId;
@@ -1006,17 +1008,38 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       floatingActionButton: _selectedTab == 0
           ? FloatingActionButton.extended(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => AddExpenseScreen(groupId: widget.groupId)),
-                );
+                final group = appState.activeGroup;
+                if (group != null && group.isDirect) {
+                  final otherMember = group.memberList.firstWhere(
+                    (m) => m.id != appState.currentUser?.id,
+                    orElse: () => UserModel(id: '', name: group.name, email: ''),
+                  );
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (ctx) => DirectTransactionModal(
+                      initialContactName: otherMember.name.isNotEmpty ? otherMember.name : group.name,
+                      initialContactEmail: otherMember.email,
+                      targetGroupId: group.id,
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => AddExpenseScreen(groupId: widget.groupId)),
+                  );
+                }
               },
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               elevation: 4,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               icon: const Icon(LucideIcons.plus, size: 20),
-              label: const Text('Add Expense', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                appState.activeGroup?.isDirect == true ? 'Add Entry' : 'Add Expense',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             )
           : null,
     );

@@ -6,7 +6,16 @@ import '../providers/app_state.dart';
 import '../screens/group/group_detail_screen.dart';
 
 class DirectTransactionModal extends StatefulWidget {
-  const DirectTransactionModal({super.key});
+  final String? initialContactName;
+  final String? initialContactEmail;
+  final String? targetGroupId;
+
+  const DirectTransactionModal({
+    super.key,
+    this.initialContactName,
+    this.initialContactEmail,
+    this.targetGroupId,
+  });
 
   @override
   State<DirectTransactionModal> createState() => _DirectTransactionModalState();
@@ -21,6 +30,17 @@ class _DirectTransactionModalState extends State<DirectTransactionModal> {
 
   bool _isYouGave = true; // true = You Gave (Lent), false = You Got (Received)
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialContactName != null && widget.initialContactName!.isNotEmpty) {
+      _nameController.text = widget.initialContactName!;
+    }
+    if (widget.initialContactEmail != null && widget.initialContactEmail!.isNotEmpty) {
+      _emailController.text = widget.initialContactEmail!;
+    }
+  }
 
   @override
   void dispose() {
@@ -53,6 +73,7 @@ class _DirectTransactionModalState extends State<DirectTransactionModal> {
         amount: amount,
         isYouGave: _isYouGave,
         note: _noteController.text.trim(),
+        targetGroupId: widget.targetGroupId,
       );
 
       if (!mounted) return;
@@ -68,11 +89,13 @@ class _DirectTransactionModalState extends State<DirectTransactionModal> {
         ),
       );
 
-      // Open 1-on-1 Ledger Screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => GroupDetailScreen(groupId: targetGroup.id)),
-      );
+      // Open 1-on-1 Ledger Screen if not already on it
+      if (widget.targetGroupId == null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => GroupDetailScreen(groupId: targetGroup.id)),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
