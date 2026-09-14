@@ -514,10 +514,8 @@ class StorageService {
         final firestoreGroups = groupsMap.values.toList();
         firestoreGroups.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-        if (firestoreGroups.isNotEmpty) {
-          await saveGroups(firestoreGroups);
-          return firestoreGroups;
-        }
+        await saveGroups(firestoreGroups);
+        return firestoreGroups;
       } catch (e) {
         if (kDebugMode) print('Error fetching groups from Firestore: $e');
       }
@@ -552,11 +550,21 @@ class StorageService {
       return Stream.value([]);
     }
 
-    final groupsMap = <String, GroupModel>{};
+    final docsFromQ1 = <String, GroupModel>{};
+    final docsFromQ2 = <String, GroupModel>{};
     final controller = StreamController<List<GroupModel>>.broadcast();
 
     void emitLatest() async {
-      final list = groupsMap.values.toList();
+      final mergedMap = <String, GroupModel>{};
+      for (final entry in docsFromQ1.entries) {
+        mergedMap[entry.key] = entry.value;
+      }
+      for (final entry in docsFromQ2.entries) {
+        if (!mergedMap.containsKey(entry.key)) {
+          mergedMap[entry.key] = entry.value;
+        }
+      }
+      final list = mergedMap.values.toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       if (!controller.isClosed) {
         controller.add(list);
@@ -571,12 +579,11 @@ class StorageService {
           .where('memberIds', arrayContains: currentUserId)
           .snapshots()
           .listen((snap) {
+        docsFromQ1.clear();
         for (final doc in snap.docs) {
           final g = GroupModel.fromJson({'id': doc.id, ...doc.data()}, currentUserId: currentUserId);
-          groupsMap[doc.id] = g;
+          docsFromQ1[doc.id] = g;
         }
-        final currentIds = snap.docs.map((d) => d.id).toSet();
-        groupsMap.removeWhere((id, g) => !currentIds.contains(id) && !g.memberEmails.contains(emailLower));
         emitLatest();
       }, onError: (e) {
         if (kDebugMode) print('streamGroups sub1 error: $e');
@@ -590,9 +597,10 @@ class StorageService {
           .where('memberEmails', arrayContains: emailLower)
           .snapshots()
           .listen((snap) {
+        docsFromQ2.clear();
         for (final doc in snap.docs) {
           final g = GroupModel.fromJson({'id': doc.id, ...doc.data()}, currentUserId: currentUserId);
-          groupsMap[doc.id] = g;
+          docsFromQ2[doc.id] = g;
         }
         emitLatest();
       }, onError: (e) {
@@ -871,7 +879,15 @@ class StorageService {
   }
 
   Future<void> leaveGroup(String groupId, String currentUserId) async {
-    await removeMemberFromGroup(groupId, currentUserId);
+    await removeMemberFromGroup(groupId, currentUserId, currentUserId: currentUserId);
+
+    final allGroups = await getGroups(currentUserId);
+    allGroups.removeWhere((g) => g.id == groupId);
+    await saveGroups(allGroups);
+
+    final prefs = await _prefs;
+    await prefs.remove('$_expensesPrefix$groupId');
+    await prefs.remove('$_settlementsPrefix$groupId');
   }
 
   Future<void> addMemberToGroup(String groupId, String participantNameOrEmail, String currentUserId) async {
@@ -1031,7 +1047,7 @@ class StorageService {
     } catch (_) {}
   }
 
-  Future<void> removeMemberFromGroup(String groupId, String memberId) async {
+  Future<void> removeMemberFromGroup(String groupId, String memberId, {String? currentUserId}) async {
     try {
       final groupRef = _firestore.collection('groups').doc(groupId);
       final snap = await groupRef.get();
@@ -1067,6 +1083,10 @@ class StorageService {
       for (final item in raw) {
         final g = Map<String, dynamic>.from(item);
         if (g['id'] == groupId) {
+          if (currentUserId != null && memberId == currentUserId) {
+            // Self removal: exclude group entirely from local cache
+            continue;
+          }
           final members = Map<String, dynamic>.from(g['members'] ?? {});
           members.remove(memberId);
           final List mIds = List.from(g['memberIds'] ?? []);

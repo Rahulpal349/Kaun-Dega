@@ -610,19 +610,27 @@ class AppState extends ChangeNotifier {
 
   Future<void> deleteGroup(String groupId) async {
     if (_currentUser == null) return;
-    await _storage.deleteGroup(groupId, _currentUser!.id);
+    _groups.removeWhere((g) => g.id == groupId);
     if (_activeGroup?.id == groupId) {
       _activeGroup = null;
     }
+    await _recomputeDashboardBalances();
+    notifyListeners();
+
+    await _storage.deleteGroup(groupId, _currentUser!.id);
     await refreshDashboard();
   }
 
   Future<void> leaveGroup(String groupId) async {
     if (_currentUser == null) return;
-    await _storage.leaveGroup(groupId, _currentUser!.id);
+    _groups.removeWhere((g) => g.id == groupId);
     if (_activeGroup?.id == groupId) {
       _activeGroup = null;
     }
+    await _recomputeDashboardBalances();
+    notifyListeners();
+
+    await _storage.leaveGroup(groupId, _currentUser!.id);
     await refreshDashboard();
   }
 

@@ -252,7 +252,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   title: const Text('Leave Group', style: TextStyle(color: AppColors.negative, fontWeight: FontWeight.w600)),
                   onTap: () async {
                     Navigator.pop(ctx);
-                    await Provider.of<AppState>(context, listen: false).leaveGroup(group.id);
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (dCtx) => AlertDialog(
+                        title: const Text('Leave Group?'),
+                        content: Text(
+                          'Are you sure you want to leave "${group.name}"? This group\'s balance and expenses will be removed from your dashboard.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dCtx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(dCtx, true),
+                            style: TextButton.styleFrom(foregroundColor: AppColors.negative),
+                            child: const Text('Leave'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      if (!mounted) return;
+                      await Provider.of<AppState>(context, listen: false).leaveGroup(group.id);
+                    }
                   },
                 ),
             ],

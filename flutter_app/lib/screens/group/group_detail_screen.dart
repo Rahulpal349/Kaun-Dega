@@ -15,6 +15,7 @@ import 'settle_modal.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/direct_transaction_modal.dart';
 import '../../models/user_model.dart';
+import '../../models/balance_model.dart';
 
 class GroupDetailScreen extends StatefulWidget {
   final String groupId;
@@ -749,9 +750,43 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                   title: const Text('Leave Group', style: TextStyle(color: AppColors.negative, fontWeight: FontWeight.w600)),
                   onTap: () async {
                     Navigator.pop(ctx);
-                    await Provider.of<AppState>(context, listen: false).leaveGroup(widget.groupId);
-                    if (!mounted) return;
-                    Navigator.pop(context);
+                    final state = Provider.of<AppState>(context, listen: false);
+                    final myBal = state.activeBalanceReport.balances.cast<UserBalance?>().firstWhere(
+                      (b) => b?.id == state.currentUser?.id,
+                      orElse: () => null,
+                    );
+                    String confirmMsg = 'Are you sure you want to leave "${state.activeGroup?.name ?? 'this group'}"? This group\'s balance and expenses will be removed from your dashboard.';
+                    if (myBal != null && myBal.amount.abs() > 0.01) {
+                      if (myBal.amount > 0) {
+                        confirmMsg = 'You are still owed ₹${myBal.amount.toStringAsFixed(2)} in "${state.activeGroup?.name ?? 'this group'}". If you leave, this amount will be removed from your dashboard balance.\n\nAre you sure you want to leave?';
+                      } else {
+                        confirmMsg = 'You still owe ₹${myBal.amount.abs().toStringAsFixed(2)} in "${state.activeGroup?.name ?? 'this group'}". If you leave, this debt will be removed from your dashboard balance.\n\nAre you sure you want to leave?';
+                      }
+                    }
+
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (dCtx) => AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        title: const Text('Leave Group?'),
+                        content: Text(confirmMsg),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Cancel')),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(dCtx, true),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.negative),
+                            child: const Text('Leave'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      if (!mounted) return;
+                      await state.leaveGroup(widget.groupId);
+                      if (!mounted) return;
+                      Navigator.pop(context);
+                    }
                   },
                 ),
             ],

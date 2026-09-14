@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setToken, getToken, clearToken } from '../lib/api';
 import { authService } from '../lib/authService';
-import { isDirectGroup, getMemberCount } from '../lib/firebaseApi';
+import { isDirectGroup, getMemberCount, api } from '../lib/firebaseApi';
 
 describe('API & Token Management', () => {
   beforeEach(() => {
@@ -42,5 +42,22 @@ describe('API & Token Management', () => {
     expect(getMemberCount({ members: { u1: {}, u2: {}, u3: {} } })).toBe(3);
     expect(getMemberCount({ memberIds: [], members: { u1: {}, u2: {} } })).toBe(2);
     expect(getMemberCount({})).toBe(1);
+  });
+
+  it('properly manages dashboard summary caching and cache invalidation', () => {
+    api.clearCachedDashboardSummary();
+    expect(api.getCachedDashboardSummary()).toBeNull();
+
+    const mockSummary = {
+      groups: [{ id: 'g1', name: 'Trip' }],
+      consolidatedBalance: 250,
+      totalSpent: 500,
+    };
+    api.setCachedDashboardSummary(mockSummary);
+    expect(api.getCachedDashboardSummary()).toEqual(mockSummary);
+
+    // After clearing (e.g. leaving a group)
+    api.clearCachedDashboardSummary();
+    expect(api.getCachedDashboardSummary()).toBeNull();
   });
 });

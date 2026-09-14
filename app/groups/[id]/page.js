@@ -158,6 +158,7 @@ export default function GroupDetailPage() {
     if (!confirm(`Are you sure you want to delete "${group?.name}"? This will permanently remove all expenses, balances, and member data. This cannot be undone.`)) return;
     try {
       await api.deleteGroup(id);
+      api.clearCachedDashboardSummary();
       router.push('/dashboard');
     } catch (err) {
       alert(err.message || 'Failed to delete group');
@@ -165,9 +166,19 @@ export default function GroupDetailPage() {
   }
 
   async function handleLeaveGroup() {
-    if (!confirm(`Are you sure you want to leave "${group?.name}"? You'll lose access to this group's expenses and balances.`)) return;
+    const myBal = balanceData?.balances?.find((b) => b.id === userId);
+    let confirmMsg = `Are you sure you want to leave "${group?.name}"? This group's balance and expenses will be removed from your dashboard.`;
+    if (myBal && Math.abs(myBal.amount) > 0.01) {
+      if (myBal.amount > 0) {
+        confirmMsg = `You are still owed ₹${myBal.amount.toFixed(2)} in "${group?.name}". If you leave, this amount will be removed from your dashboard balance.\n\nAre you sure you want to leave?`;
+      } else {
+        confirmMsg = `You still owe ₹${Math.abs(myBal.amount).toFixed(2)} in "${group?.name}". If you leave, this debt will be removed from your dashboard balance.\n\nAre you sure you want to leave?`;
+      }
+    }
+    if (!confirm(confirmMsg)) return;
     try {
       await api.leaveGroup(id);
+      api.clearCachedDashboardSummary();
       router.push('/dashboard');
     } catch (err) {
       alert(err.message || 'Failed to leave group');

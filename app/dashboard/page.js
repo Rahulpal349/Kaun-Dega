@@ -88,24 +88,63 @@ export default function DashboardPage() {
     }
   }
 
+  const updateBalancesForGroups = async (targetGroups, uid) => {
+    if (!targetGroups || !uid) return;
+    setNetBalanceLoading(true);
+    let total = 0;
+    let spent = 0;
+    await Promise.all(
+      targetGroups.map(async (g) => {
+        try {
+          const balanceData = await api.getBalances(g.id, g);
+          const myBal = balanceData?.balances?.find((b) => b.id === uid);
+          if (myBal) {
+            total += (myBal.amount || 0);
+            spent += (myBal.charged || 0);
+          }
+        } catch (e) {
+          console.error('Error fetching balance for group', g.id, e);
+        }
+      })
+    );
+    setConsolidatedBalance(total);
+    setTotalSpent(spent);
+    setNetBalanceLoading(false);
+    api.setCachedDashboardSummary({
+      groups: targetGroups,
+      consolidatedBalance: total,
+      totalSpent: spent,
+    });
+  };
+
   async function handleDeleteGroup(group) {
     if (group.myRole === 'admin') {
       if (!confirm(`Are you sure you want to delete "${group.name}"? This will permanently delete all expenses and balances.`)) return;
       try {
+        setNetBalanceLoading(true);
         await api.deleteGroup(group.id);
         const fetchedGroups = await api.getGroups();
         setGroups(fetchedGroups);
+        if (currentUser?.uid) {
+          await updateBalancesForGroups(fetchedGroups, currentUser.uid);
+        }
       } catch (err) {
         alert(err.message);
+        setNetBalanceLoading(false);
       }
     } else {
-      if (!confirm(`Are you sure you want to leave "${group.name}"?`)) return;
+      if (!confirm(`Are you sure you want to leave "${group.name}"? This group's balance and expenses will be removed from your dashboard.`)) return;
       try {
+        setNetBalanceLoading(true);
         await api.leaveGroup(group.id);
         const fetchedGroups = await api.getGroups();
         setGroups(fetchedGroups);
+        if (currentUser?.uid) {
+          await updateBalancesForGroups(fetchedGroups, currentUser.uid);
+        }
       } catch (err) {
         alert(err.message);
+        setNetBalanceLoading(false);
       }
     }
   }
@@ -151,31 +190,7 @@ export default function DashboardPage() {
         // Real-time Firestore groups listener
         unsubscribeGroups = api.subscribeGroups(async (fetchedGroups) => {
           setGroups(fetchedGroups);
-          
-          let total = 0;
-          let spent = 0;
-          await Promise.all(
-            fetchedGroups.map(async (g) => {
-              try {
-                const balanceData = await api.getBalances(g.id, g);
-                const myBal = balanceData.balances.find((b) => b.id === user.uid);
-                if (myBal) {
-                  total += (myBal.amount || 0);
-                  spent += (myBal.charged || 0);
-                }
-              } catch (e) {
-                console.error('Error fetching balance for group', g.id, e);
-              }
-            })
-          );
-          setConsolidatedBalance(total);
-          setTotalSpent(spent);
-          setNetBalanceLoading(false);
-          api.setCachedDashboardSummary({
-            groups: fetchedGroups,
-            consolidatedBalance: total,
-            totalSpent: spent,
-          });
+          await updateBalancesForGroups(fetchedGroups, user.uid);
         });
       } catch (err) {
         setError(err.message || 'Failed to load dashboard');
