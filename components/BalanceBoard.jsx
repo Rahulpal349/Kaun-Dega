@@ -5,7 +5,7 @@ import { api } from '../lib/firebaseApi';
 import { BalanceBoardSkeleton } from './Skeleton';
 import { ChevronDown, ChevronUp, X, Copy, Check, IndianRupee, ArrowRight, Smartphone, ExternalLink, Download } from 'lucide-react';
 
-export default function BalanceBoard({ groupId, balances, moves, currentUserId, totalExpenses, onSettled, loading }) {
+export default function BalanceBoard({ groupId, balances, moves, currentUserId, totalExpenses, onSettled, loading, isDirect, netBalance }) {
   const [settling, setSettling] = useState(null);
   const [showSummary, setShowSummary] = useState(true);
   const [showSettle, setShowSettle] = useState(true);
@@ -13,6 +13,10 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
   if (loading || !balances) {
     return <BalanceBoardSkeleton />;
   }
+
+  const myBalObj = (balances || []).find((b) => b.id === currentUserId);
+  const computedNet = netBalance !== undefined ? netBalance : (myBalObj ? myBalObj.amount : 0);
+  const isDirectMode = Boolean(isDirect);
 
   // Confirmation modal state
   const [confirmMove, setConfirmMove] = useState(null); // the move object to confirm
@@ -25,20 +29,21 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
       csv += `Balance,${(b.name || '').replace(/,/g, ' ')},,${(b.amount || 0).toFixed(2)}\n`;
     });
     (moves || []).forEach(m => {
-      csv += `Settlement,${(m.fromName || '').replace(/,/g, ' ')},${(m.toName || '').replace(/,/g, ' ')},${(m.amount || 0).toFixed(2)}\n`;
+      csv += `Optimal Path,${(m.fromName || '').replace(/,/g, ' ')},${(m.toName || '').replace(/,/g, ' ')},${(m.amount || 0).toFixed(2)}\n`;
     });
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `group-report-${groupId || 'settlements'}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `hisaab_kitab_${groupId || 'group'}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
-  function openConfirmModal(move, idx) {
+  function handleSettleClick(move, idx) {
     setConfirmMove(move);
     setConfirmIdx(idx);
     setUpiCopied(false);
@@ -50,14 +55,11 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
     setUpiCopied(false);
   }
 
-  async function copyUpiId(upiId) {
-    try {
-      await navigator.clipboard.writeText(upiId);
-      setUpiCopied(true);
-      setTimeout(() => setUpiCopied(false), 2000);
-    } catch (err) {
-      prompt('Copy this UPI ID:', upiId);
-    }
+  function copyUpiId(upiId) {
+    if (!upiId) return;
+    navigator.clipboard.writeText(upiId);
+    setUpiCopied(true);
+    setTimeout(() => setUpiCopied(false), 2000);
   }
 
   async function confirmSettlement() {
@@ -81,15 +83,23 @@ export default function BalanceBoard({ groupId, balances, moves, currentUserId, 
 
   return (
     <div className="flex flex-col gap-5 p-2 sm:p-4">
-      {/* Total Expenses Header */}
+      {/* Total Expenses / Khatabook Net Balance Header */}
       <div className="bg-white rounded-[24px] shadow-sm border border-[#E2EFE9] p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Total Group Spend</span>
-          <p className="font-extrabold text-2xl sm:text-3xl text-[#145C4B] mt-0.5">
-            ₹{Number(totalExpenses || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+            {isDirectMode ? 'Net Khatabook Balance' : 'Total Group Spend'}
+          </span>
+          <p className={`font-extrabold text-2xl sm:text-3xl mt-0.5 ${isDirectMode ? (computedNet > 0 ? 'text-[#145C4B]' : computedNet < 0 ? 'text-[#E11D48]' : 'text-gray-900') : 'text-[#145C4B]'}`}>
+            {isDirectMode
+              ? `${computedNet > 0 ? '+' : computedNet < 0 ? '−' : ''}₹${Math.abs(computedNet).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : `₹${Number(totalExpenses || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            }
           </p>
           <p className="text-[11px] text-gray-400 mt-1 font-medium">
-            Simplified settlement calculations active
+            {isDirectMode
+              ? (computedNet > 0 ? 'You will receive this net amount' : computedNet < 0 ? 'You need to pay this net amount' : 'All accounts fully settled')
+              : 'Simplified settlement calculations active'
+            }
           </p>
         </div>
 

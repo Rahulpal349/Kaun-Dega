@@ -149,6 +149,39 @@ describe('computeBalances Debt Simplification & Balance Math', () => {
     expect(result2.balances).toEqual([]);
     expect(result2.moves).toEqual([]);
   });
+
+  it('correctly calculates 1-on-1 Khatabook net balance when an entry is added on behalf of contact', () => {
+    const members = [
+      { id: 'manas', name: 'Manas Dey' },
+      { id: 'rahul', name: 'Rahul Pal' },
+    ];
+
+    const expenses = [
+      { description: 'ami pai', amount: 3276, paid_by: 'manas', shares: [{ user_id: 'rahul', share_amount: 3276 }] },
+      { description: 'Upi', amount: 10000, paid_by: 'manas', shares: [{ user_id: 'rahul', share_amount: 10000 }] },
+      { description: 'amazon', amount: 2280, paid_by: 'manas', shares: [{ user_id: 'rahul', share_amount: 2280 }] },
+      // Expense added on behalf of Rahul (paid by rahul)
+      { description: 'get', amount: 198, paid_by: 'rahul', shares: [{ user_id: 'rahul', share_amount: 198 }] },
+    ];
+
+    const { balances, moves } = computeBalances(members, expenses, []);
+
+    const manas = balances.find((b) => b.id === 'manas');
+    const rahul = balances.find((b) => b.id === 'rahul');
+
+    // 3276 + 10000 + 2280 - 198 = 15358
+    expect(manas.amount).toBe(15358);
+    expect(rahul.amount).toBe(-15358);
+    expect(moves).toHaveLength(1);
+    expect(moves[0]).toEqual({
+      from: 'rahul',
+      fromName: 'Rahul Pal',
+      to: 'manas',
+      toName: 'Manas Dey',
+      toUpiId: null,
+      amount: 15358,
+    });
+  });
 });
 
 describe('buildWhatsappText', () => {

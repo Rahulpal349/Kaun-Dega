@@ -628,7 +628,7 @@ export default function GroupDetailPage() {
                   
                   const payerId = e.paid_by || e.paidBy || e.payer?.id;
                   const isPayer = Boolean(userId && payerId && payerId === userId);
-                  const canEditExpense = isPayer;
+                  const canEditExpense = isPayer || isAdmin || isDirectGroup(group);
                   const payerName = e.payer?.name || members.find(m => m.id === payerId)?.name || 'Someone';
 
                   return (
@@ -682,9 +682,10 @@ export default function GroupDetailPage() {
                               const uId = share.user_id || share.userId;
                               const member = members.find(m => m.id === uId);
                               const shareAmt = share.share_amount || share.amount;
+                              const isMe = uId === userId;
                               return (
                                 <div key={uId} className="flex justify-between items-center">
-                                  <span className="text-gray-700 font-medium">{member?.name || 'Member'} owes</span>
+                                  <span className="text-gray-700 font-medium">{isMe ? 'You owe' : `${member?.name || 'Member'} owes`}</span>
                                   <span className="text-gray-900 font-extrabold">₹{Number(shareAmt).toFixed(2)}</span>
                                 </div>
                               );
@@ -722,6 +723,8 @@ export default function GroupDetailPage() {
               moves={balanceData.moves}
               currentUserId={userId}
               totalExpenses={totalExpenses}
+              isDirect={isDirectGroup(group)}
+              netBalance={khatabookNetBalance}
               onSettled={loadAll}
               members={members}
             />

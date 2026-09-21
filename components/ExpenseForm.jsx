@@ -36,6 +36,8 @@ export default function ExpenseForm({
       const sUid = exShares[0].user_id || exShares[0].userId;
       if (sUid === otherMember.id && exPaidBy === currentUserId) return 'you_gave';
       if (sUid === currentUserId && exPaidBy === otherMember.id) return 'you_got';
+      if (exPaidBy === otherMember.id) return 'you_got';
+      if (exPaidBy === currentUserId) return 'you_gave';
     }
     if (existingExpense.split_type === 'equal' || existingExpense.splitType === 'equal') {
       return 'split_equal';

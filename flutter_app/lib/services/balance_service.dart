@@ -30,9 +30,21 @@ class BalanceService {
 
     // Process all expenses: payer gets credited, split members get debited
     for (final e in expenses) {
-      final shares = e.shares;
-      final shareTotal = shares.fold<double>(0.0, (sum, s) => sum + s.amount);
+      var shares = List<ExpenseShare>.from(e.shares);
       final paidBy = e.paidBy;
+
+      // In a 2-person group / 1-on-1 Khatabook, if only 1 share exists and it's assigned to the payer themselves,
+      // the other member is the one who owes it.
+      if (memberIdSet.length == 2 && paidBy.isNotEmpty && shares.length == 1) {
+        if (shares[0].userId == paidBy) {
+          final otherId = memberIdSet.firstWhere((id) => id != paidBy, orElse: () => '');
+          if (otherId.isNotEmpty) {
+            shares = [ExpenseShare(userId: otherId, amount: shares[0].amount)];
+          }
+        }
+      }
+
+      final shareTotal = shares.fold<double>(0.0, (sum, s) => sum + s.amount);
 
       if (paidBy.isNotEmpty) {
         net[paidBy] = (net[paidBy] ?? 0.0) + shareTotal;
