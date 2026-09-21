@@ -638,20 +638,20 @@ export default function GroupDetailPage() {
                         className="p-5 flex items-center justify-between cursor-pointer hover:bg-gray-50/50 transition-colors"
                       >
                         <div className="flex items-center gap-3.5">
-                          <div className="w-11 h-11 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] flex items-center justify-center text-[#145C4B] font-extrabold text-sm shrink-0">
+                          <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center font-extrabold text-sm shrink-0 ${isPayer ? 'bg-[#F0F7F4] border-[#E2EFE9] text-[#145C4B]' : 'bg-rose-50 border-rose-200 text-[#E11D48]'}`}>
                             {e.description?.charAt(0)?.toUpperCase() || 'E'}
                           </div>
                           <div>
                             <h4 className="font-extrabold text-base text-gray-900 leading-tight">{e.description}</h4>
                             <p className="text-xs text-gray-500 font-medium mt-0.5">
-                              Paid by <span className="font-bold text-gray-700">{payerName}</span> · {dateStr}
+                              Paid by <span className={`font-bold ${isPayer ? 'text-gray-700' : 'text-[#E11D48]'}`}>{payerName}</span> · {dateStr}
                             </p>
                           </div>
                         </div>
 
                         <div className="text-right">
-                          <span className="font-extrabold text-base text-[#145C4B]">
-                            ₹{Number(e.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <span className={`font-extrabold text-base ${isPayer ? 'text-[#145C4B]' : 'text-[#E11D48]'}`}>
+                            {isPayer ? '' : '−'}₹{Number(e.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                           <p className="text-[11px] text-gray-400 font-bold mt-0.5">
                             {isExpanded ? 'Tap to close' : 'Tap for split'}
