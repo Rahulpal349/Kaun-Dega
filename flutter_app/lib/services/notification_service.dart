@@ -205,10 +205,32 @@ class NotificationService {
     if (emailLower.isEmpty && userId.isEmpty) return;
 
     final firestore = FirebaseFirestore.instance;
-    // Only alert for notifications that occurred within the last 2 minutes or while listening
-    final listenerStartTime = DateTime.now().subtract(const Duration(minutes: 2));
 
-    void handleSnapshot(QuerySnapshot snapshot) {
+    // We use a per-subscription "first snapshot" flag to skip all pre-existing
+    // documents that Firestore delivers as DocumentChangeType.added on initial
+    // load. Every subsequent `added` event is a truly new document → real-time
+    // notification. This replaces the old 2-minute time window which broke
+    // delivery whenever the app was open for longer than 2 minutes.
+    bool isFirstUserIdSnapshot = true;
+    bool isFirstEmailSnapshot = true;
+
+    void handleSnapshot(QuerySnapshot snapshot, {required bool isFirst, required void Function() markNotFirst}) {
+      // On the very first snapshot, Firestore replays all existing docs. Skip them.
+      if (isFirst) {
+        markNotFirst();
+        // Still mark them as read so they don't pile up next time
+        for (final change in snapshot.docChanges) {
+          if (change.type == DocumentChangeType.added) {
+            final data = change.doc.data() as Map<String, dynamic>?;
+            final isRead = data?['read'] == true;
+            if (!isRead) {
+              change.doc.reference.update({'read': true}).catchError((_) {});
+            }
+          }
+        }
+        return;
+      }
+
       for (final change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
           final data = change.doc.data() as Map<String, dynamic>?;
@@ -220,21 +242,13 @@ class NotificationService {
                 data['group_id']?.toString() ??
                 '';
 
-            // Mark read in Firestore so it doesn't linger unread
+            // Mark read in Firestore so it doesn't fire again
             if (!isRead) {
               change.doc.reference.update({'read': true}).catchError((_) {});
             }
 
-            // Only show push notification banner if it was created recently
-            final createdAtStr = data['created_at']?.toString() ?? '';
-            DateTime? createdAt;
-            if (createdAtStr.isNotEmpty) {
-              createdAt = DateTime.tryParse(createdAtStr);
-            }
-
-            final isRecent = createdAt != null && createdAt.isAfter(listenerStartTime);
-
-            if (!isRead && isRecent) {
+            // Show notification immediately — no time-window restriction
+            if (!isRead) {
               showNotification(
                 id: change.doc.id.hashCode,
                 title: title,
@@ -252,7 +266,13 @@ class NotificationService {
           .collection('notifications')
           .where('targetUserId', isEqualTo: userId)
           .snapshots()
-          .listen(handleSnapshot, onError: (e) {
+          .listen((snapshot) {
+            handleSnapshot(
+              snapshot,
+              isFirst: isFirstUserIdSnapshot,
+              markNotFirst: () => isFirstUserIdSnapshot = false,
+            );
+          }, onError: (e) {
         if (kDebugMode) print('Notification userId listener error: $e');
       });
     }
@@ -262,7 +282,13 @@ class NotificationService {
           .collection('notifications')
           .where('targetEmail', isEqualTo: emailLower)
           .snapshots()
-          .listen(handleSnapshot, onError: (e) {
+          .listen((snapshot) {
+            handleSnapshot(
+              snapshot,
+              isFirst: isFirstEmailSnapshot,
+              markNotFirst: () => isFirstEmailSnapshot = false,
+            );
+          }, onError: (e) {
         if (kDebugMode) print('Notification email listener error: $e');
       });
     }
