@@ -359,6 +359,14 @@ export default function GroupDetailPage() {
   const financialExpenses = expenses.filter(e => Number(e.amount) > 0);
   const totalExpenses = financialExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
+  // For 1-on-1 Khatabook, the header should show the net balance (what you are owed
+  // or owe) — NOT the gross sum of all entries. A "paid by other person" entry
+  // reduces what they owe you, so simply summing all amounts gives a wrong number.
+  const myBalance = balanceData?.balances?.find((b) => b.id === userId);
+  const khatabookNetBalance = myBalance ? myBalance.amount : 0;
+  const khatabookNetAbs = Math.abs(khatabookNetBalance);
+  const khatabookNetLabel = khatabookNetBalance > 0 ? `You get ₹` : khatabookNetBalance < 0 ? `You owe ₹` : `Settled ₹`;
+
   return (
     <div className="flex-1 flex flex-col w-full bg-[#F4FBF7] min-h-screen">
       {/* Header - Clean Modern Theme */}
@@ -394,7 +402,10 @@ export default function GroupDetailPage() {
                 )}
               </div>
               <p className="text-xs font-semibold text-gray-500 mt-0.5">
-                {isDirectGroup(group) ? '1-on-1 Khatabook' : `${members.length} members`} · Total ₹{totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                {isDirectGroup(group)
+                  ? `1-on-1 Khatabook · ${khatabookNetLabel}${khatabookNetAbs.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+                  : `${members.length} members · Total ₹${totalExpenses.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+                }
               </p>
             </div>
           </div>

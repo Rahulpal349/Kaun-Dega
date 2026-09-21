@@ -161,8 +161,9 @@ export default function DashboardPage() {
       const joinedGroup = await api.joinGroupByCode(input);
       setShowJoinModal(false);
       setJoinCodeInput('');
-      if (joinedGroup?.id) {
-        router.push(`/groups/${joinedGroup.id}`);
+      const groupId = joinedGroup?.group?.id;
+      if (groupId) {
+        router.push(`/groups/${groupId}`);
       } else {
         alert('Group joined successfully!');
       }
