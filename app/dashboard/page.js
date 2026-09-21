@@ -154,7 +154,7 @@ export default function DashboardPage() {
     let input = joinCodeInput.trim();
     if (!input) return;
     if (input.includes('/join/')) {
-      input = input.split('/join/').last?.split('?')[0] || input;
+      input = input.split('/join/').at(-1)?.split('?')[0] || input;
     }
     setJoinLoading(true);
     try {

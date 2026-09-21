@@ -19,6 +19,7 @@ export default function ExpenseForm({
 
   const [description, setDescription] = useState(existingExpense ? existingExpense.description : '');
   const [amount, setAmount] = useState(existingExpense ? String(existingExpense.amount) : '');
+  const [note, setNote] = useState(existingExpense ? existingExpense.note || '' : '');
   const [paidBy, setPaidBy] = useState(existingExpense ? existingExpense.paid_by || existingExpense.paidBy : currentUserId);
   const [splitType, setSplitType] = useState(existingExpense ? existingExpense.split_type || existingExpense.splitType : 'equal');
   const [splitData, setSplitData] = useState(existingExpense ? existingExpense.splitData : null);
@@ -103,6 +104,9 @@ export default function ExpenseForm({
         }
       }
 
+      // Always include the note (even if empty)
+      body.note = note.trim();
+
       if (existingExpense) {
         await api.updateExpense(existingExpense.id, body);
         if (onUpdated) onUpdated();
@@ -111,6 +115,7 @@ export default function ExpenseForm({
         await api.addExpense(body);
         setDescription('');
         setAmount('');
+        setNote('');
         setSplitType('equal');
         setSplitData(null);
         setShares(null);
@@ -321,6 +326,8 @@ export default function ExpenseForm({
         </div>
         <input
           type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
           placeholder="Add a note (optional)"
           className="bg-transparent border-none w-full text-sm focus:outline-none placeholder-gray-400 text-gray-700"
         />
