@@ -1,61 +1,44 @@
-const CACHE_NAME = 'kaun-dega-pwa-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/dashboard',
-  '/history',
-  '/profile',
-  '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
-  '/apple-touch-icon.png',
-  '/logo.png'
-];
+// Firebase Cloud Messaging background service worker for Web PWA
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE).catch(() => {});
-    })
-  );
-  self.skipWaiting();
-});
+const firebaseConfig = {
+  apiKey: "AIzaSyDrJtNTavCl3dPCAm3t6bx9Yn7OBgEKExI",
+  authDomain: "kaun-dega-3a5cc.firebaseapp.com",
+  projectId: "kaun-dega-3a5cc",
+  storageBucket: "kaun-dega-3a5cc.firebasestorage.app",
+  messagingSenderId: "889585560545",
+  appId: "1:889585560545:web:2219eec7e87e56808480a0"
+};
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
-});
+firebase.initializeApp(firebaseConfig);
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  // Network first, falling back to cache
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        return caches.match(event.request);
-      })
-  );
-});
+let messaging;
+try {
+  messaging = firebase.messaging();
+} catch (e) {
+  console.warn('[firebase-messaging-sw.js] Messaging init notice:', e.message);
+}
 
-// Push notification handling in main Service Worker
+if (messaging) {
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[firebase-messaging-sw.js] Received background message:', payload);
+    const title = payload.notification?.title || payload.data?.title || 'Kaun Dega? 💸';
+    const options = {
+      body: payload.notification?.body || payload.data?.body || 'New activity in your group.',
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      vibrate: [200, 100, 200],
+      data: payload.data || {},
+      actions: [
+        { action: 'open', title: 'Open Ledger' }
+      ]
+    };
+    return self.registration.showNotification(title, options);
+  });
+}
+
+// Fallback raw push event handler
 self.addEventListener('push', (event) => {
   if (event.data) {
     try {
@@ -98,4 +81,3 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
-

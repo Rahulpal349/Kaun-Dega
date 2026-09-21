@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import BottomNav from '../components/BottomNav';
 import DesktopSidebar from '../components/DesktopSidebar';
+import NotificationPrompt from '../components/NotificationPrompt';
+import RealtimeNotificationListener from '../components/RealtimeNotificationListener';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -55,6 +57,8 @@ export default function LayoutWrapper({ children }) {
         {children}
       </main>
       <BottomNav />
+      <NotificationPrompt />
+      <RealtimeNotificationListener />
     </div>
   );
 }
