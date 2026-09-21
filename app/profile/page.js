@@ -7,7 +7,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../../lib/firebaseApi';
 import TopHeader from '../../components/TopHeader';
 import { ProfileSkeleton } from '../../components/Skeleton';
-import { LogOut, Edit2, Save, X, Camera, Shield, Smartphone, QrCode, User } from 'lucide-react';
+import { LogOut, Edit2, Save, X, Camera, Shield, Smartphone, QrCode, User, Bell } from 'lucide-react';
+import { requestAndRegisterPushNotifications } from '../../lib/webPush';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -18,6 +19,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [notifPermission, setNotifPermission] = useState('default');
+  const [notifLoading, setNotifLoading] = useState(false);
   
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -50,6 +53,36 @@ export default function ProfilePage() {
 
     return () => unsubscribe();
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+    }
+  }, []);
+
+  async function handleToggleNotifications() {
+    if (!currentUser?.uid) return;
+    setNotifLoading(true);
+    try {
+      if (notifPermission === 'granted') {
+        if ('Notification' in window) {
+          new Notification('Kaun Dega? 💸', {
+            body: 'Push notifications are active and working on this device!',
+            icon: '/icon-192x192.png',
+          });
+        }
+      } else {
+        await requestAndRegisterPushNotifications(currentUser.uid);
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          setNotifPermission(Notification.permission);
+        }
+      }
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setNotifLoading(false);
+    }
+  }
 
   const avatarUrl = profile?.avatar_url || currentUser?.photoURL;
 
@@ -325,6 +358,44 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+
+            {!isEditing && (
+              <div className="bg-white rounded-[24px] p-5 sm:p-6 shadow-xs border border-[#E2EFE9] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-[#F0F7F4] border border-[#E2EFE9] flex items-center justify-center text-[#145C4B] shrink-0">
+                    <Bell className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-base text-gray-900">Push Notifications</h4>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">
+                      {notifPermission === 'granted'
+                        ? 'Active ✅ — Receiving alerts for new expenses & settlements'
+                        : notifPermission === 'denied'
+                        ? 'Blocked in browser ⚠️ — Allow notifications in browser site settings'
+                        : 'Not enabled yet — Tap below to enable real-time device alerts'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleNotifications}
+                  disabled={notifLoading || notifPermission === 'denied'}
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-sm shrink-0 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 ${
+                    notifPermission === 'granted'
+                      ? 'bg-[#F0F7F4] hover:bg-[#E2EFE9] text-[#145C4B] border border-[#E2EFE9]'
+                      : 'bg-[#145C4B] hover:bg-[#0E382F] text-white'
+                  }`}
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>
+                    {notifLoading
+                      ? 'Processing...'
+                      : notifPermission === 'granted'
+                      ? 'Send Test Alert'
+                      : 'Enable Notifications'}
+                  </span>
+                </button>
+              </div>
+            )}
 
             {!isEditing && (
               <div className="bg-[#0E382F] text-white rounded-[24px] p-6 shadow-md border border-emerald-500/20 relative overflow-hidden">

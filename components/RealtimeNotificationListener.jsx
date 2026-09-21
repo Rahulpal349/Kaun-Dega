@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { api } from '../lib/firebaseApi';
+import { db, auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { setupForegroundMessageListener } from '../lib/webPush';
 import { Bell, ArrowRight, X } from 'lucide-react';
 
@@ -13,69 +13,78 @@ export default function RealtimeNotificationListener() {
   const [activeToast, setActiveToast] = useState(null);
 
   useEffect(() => {
-    const user = api.currentUser();
-    if (!user || !user.id) return;
+    let unsubscribeFirestore = () => {};
+    let unsubscribeFCM = () => {};
 
-    let isFirstSnapshot = true;
-    const notifQuery = query(
-      collection(db, 'notifications'),
-      where('targetUserId', '==', user.id)
-    );
-
-    const unsubscribeFirestore = onSnapshot(notifQuery, (snapshot) => {
-      if (isFirstSnapshot) {
-        isFirstSnapshot = false;
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!user || !user.uid) {
+        unsubscribeFirestore();
+        unsubscribeFCM();
         return;
       }
 
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const data = change.doc.data();
-          if (data && !data.read) {
-            // Mark read
-            updateDoc(doc(db, 'notifications', change.doc.id), { read: true }).catch(() => {});
+      let isFirstSnapshot = true;
+      const notifQuery = query(
+        collection(db, 'notifications'),
+        where('targetUserId', '==', user.uid)
+      );
 
-            // Show In-App Toast
-            const toastData = {
-              id: change.doc.id,
-              title: data.title || 'Kaun Dega? 💸',
-              body: data.body || 'New activity in your group.',
-              groupId: data.groupId || null,
-            };
-            setActiveToast(toastData);
+      unsubscribeFirestore = onSnapshot(notifQuery, (snapshot) => {
+        if (isFirstSnapshot) {
+          isFirstSnapshot = false;
+          return;
+        }
 
-            // Also trigger native OS Notification if permission granted
-            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-              try {
-                new Notification(toastData.title, {
-                  body: toastData.body,
-                  icon: '/icon-192x192.png',
-                  badge: '/icon-192x192.png',
-                });
-              } catch (_) {}
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const data = change.doc.data();
+            if (data && !data.read) {
+              // Mark read
+              updateDoc(doc(db, 'notifications', change.doc.id), { read: true }).catch(() => {});
+
+              // Show In-App Toast
+              const toastData = {
+                id: change.doc.id,
+                title: data.title || 'Kaun Dega? 💸',
+                body: data.body || 'New activity in your group.',
+                groupId: data.groupId || null,
+              };
+              setActiveToast(toastData);
+
+              // Also trigger native OS Notification if permission granted
+              if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                try {
+                  new Notification(toastData.title, {
+                    body: toastData.body,
+                    icon: '/icon-192x192.png',
+                    badge: '/icon-192x192.png',
+                  });
+                } catch (_) {}
+              }
             }
           }
-        }
+        });
+      }, (err) => {
+        console.warn('Realtime notifications listener error:', err.message);
       });
-    }, (err) => {
-      console.warn('Realtime notifications listener error:', err.message);
-    });
 
-    // Also listen to FCM foreground push messages
-    const unsubscribeFCM = setupForegroundMessageListener((payload) => {
-      const title = payload.notification?.title || payload.data?.title || 'Kaun Dega? 💸';
-      const body = payload.notification?.body || payload.data?.body || 'New activity in your group.';
-      const groupId = payload.data?.groupId || null;
+      // Also listen to FCM foreground push messages
+      unsubscribeFCM = setupForegroundMessageListener((payload) => {
+        const title = payload.notification?.title || payload.data?.title || 'Kaun Dega? 💸';
+        const body = payload.notification?.body || payload.data?.body || 'New activity in your group.';
+        const groupId = payload.data?.groupId || null;
 
-      setActiveToast({
-        id: Date.now().toString(),
-        title,
-        body,
-        groupId,
+        setActiveToast({
+          id: Date.now().toString(),
+          title,
+          body,
+          groupId,
+        });
       });
     });
 
     return () => {
+      unsubscribeAuth();
       unsubscribeFirestore();
       unsubscribeFCM();
     };
@@ -93,7 +102,7 @@ export default function RealtimeNotificationListener() {
   if (!activeToast) return null;
 
   return (
-    <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-[100] animate-slide-down">
+    <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-[1000] animate-slide-down">
       <div 
         onClick={() => {
           if (activeToast.groupId) {
