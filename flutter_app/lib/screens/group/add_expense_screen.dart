@@ -203,6 +203,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       }
     }
 
+    // In a 2-person group or 1-on-1 Khatabook, if only 1 share was formed and it matches the payer,
+    // self-heal: the debt is owed by the other member.
+    if (group.memberList.length == 2 && shares.length == 1 && shares[0].userId == _paidBy) {
+      final otherMember = group.memberList.firstWhere((m) => m.id != _paidBy, orElse: () => group.memberList.first);
+      if (otherMember.id != _paidBy) {
+        shares = [ExpenseShare(userId: otherMember.id, amount: shares[0].amount)];
+      }
+    }
+
     setState(() {
       _isSaving = true;
       _errorMessage = null;

@@ -58,5 +58,39 @@ void main() {
       expect(text.contains('100.00'), true);
       expect(text.contains('alice@upi'), true);
     });
+
+    test('Self-heals 2-member Khatabook expense when share assigned to payer', () {
+      final manas = UserModel(id: 'u_manas', name: 'Manas');
+      final rahul = UserModel(id: 'u_rahul', name: 'Rahul');
+
+      // Rahul paid 198, but share erroneously had Rahul's own ID
+      final expense = ExpenseModel(
+        id: 'e_198',
+        groupId: 'g_direct',
+        description: 'Get',
+        amount: 198.0,
+        paidBy: 'u_rahul',
+        splitType: 'custom',
+        shares: [ExpenseShare(userId: 'u_rahul', amount: 198.0)],
+        payer: PayerInfo(id: 'u_rahul', name: 'Rahul'),
+      );
+
+      final report = BalanceService.computeBalances(
+        members: [manas, rahul],
+        expenses: [expense],
+        settlements: [],
+      );
+
+      // Rahul is owed +198, Manas owes -198
+      final balRahul = report.balances.firstWhere((b) => b.id == 'u_rahul');
+      final balManas = report.balances.firstWhere((b) => b.id == 'u_manas');
+
+      expect(balRahul.amount, 198.0);
+      expect(balManas.amount, -198.0);
+      expect(report.moves.length, 1);
+      expect(report.moves[0].from, 'u_manas');
+      expect(report.moves[0].to, 'u_rahul');
+      expect(report.moves[0].amount, 198.0);
+    });
   });
 }

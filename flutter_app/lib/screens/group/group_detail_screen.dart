@@ -1155,6 +1155,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
               final e = sortedExpenses[idx];
               final isExpanded = _expandedExpenseId == e.id;
               final dateStr = DateFormat('dd MMM yyyy').format(DateTime.tryParse(e.createdAt) ?? DateTime.now());
+              final appState = context.read<AppState>();
+              final currentUserId = appState.currentUser?.id ?? '';
+              final currentUserName = (appState.currentUser?.name ?? '').toLowerCase().trim();
+              final isExpensePayer = (currentUserId.isNotEmpty && (e.paidBy == currentUserId || e.payer.id == currentUserId)) ||
+                  (currentUserName.isNotEmpty && e.payer.name.toLowerCase().trim() == currentUserName);
+              final isAdmin = group?.myRole == 'admin' || (appState.currentUser != null && group?.createdBy == appState.currentUser?.id);
+              final canEditExpense = isExpensePayer || isAdmin || (group?.isDirect == true);
 
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -1195,9 +1202,20 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    'Paid by ${e.payer.name}',
-                                    style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                                  RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                                      children: [
+                                        const TextSpan(text: 'Paid by '),
+                                        TextSpan(
+                                          text: e.payer.name,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: isExpensePayer ? AppColors.primary : AppColors.negative,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1206,8 +1224,12 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '₹${e.amount.toStringAsFixed(2)}',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+                                  '${isExpensePayer ? '' : '−'}₹${e.amount.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                    color: isExpensePayer ? AppColors.primary : AppColors.negative,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -1231,13 +1253,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
                         ),
                         child: () {
-                          final appState = context.read<AppState>();
-                          final currentUserId = appState.currentUser?.id ?? '';
-                          final currentUserName = (appState.currentUser?.name ?? '').toLowerCase().trim();
-                          final isExpensePayer = (currentUserId.isNotEmpty && (e.paidBy == currentUserId || e.payer.id == currentUserId)) ||
-                              (currentUserName.isNotEmpty && e.payer.name.toLowerCase().trim() == currentUserName);
-                          final canEditExpense = isExpensePayer;
-
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

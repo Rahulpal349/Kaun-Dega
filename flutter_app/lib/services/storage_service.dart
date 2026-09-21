@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -1469,6 +1470,25 @@ class StorageService {
         'groupId': groupId,
         'created_at': DateTime.now().toIso8601String(),
         'read': false,
+      });
+
+      // Asynchronously trigger push notification across web/mobile devices
+      Future(() async {
+        try {
+          final client = HttpClient();
+          final request = await client.postUrl(Uri.parse('https://kaun-dega.vercel.app/api/notify'));
+          request.headers.set('Content-Type', 'application/json; charset=UTF-8');
+          request.add(utf8.encode(jsonEncode({
+            'targetUserId': targetUserId,
+            'targetEmail': emailClean,
+            'title': title,
+            'body': body,
+            'groupId': groupId,
+          })));
+          final response = await request.close();
+          await response.drain();
+          client.close();
+        } catch (_) {}
       });
     } catch (_) {}
   }
