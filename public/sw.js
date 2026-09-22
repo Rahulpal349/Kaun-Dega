@@ -1,4 +1,46 @@
-const CACHE_NAME = 'kaun-dega-pwa-v1';
+// Combined PWA Offline Cache + Firebase Cloud Messaging Service Worker
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDrJtNTavCl3dPCAm3t6bx9Yn7OBgEKExI",
+  authDomain: "kaun-dega-3a5cc.firebaseapp.com",
+  projectId: "kaun-dega-3a5cc",
+  storageBucket: "kaun-dega-3a5cc.firebasestorage.app",
+  messagingSenderId: "889585560545",
+  appId: "1:889585560545:web:2219eec7e87e56808480a0"
+};
+
+try {
+  firebase.initializeApp(firebaseConfig);
+} catch (_) {}
+
+let messaging;
+try {
+  messaging = firebase.messaging();
+} catch (e) {
+  console.warn('[sw.js] Firebase Messaging init notice:', e.message);
+}
+
+if (messaging) {
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[sw.js] Received FCM background message:', payload);
+    const title = payload.notification?.title || payload.data?.title || 'Kaun Dega? 💸';
+    const options = {
+      body: payload.notification?.body || payload.data?.body || 'New activity in your group.',
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      vibrate: [200, 100, 200],
+      data: payload.data || {},
+      actions: [
+        { action: 'open', title: 'Open Ledger' }
+      ]
+    };
+    return self.registration.showNotification(title, options);
+  });
+}
+
+const CACHE_NAME = 'kaun-dega-pwa-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/dashboard',
@@ -55,7 +97,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification handling in main Service Worker
+// Fallback push event handler for direct webpush payloads
 self.addEventListener('push', (event) => {
   if (event.data) {
     try {
@@ -98,4 +140,3 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
-

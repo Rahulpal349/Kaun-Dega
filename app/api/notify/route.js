@@ -62,10 +62,17 @@ export async function POST(request) {
 
     // 2. Fallback: Search by email if no tokens found yet
     if (tokens.length === 0 && targetEmail) {
-      const snap = await firestore.collection('users')
-        .where('email_lower', '==', targetEmail.toLowerCase().trim())
+      const cleanEmail = targetEmail.trim().toLowerCase();
+      let snap = await firestore.collection('users')
+        .where('email_lower', '==', cleanEmail)
         .limit(1)
         .get();
+      if (snap.empty) {
+        snap = await firestore.collection('users')
+          .where('email', '==', targetEmail.trim())
+          .limit(1)
+          .get();
+      }
       if (!snap.empty) {
         const userData = snap.docs[0].data();
         if (Array.isArray(userData?.fcmTokens)) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { auth } from '../../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -17,7 +17,9 @@ import {
   X, 
   ArrowRight,
   Sparkles,
-  Download
+  Download,
+  Globe,
+  HelpCircle
 } from 'lucide-react';
 
 export default function JoinGroupPage() {
@@ -31,38 +33,71 @@ export default function JoinGroupPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showBanner, setShowBanner] = useState(true);
-  const [attemptedAppOpen, setAttemptedAppOpen] = useState(false);
-  const autoOpenTimerRef = useRef(null);
+  
+  // App opening state
+  const [isOpeningApp, setIsOpeningApp] = useState(false);
+  const [showInlineFallback, setShowInlineFallback] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [appUrl, setAppUrl] = useState(`kaundega://join/${code}`);
+  const [alternativeSchemeUrl] = useState(`kaundega://join/${code}`);
 
-  // Trigger opening the mobile app directly
-  const openInApp = useCallback(() => {
+  // Compute the optimal deep link URL based on device & browser environment
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     const ua = navigator.userAgent || '';
     const isAndroid = /android/i.test(ua);
-    const isIOS = /iphone|ipad|ipod/i.test(ua);
-
-    setAttemptedAppOpen(true);
+    const isWebView = /; wv\)|WebView|WhatsApp|Instagram|FB_IAB|FBAV|Line|Twitter/i.test(ua);
 
     if (isAndroid) {
-      // Direct custom scheme for webviews/in-app browsers + Chrome intent syntax fallback
-      const currentUrl = window.location.href;
-      const intentUrl = `intent://join/${code}#Intent;scheme=kaundega;package=com.kaundega.kaun_dega;S.browser_fallback_url=${encodeURIComponent(currentUrl)};end`;
-      
-      try {
-        window.location.href = `kaundega://join/${code}`;
-        setTimeout(() => {
-          window.location.href = intentUrl;
-        }, 150);
-      } catch (_) {
-        window.location.href = intentUrl;
+      if (isWebView) {
+        // In-app webviews (WhatsApp, Instagram) require custom URI scheme
+        setAppUrl(`kaundega://join/${code}`);
+      } else {
+        // Android Chrome / browsers: targeted intent ensures com.kaundega.kaun_dega is launched
+        setAppUrl(`intent://join/${code}#Intent;scheme=kaundega;package=com.kaundega.kaun_dega;end`);
       }
-    } else if (isIOS) {
-      // iOS Custom Scheme
-      window.location.href = `kaundega://join/${code}`;
     } else {
-      // Desktop fallback: try custom scheme
-      window.location.href = `kaundega://join/${code}`;
+      // iOS Safari and other platforms
+      setAppUrl(`kaundega://join/${code}`);
     }
+  }, [code]);
+
+  // Programmatic launch trigger with fallback detection (no page reload)
+  const openInApp = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    setIsOpeningApp(true);
+    setShowInlineFallback(false);
+
+    const ua = navigator.userAgent || '';
+    const isAndroid = /android/i.test(ua);
+    const isWebView = /; wv\)|WebView|WhatsApp|Instagram|FB_IAB|FBAV|Line|Twitter/i.test(ua);
+
+    const targetUrl = isAndroid && !isWebView
+      ? `intent://join/${code}#Intent;scheme=kaundega;package=com.kaundega.kaun_dega;end`
+      : `kaundega://join/${code}`;
+
+    // Direct navigation synchronously
+    window.location.href = targetUrl;
+
+    // Also trigger via synthetic anchor click for Android webview compatibility
+    try {
+      const a = document.createElement('a');
+      a.href = targetUrl;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        try { document.body.removeChild(a); } catch (_) {}
+      }, 400);
+    } catch (_) {}
+
+    // Check after 2.5s if browser is still visible without launching app
+    setTimeout(() => {
+      setIsOpeningApp(false);
+      if (!document.hidden && document.visibilityState === 'visible') {
+        setShowInlineFallback(true);
+      }
+    }, 2500);
   }, [code]);
 
   // Load group details publicly without blocking on auth
@@ -86,24 +121,13 @@ export default function JoinGroupPage() {
 
     loadGroupDetails();
 
-    // Auto-attempt opening the app if on mobile device (Flipkart / Amazon behavior)
-    if (typeof window !== 'undefined') {
-      const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
-      if (isMobile) {
-        autoOpenTimerRef.current = setTimeout(() => {
-          openInApp();
-        }, 350);
-      }
-    }
-
-    // Monitor auth state to check if the user is already logged in
+    // Monitor auth state to check if user is logged in
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (!isMounted) return;
       setCurrentUser(user);
       if (user) {
         try {
           await api.ensureUserProfile(user);
-          // Re-fetch invite info to update isAlreadyMember
           const refreshed = await api.getInviteInfo(code);
           if (isMounted) setInviteInfo(refreshed);
         } catch (_) {}
@@ -112,15 +136,13 @@ export default function JoinGroupPage() {
 
     return () => {
       isMounted = false;
-      if (autoOpenTimerRef.current) clearTimeout(autoOpenTimerRef.current);
       unsubscribeAuth();
     };
-  }, [code, openInApp]);
+  }, [code]);
 
   // Join on web flow
   async function handleJoinWeb() {
     if (!currentUser) {
-      // Save invite code and route to login
       localStorage.setItem('pending_invite_code', code);
       router.push(`/login?redirect=/join/${code}`);
       return;
@@ -129,15 +151,16 @@ export default function JoinGroupPage() {
     setJoining(true);
     setError('');
     try {
+      const targetGroupId = inviteInfo?.groupId || code;
       if (inviteInfo?.isAlreadyMember) {
         setSuccess('You are already a member!');
-        setTimeout(() => router.push(`/groups/${code}`), 600);
+        setTimeout(() => router.push(`/groups/${targetGroupId}`), 600);
         return;
       }
 
       await api.joinGroupByCode(code);
       setSuccess('You joined the group!');
-      setTimeout(() => router.push(`/groups/${code}`), 600);
+      setTimeout(() => router.push(`/groups/${targetGroupId}`), 600);
     } catch (err) {
       setError(err.message || 'Failed to join group');
       setJoining(false);
@@ -169,10 +192,10 @@ export default function JoinGroupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4FBF7] flex flex-col font-body">
-      {/* Smart App Banner (Flipkart / Amazon Style) */}
+    <div className="min-h-screen bg-[#F4FBF7] flex flex-col font-body relative">
+      {/* Smart App Banner */}
       {showBanner && (
-        <aside aria-label="Kaun Dega mobile app banner" className="sticky top-0 z-50 bg-[#0E382F] text-white px-4 py-3 shadow-md border-b border-white/10 backdrop-blur-md">
+        <aside aria-label="Kaun Dega mobile app banner" className="sticky top-0 z-40 bg-[#0E382F] text-white px-4 py-3 shadow-md border-b border-white/10 backdrop-blur-md">
           <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <button 
@@ -194,13 +217,22 @@ export default function JoinGroupPage() {
               </div>
             </div>
 
-            <button
-              onClick={openInApp}
+            <a
+              href={appUrl}
+              onClick={(e) => {
+                openInApp();
+              }}
               className="px-4 py-1.5 bg-[#25D366] text-[#0E382F] hover:bg-[#20ba59] font-extrabold text-xs rounded-xl shrink-0 transition-all active:scale-95 shadow-xs flex items-center gap-1"
             >
-              <span>USE APP</span>
-              <ExternalLink size={12} />
-            </button>
+              {isOpeningApp ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <>
+                  <span>USE APP</span>
+                  <ExternalLink size={12} />
+                </>
+              )}
+            </a>
           </div>
         </aside>
       )}
@@ -258,17 +290,62 @@ export default function JoinGroupPage() {
 
           {/* Primary Action: Open in Kaun Dega App */}
           <div className="space-y-3">
-            <button
-              onClick={openInApp}
-              className="w-full bg-[#145C4B] text-white hover:bg-[#0E382F] font-extrabold py-4 px-6 rounded-2xl shadow-lg shadow-[#145C4B]/20 transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
+            <a
+              href={appUrl}
+              onClick={(e) => {
+                openInApp();
+              }}
+              className="w-full bg-[#145C4B] text-white hover:bg-[#0E382F] font-extrabold py-4 px-6 rounded-2xl shadow-lg shadow-[#145C4B]/20 transition-all flex items-center justify-center gap-2 group active:scale-[0.98] select-none"
             >
-              <Smartphone size={20} className="group-hover:scale-110 transition-transform text-[#25D366]" />
-              <span className="text-base">Open in Kaun Dega App</span>
-            </button>
+              {isOpeningApp ? (
+                <>
+                  <Loader2 size={20} className="animate-spin text-[#25D366]" />
+                  <span className="text-base">Opening Kaun Dega App...</span>
+                </>
+              ) : (
+                <>
+                  <Smartphone size={20} className="group-hover:scale-110 transition-transform text-[#25D366]" />
+                  <span className="text-base">Open in Kaun Dega App</span>
+                </>
+              )}
+            </a>
 
             <p className="text-[11px] text-gray-400 font-medium">
-              Directly opens in the mobile app if installed
+              Directly launches the Kaun Dega mobile app
             </p>
+
+            {/* Non-blocking Inline Fallback Helper (appears only if app didn't open) */}
+            {showInlineFallback && (
+              <div className="p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl text-left text-xs text-emerald-950 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex items-center gap-2 font-bold text-emerald-900">
+                  <HelpCircle size={15} className="text-[#145C4B]" />
+                  <span>Didn't open in app?</span>
+                </div>
+                <p className="text-[11px] text-emerald-800 leading-relaxed">
+                  Try opening via direct custom link or join instantly on web without installing anything:
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <a
+                    href={alternativeSchemeUrl}
+                    className="px-3 py-1.5 bg-[#145C4B] text-white font-bold rounded-xl text-xs hover:bg-[#0E382F] transition-colors"
+                  >
+                    Open with kaundega://
+                  </a>
+                  <button
+                    onClick={handleJoinWeb}
+                    className="px-3 py-1.5 bg-white border border-[#E2EFE9] text-gray-800 font-bold rounded-xl text-xs hover:bg-[#F0F7F4] transition-colors"
+                  >
+                    Join on Web Now
+                  </button>
+                  <button
+                    onClick={() => setShowDownloadModal(true)}
+                    className="px-3 py-1.5 bg-white border border-[#E2EFE9] text-gray-800 font-bold rounded-xl text-xs hover:bg-[#F0F7F4] transition-colors"
+                  >
+                    Get APK
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Divider with 'or' */}
             <div className="relative my-4 flex items-center justify-center">
@@ -281,7 +358,7 @@ export default function JoinGroupPage() {
             {/* Secondary Action: Join / Open on Web */}
             {inviteInfo?.isAlreadyMember ? (
               <button
-                onClick={() => router.push(`/groups/${inviteInfo.groupId}`)}
+                onClick={() => router.push(`/groups/${inviteInfo.groupId || code}`)}
                 className="w-full bg-white border border-[#E2EFE9] text-gray-800 hover:bg-[#F0F7F4] font-bold py-3 px-5 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm shadow-2xs"
               >
                 <span>Open Group on Web</span>
@@ -319,7 +396,7 @@ export default function JoinGroupPage() {
               Don't have the Kaun Dega app installed?
             </span>
             <button
-              onClick={openInApp}
+              onClick={() => setShowDownloadModal(true)}
               className="inline-flex items-center gap-1.5 text-xs font-bold text-[#145C4B] hover:text-[#0E382F] transition-colors"
             >
               <Download size={14} />
@@ -328,6 +405,62 @@ export default function JoinGroupPage() {
           </div>
         </div>
       </main>
+
+      {/* Download Options Modal (opened only when user taps "Download & Install Mobile App" or "Get APK") */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 space-y-4 text-center">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <div className="text-left">
+                <h3 className="text-base font-extrabold text-gray-900">Get Kaun Dega</h3>
+                <p className="text-xs text-gray-500">Choose how you would like to use Kaun Dega</p>
+              </div>
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <a
+                href="/api/download"
+                download="kaun-dega.apk"
+                className="w-full bg-[#145C4B] text-white hover:bg-[#0E382F] font-bold p-3.5 rounded-2xl transition-all flex items-center gap-3 text-left shadow-sm"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                  <Download size={20} className="text-[#25D366]" />
+                </div>
+                <div>
+                  <div className="text-sm font-extrabold">Download Android App (APK)</div>
+                  <div className="text-[11px] text-white/75">Fast install, offline mode & UPI integration</div>
+                </div>
+              </a>
+
+              <button
+                onClick={() => {
+                  setShowDownloadModal(false);
+                  handleJoinWeb();
+                }}
+                className="w-full bg-[#F4FBF7] border border-[#E2EFE9] text-gray-800 hover:bg-[#EAF5F0] font-bold p-3.5 rounded-2xl transition-all flex items-center gap-3 text-left"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#145C4B]/10 flex items-center justify-center shrink-0 text-[#145C4B]">
+                  <Globe size={20} />
+                </div>
+                <div>
+                  <div className="text-sm font-extrabold text-gray-900">Use Web App (No Install)</div>
+                  <div className="text-[11px] text-gray-500">Instant access right now in this browser</div>
+                </div>
+              </button>
+            </div>
+
+            <p className="text-[11px] text-gray-400">
+              For iOS users: Kaun Dega works as a PWA in Safari. Tap Share &gt; Add to Home Screen.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

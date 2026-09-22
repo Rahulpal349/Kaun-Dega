@@ -1180,14 +1180,28 @@ class StorageService {
         final groupName = groupData['name'] as String? ?? 'Ledger';
         final members = groupData['members'] as Map<String, dynamic>? ?? {};
 
+        final myProfile = await getUserProfile();
+        final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? myProfile?.id;
+        final isDirect = groupData['isDirect'] == true ||
+            groupData['is_direct'] == true ||
+            groupData['groupType'] == 'direct' ||
+            groupData['groupType'] == 'khatabook' ||
+            groupData['icon'] == 'user';
+
         for (final mId in memberIds) {
-          if (mId != paidBy) {
+          if (mId != currentUserId) {
             final mEmail = (members[mId]?['email'] as String? ?? '').toLowerCase().trim();
+            final targetUid = mId.startsWith('shadow_') ? null : mId;
+            final notifTitle = isDirect ? 'Khatabook Update 📖' : 'New Expense in $groupName 💸';
+            final notifBody = isDirect
+                ? '${payer.name} recorded "$description" (₹${amount.toStringAsFixed(2)})'
+                : '${payer.name} added "$description" (₹${amount.toStringAsFixed(2)})';
+
             sendNotificationToUser(
-              targetUserId: mId,
+              targetUserId: targetUid,
               targetEmail: mEmail.isNotEmpty ? mEmail : null,
-              title: 'New Expense in $groupName 💸',
-              body: '${payer.name} added "$description" (₹${amount.toStringAsFixed(2)})',
+              title: notifTitle,
+              body: notifBody,
               groupId: groupId,
             );
           }

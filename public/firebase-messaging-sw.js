@@ -11,7 +11,9 @@ const firebaseConfig = {
   appId: "1:889585560545:web:2219eec7e87e56808480a0"
 };
 
-firebase.initializeApp(firebaseConfig);
+try {
+  firebase.initializeApp(firebaseConfig);
+} catch (_) {}
 
 let messaging;
 try {

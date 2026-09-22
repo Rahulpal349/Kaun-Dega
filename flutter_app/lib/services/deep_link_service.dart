@@ -59,6 +59,10 @@ class DeepLinkService {
     _initialCode = null;
   }
 
+  /// Test helper to extract code directly
+  @visibleForTesting
+  String? extractCode(Uri uri) => _extractCode(uri);
+
   /// Extracts the group invite code or group ID from a URL.
   /// Handles:
   ///   https://kaun-dega.vercel.app/join/abc123  →  "abc123"

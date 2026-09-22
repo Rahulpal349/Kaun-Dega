@@ -52,7 +52,13 @@
                     android:pathPrefix="/groups" />
             </intent-filter>
 
-            <!-- Custom URI Scheme: kaundega://join/[groupId], kaundega://groups/[groupId] -->
+            <!-- Custom URI Scheme: kaundega://join/[groupId], kaundega://groups/[groupId], kaundega://* -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="kaundega" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

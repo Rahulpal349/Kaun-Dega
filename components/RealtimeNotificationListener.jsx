@@ -23,50 +23,71 @@ export default function RealtimeNotificationListener() {
         return;
       }
 
-      let isFirstSnapshot = true;
-      const notifQuery = query(
+      const userEmail = (user.email || '').toLowerCase().trim();
+      let unsubscribeEmail = () => {};
+
+      const handleDocChange = (change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          if (data && !data.read) {
+            // Mark read
+            updateDoc(doc(db, 'notifications', change.doc.id), { read: true }).catch(() => {});
+
+            // Show In-App Toast
+            const toastData = {
+              id: change.doc.id,
+              title: data.title || 'Kaun Dega? 💸',
+              body: data.body || 'New activity in your group.',
+              groupId: data.groupId || null,
+            };
+            setActiveToast(toastData);
+
+            // Also trigger native OS Notification if permission granted
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              try {
+                new Notification(toastData.title, {
+                  body: toastData.body,
+                  icon: '/icon-192x192.png',
+                  badge: '/icon-192x192.png',
+                });
+              } catch (_) {}
+            }
+          }
+        }
+      };
+
+      let isFirstUserSnap = true;
+      const notifQueryUser = query(
         collection(db, 'notifications'),
         where('targetUserId', '==', user.uid)
       );
 
-      unsubscribeFirestore = onSnapshot(notifQuery, (snapshot) => {
-        if (isFirstSnapshot) {
-          isFirstSnapshot = false;
+      unsubscribeFirestore = onSnapshot(notifQueryUser, (snapshot) => {
+        if (isFirstUserSnap) {
+          isFirstUserSnap = false;
           return;
         }
-
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added') {
-            const data = change.doc.data();
-            if (data && !data.read) {
-              // Mark read
-              updateDoc(doc(db, 'notifications', change.doc.id), { read: true }).catch(() => {});
-
-              // Show In-App Toast
-              const toastData = {
-                id: change.doc.id,
-                title: data.title || 'Kaun Dega? 💸',
-                body: data.body || 'New activity in your group.',
-                groupId: data.groupId || null,
-              };
-              setActiveToast(toastData);
-
-              // Also trigger native OS Notification if permission granted
-              if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-                try {
-                  new Notification(toastData.title, {
-                    body: toastData.body,
-                    icon: '/icon-192x192.png',
-                    badge: '/icon-192x192.png',
-                  });
-                } catch (_) {}
-              }
-            }
-          }
-        });
+        snapshot.docChanges().forEach(handleDocChange);
       }, (err) => {
-        console.warn('Realtime notifications listener error:', err.message);
+        console.warn('Realtime notifications UID listener error:', err.message);
       });
+
+      if (userEmail) {
+        let isFirstEmailSnap = true;
+        const notifQueryEmail = query(
+          collection(db, 'notifications'),
+          where('targetEmail', '==', userEmail)
+        );
+        unsubscribeEmail = onSnapshot(notifQueryEmail, (snapshot) => {
+          if (isFirstEmailSnap) {
+            isFirstEmailSnap = false;
+            return;
+          }
+          snapshot.docChanges().forEach(handleDocChange);
+        }, (err) => {
+          console.warn('Realtime notifications email listener error:', err.message);
+        });
+      }
 
       // Also listen to FCM foreground push messages
       unsubscribeFCM = setupForegroundMessageListener((payload) => {
